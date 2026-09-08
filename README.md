@@ -29,6 +29,10 @@ Run the local browser shell at <http://127.0.0.1:8781>:
 The interface includes a cached April 7–14 research preview and labels its two
 remaining preprocessing substitutions. Arbitrary live estimates stay disabled.
 
+The cached example is a separate, query-bound result card. Use **Load this example**
+to synchronize the map, requested point, pixel footprint, and period selector. A
+different map point or period never relabels the cached result.
+
 Inspect the real scan selection for the first post-cutoff composite:
 
 ```bash
@@ -55,6 +59,18 @@ Reproduce the provisional complete composite:
 
 The explicit IGBP argument is an auditable override, not an automatic land-cover
 classification. Do not present this run as exact notebook reproduction.
+
+## Current dependency status
+
+- Verified: authoritative notebook and checksum-matched 600-tree model.
+- Missing exact input: `S-NPP_VIIRS_GST_IGBP_8-Year_30arcsec.nc`.
+- Missing exact helper: `geometry_goes19.py`.
+- Cached-example approximations: manually supplied IGBP class and the documented
+  NOAA solar-angle approximation.
+
+`/api/status` generates this state from the live dependency audit. HTML, JavaScript,
+CSS, and API responses use `Cache-Control: no-store` to prevent a restarted local
+server from being confused with browser caching.
 
 ## Scientific boundaries
 

@@ -1,0 +1,16 @@
+{
+  "location": "Montgomery County, Maryland",
+  "coordinates": "39.1547, −77.2405",
+  "period": "2026-04-07",
+  "context": "Montgomery County, Maryland · Apr 7, 2026–Apr 14, 2026 · loaded in the selected query",
+  "footprintPaths": 2,
+  "livePredictionBlocked": true,
+  "bars": [
+    "15 UTC4 of 8",
+    "18 UTC5 of 8",
+    "21 UTC6 of 8"
+  ],
+  "summary": "15 of 24 observations passed filtering.",
+  "afterPeriodChange": "Montgomery County, Maryland · Apr 7, 2026–Apr 14, 2026 · separate from the current selected query",
+  "selectionDiffers": true
+}

@@ -38,6 +38,19 @@ Last updated: 2026-09-07
   arbitrary live estimates disabled until exact auxiliary inputs are available.
 - Verification: 7 automated tests pass; model loading, CLI inference, and the local
   HTTP API have been exercised.
+- UI status now comes directly from the dependency audit: notebook/model are shown
+  as verified, while the exact IGBP grid and solar helper are named as missing.
+- The cached example owns its location, requested point, sampled pixel, footprint,
+  April 7–14 period, LAI, limitations, and observation counts. Loading it synchronizes
+  the query controls; later query changes leave the example clearly separate.
+- Observation support uses the record's 4/8, 5/8, and 6/8 counts on a shared scale
+  and reports 15/24, without converting availability into confidence or accuracy.
+- Verification: 9 automated tests pass; Python and JavaScript syntax checks pass;
+  the restarted live server returned the corrected status and no-cache headers.
+- Electron Chromium checks passed at 1440×1100 and 430×932. The harness verified
+  example loading, query synchronization, actual footprint rendering, 4/8–5/8–6/8
+  support labels, 15/24 summary, blocked live prediction, and separation after a
+  period change. Screenshots and structured results are stored in `screenshots/`.
 
 ## Exact blockers
 
