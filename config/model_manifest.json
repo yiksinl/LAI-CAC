@@ -1,0 +1,22 @@
+{
+  "artifact": "artifacts/reference/lai_xgboost_model.json",
+  "expected_sha256": "815ed3b7cb92b95d598e24385527874864c5e6e282cf05d7dabbcca26391d4c6",
+  "runtime": {
+    "implementation": "xgboost-cpu",
+    "version": "3.3.0",
+    "objective": "reg:squarederror"
+  },
+  "known_structure": {
+    "trees": 600,
+    "named_float_features": 56,
+    "outputs": 1
+  },
+  "feature_groups_from_prompt": {
+    "reflectance_statistics": 18,
+    "geometry_and_season": 23,
+    "igbp_one_hot": 15
+  },
+  "feature_names_and_order": null,
+  "feature_schema_status": "pending checksum-verified model",
+  "training_note": "Export fitted on the notebook Cell 9 unseen-site training split; not all 78,940 cleaned sites."
+}

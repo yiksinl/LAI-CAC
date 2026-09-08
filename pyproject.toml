@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lai-cac"
+version = "0.1.0"
+description = "GOES-19 LAI inference pipeline and local Congressional App Challenge MVP"
+requires-python = ">=3.11"
+dependencies = [
+  "Flask==3.1.2",
+  "h5py==3.16.0",
+  "numpy==2.3.2",
+  "xgboost==3.3.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest==8.4.1"]
+
+[project.scripts]
+lai-cac = "lai_cac.cli:main"
+lai-cac-web = "lai_cac.web:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
