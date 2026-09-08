@@ -47,7 +47,17 @@ def list_scans(day: date, hour: int) -> list[Scan]:
 def nearest_scan(day: date, target_hour: int) -> Scan | None:
     target = datetime(day.year, day.month, day.day, target_hour, tzinfo=timezone.utc)
     candidates = list_scans(day, target_hour)
-    return min(candidates, key=lambda scan: abs(scan.started_at - target), default=None)
+    selected = min(candidates, key=lambda scan: (abs(scan.started_at - target), scan.started_at), default=None)
+    if selected is not None and abs((selected.started_at - target).total_seconds()) <= 20 * 60:
+        return selected
+    candidates = []
+    for offset in (-1, 1):
+        adjacent = target.fromtimestamp(target.timestamp() + offset * 3600, timezone.utc)
+        candidates.extend(list_scans(adjacent.date(), adjacent.hour))
+    selected = min(candidates, key=lambda scan: (abs(scan.started_at - target), scan.started_at), default=None)
+    if selected is None or abs((selected.started_at - target).total_seconds()) > 20 * 60:
+        return None
+    return selected
 
 
 def download(scan: Scan, destination: Path) -> Path:
@@ -129,6 +139,7 @@ def sample_pixel(path: Path, latitude: float, longitude: float) -> dict[str, obj
             for xx in (float(x_values[col]) - x_step / 2, float(x_values[col]) + x_step / 2):
                 corner_lat, corner_lon = fixed_grid_latlon(xx, yy, nc["goes_imager_projection"])
                 footprint.append({"latitude": corner_lat, "longitude": corner_lon})
+        scan_time = datetime(2000, 1, 1, 12, tzinfo=timezone.utc).timestamp() + float(nc["t"][()])
         return {
             "row": row, "column": col, "fixed_grid_x_rad": float(x_values[col]),
             "fixed_grid_y_rad": float(y_values[row]), "dqf": dqf,
@@ -137,6 +148,7 @@ def sample_pixel(path: Path, latitude: float, longitude: float) -> dict[str, obj
             "brf": {str(b): _decoded(nc[f"BRF{b}"], (row, col)) for b in (2, 3, 5)},
             "time_coverage_start": nc.attrs["time_coverage_start"].decode(),
             "time_coverage_end": nc.attrs["time_coverage_end"].decode(),
+            "scan_time_utc": datetime.fromtimestamp(scan_time, timezone.utc).isoformat(),
             "dataset_name": nc.attrs["dataset_name"].decode(),
         }
 
@@ -150,3 +162,14 @@ def decode_dqf(dqf: int) -> dict[str, bool | int]:
         "not_absolutely_clear": bool(dqf & 0b1000000),
         "invalid_aerosol_climatology": bool(dqf & 0b10000000),
     }
+
+
+def passes_notebook_strict_quality(dqf: int) -> bool:
+    decoded = decode_dqf(dqf)
+    return bool(
+        decoded["overall_quality"] == 0
+        and decoded["retrieval_path"] == 2
+        and not decoded["small_scattering_angle"]
+        and not decoded["not_absolutely_clear"]
+        and not decoded["invalid_aerosol_climatology"]
+    )

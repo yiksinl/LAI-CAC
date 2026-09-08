@@ -4,10 +4,10 @@ Last updated: 2026-09-07
 
 ## Plan
 
-1. **In progress:** recover and audit the authoritative notebook and model.
-2. **In progress:** verify GOES-19 retrieval, navigation, decoding, and scan inventory.
-3. **Blocked:** reproduce the notebook's exact 56-feature composite and one real prediction.
-4. **In progress:** a map/results browser shell exists; connect it only after Phase 1 verification.
+1. **Completed:** recover and audit the authoritative notebook and model.
+2. **Completed:** verify GOES-19 retrieval, navigation, decoding, and scan inventory.
+3. **In progress:** a real composite and model prediction run; two exact auxiliary inputs remain missing.
+4. **In progress:** the browser shell displays the clearly labeled cached research preview.
 
 ## Verified findings
 
@@ -27,35 +27,41 @@ Last updated: 2026-09-07
   (0.0711, 0.2697, 0.2436) and (0.0535, 0.2220, 0.1788), respectively.
 - The sampled pixel center is 39.150266, -77.243545; its four computed fixed-grid
   corners are retained by the sampler for footprint display.
-- A local map/results shell runs and hard-disables LAI output while authoritative
-  assets are missing. This is scaffolding, not a completed Phase 2 app.
-- Verification: 5 automated tests pass; the local HTTP status endpoint was exercised
-  and returned the expected missing-asset state.
+- The notebook was read completely without executing its training, Drive-mount,
+  cleanup, or deletion cells. Its SHA-256 is `d8944c0c38db645ba7dbc3dcfcbccd631074653d0edb5792a89af376d3ae91e2`.
+- The model checksum matches the supplied value. XGBoost 3.3.0 reports 600 trees
+  and the expected 56 named features in notebook Cell 9 order.
+- A complete real-observation run for 2026-04-07 through 2026-04-14 retained
+  4, 5, and 6 strict observations at 15, 18, and 21 UTC. With an explicit
+  deciduous-broadleaf IGBP class (4), it returned provisional LAI `1.2940457 m²/m²`.
+- The browser displays that cached preview with its dependency overrides and keeps
+  arbitrary live estimates disabled until exact auxiliary inputs are available.
+- Verification: 7 automated tests pass; model loading, CLI inference, and the local
+  HTTP API have been exercised.
 
 ## Exact blockers
 
-Neither supplied reference asset exists in the workspace, Downloads, Documents,
-Desktop, Google Drive mount, or the OpenClaw data tree:
+The notebook imports two research inputs that were not included:
 
-- `artifacts/reference/LAI_Machine_Learning_Project.ipynb` — authoritative feature
-  construction, time-offset selection, strict quality acceptance, geometry, and IGBP mapping.
-- `artifacts/reference/lai_xgboost_model.json` — the selected 600-tree model and the
-  authoritative 56 feature names/order. Expected SHA-256:
-  `815ed3b7cb92b95d598e24385527874864c5e6e282cf05d7dabbcca26391d4c6`.
+- `S-NPP_VIIRS_GST_IGBP_8-Year_30arcsec.nc` — exact `ST` grid used to assign the
+  model's IGBP one-hot class. NOAA publishes related annual/climatology products,
+  but none was silently substituted.
+- `geometry_goes19.py` — defines the notebook's imported `calculate_solar_angles`.
+  The provisional run uses a documented NOAA approximation, but exact numerical
+  parity cannot be asserted without this helper or stored comparison rows.
 
-Without these, producing an LAI number would be fabricated. Historical stored feature
-rows/predictions are also absent, so numerical reproduction cannot yet be checked.
-The isolated environment installs XGBoost 3.3.0, but this Mac needs Homebrew
-`libomp` before its native library can load.
+Historical stored feature rows/predictions are absent, so historical numerical
+reproduction also remains unverified.
 
-## Dependency audit (provisional until notebook is available)
+## Dependency audit
 
 | Dependency | Inference role | Status |
 |---|---|---|
-| `lai_xgboost_model.json` | Required prediction model and feature schema | Missing; required |
-| `LAI_Machine_Learning_Project.ipynb` | Authoritative preprocessing extraction | Missing; required for verification |
+| `lai_xgboost_model.json` | Required prediction model and feature schema | Present, checksum verified, loads |
+| `LAI_Machine_Learning_Project.ipynb` | Authoritative preprocessing extraction | Present and fully audited |
 | GOES-19 ABI-L2-BRFF | Bands 2, 3, 5, DQF, fixed-grid metadata | Public source verified |
 | `GOES_Navigation_2kmFD-GOES-East.nc` | Pixel navigation lookup | Missing; derivable from each ABI file's CF projection, equivalence must be notebook-checked |
-| `S-NPP_VIIRS_GST_IGBP_8-Year_30arcsec.nc` | Exact IGBP class predictor | Missing; source/format must be established from notebook |
-| `goes19_training_sites_geometry.csv` or Parquet | Training-site geometry / possibly documented demo site | Missing; likely not needed for arbitrary-location inference, notebook must confirm |
+| `S-NPP_VIIRS_GST_IGBP_8-Year_30arcsec.nc` | Exact IGBP class predictor | Missing; required for automatic faithful class assignment |
+| `geometry_goes19.py` | Exact solar zenith/azimuth helper | Missing; required for numerical parity |
+| `goes19_training_sites_geometry.csv` or Parquet | Training-site geometry | Not needed for arbitrary-location inference; notebook confirms it is derived training-site data |
 | New MODIS/VIIRS LAI labels | None (labels, not predictors) | Correctly excluded |

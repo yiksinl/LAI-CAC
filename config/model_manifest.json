@@ -16,7 +16,7 @@
     "geometry_and_season": 23,
     "igbp_one_hot": 15
   },
-  "feature_names_and_order": null,
-  "feature_schema_status": "pending checksum-verified model",
+  "feature_names_and_order": "loaded directly from the checksum-verified model at runtime",
+  "feature_schema_status": "verified: 56 named features; exact ordering enforced",
   "training_note": "Export fitted on the notebook Cell 9 unseen-site training split; not all 78,940 cleaned sites."
 }
