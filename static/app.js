@@ -71,13 +71,16 @@ function loadExampleIntoQuery() {
 
 function renderStatus(data) {
   const status = byId("status");
-  status.className = `status ${data.ready_for_verified_inference ? "ready" : "blocked"}`;
+  status.className = `status ${data.operational_readiness.ready ? "ready" : "blocked"}`;
   const title = document.createElement("strong");
   title.textContent = data.headline;
   status.replaceChildren(title);
   const verified = document.createElement("p");
   verified.textContent = `Verified: ${data.verified.join("; ")}.`;
   status.append(verified);
+  const checks = document.createElement("p");
+  checks.textContent = `Execution: ${data.operational_readiness.status}. Preprocessing: ${data.preprocessing_validation.status}. Historical reproduction: ${data.historical_numerical_reproduction.status} (not required at runtime).`;
+  status.append(checks);
   if (data.missing.length) {
     const missing = document.createElement("p");
     missing.textContent = `Still required: ${data.missing.map(item => item.filename).join(" and ")}.`;
@@ -87,6 +90,11 @@ function renderStatus(data) {
     const approximation = document.createElement("p");
     approximation.textContent = `Cached example only: ${data.approximations.join(" ")}`;
     status.append(approximation);
+  }
+  if (data.preprocessing_discrepancies.length) {
+    const discrepancy = document.createElement("p");
+    discrepancy.textContent = `Unresolved preprocessing: ${data.preprocessing_discrepancies.map(item => item.name).join("; ")}.`;
+    status.append(discrepancy);
   }
 }
 
@@ -108,10 +116,8 @@ function renderPeriods(data) {
 }
 
 function limitationSummary(record) {
-  const details = [];
-  if (record.provenance?.igbp?.source?.includes("explicit_argument")) details.push("its land-cover class was supplied manually");
-  if (record.provenance?.solar_geometry?.includes("approximation")) details.push("solar geometry was approximated");
-  return details.length ? `This example is provisional because ${details.join(" and ")}.` : "";
+  if (!record.status.startsWith("provisional") || !record.limitations.length) return "";
+  return "This result remains provisional because a preprocessing equivalence check is unresolved; see Methods and limitations.";
 }
 
 function renderSupport(record) {
@@ -144,11 +150,46 @@ function renderExample(record) {
   list.replaceChildren(...record.limitations.map(text => {
     const item = document.createElement("li"); item.textContent = text; return item;
   }));
+  const concerns = byId("methods-concerns");
+  concerns.replaceChildren(...(record.scientific_concerns || []).map(text => {
+    const item = document.createElement("li"); item.textContent = text; return item;
+  }));
   byId("load-example").disabled = false;
   updateSelectionContext();
 }
 
 byId("load-example").addEventListener("click", loadExampleIntoQuery);
+byId("estimate").addEventListener("click", async () => {
+  const button = byId("estimate");
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "Estimating…";
+  byId("status").className = "status loading";
+  byId("status").textContent = "Downloading or reusing 24 GOES scans and recomputing the composite…";
+  try {
+    const response = await fetch("/api/estimate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        latitude: selectedQuery.latitude,
+        longitude: selectedQuery.longitude,
+        start: selectedQuery.periodStart
+      })
+    });
+    const record = await response.json();
+    if (!response.ok) throw new Error(record.error || "Estimate failed");
+    renderExample(record);
+    byId("example-title").textContent = "Latest estimate";
+    byId("status").className = "status ready";
+    byId("status").textContent = "Estimate completed with verified supplied preprocessing.";
+  } catch (error) {
+    byId("status").className = "status blocked";
+    byId("status").textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+});
 
 Promise.all([
   fetch("/api/status", { cache: "no-store" }).then(response => response.json()),

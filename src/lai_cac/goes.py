@@ -10,6 +10,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 import h5py
+import netCDF4 as netcdf4
 import numpy as np
 
 BUCKET = "https://noaa-goes19.s3.amazonaws.com"
@@ -81,6 +82,24 @@ def _decoded(dataset: h5py.Dataset, index: tuple[int, ...]) -> float:
     return raw * scale + offset
 
 
+def _attribute_text(value: object) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    return str(value)
+
+
+def _scan_time_utc(time_dataset: h5py.Dataset) -> datetime:
+    numeric_time = float(np.asarray(time_dataset[...]).squeeze())
+    units = _attribute_text(time_dataset.attrs.get("units", "seconds since 2000-01-01 12:00:00"))
+    calendar = _attribute_text(time_dataset.attrs.get("calendar", "standard"))
+    scan_time = netcdf4.num2date(
+        numeric_time, units, calendar=calendar, only_use_cftime_datetimes=False
+    )
+    if scan_time.tzinfo is None:
+        scan_time = scan_time.replace(tzinfo=timezone.utc)
+    return scan_time.astimezone(timezone.utc)
+
+
 def fixed_grid_xy(latitude: float, longitude: float, projection: h5py.Dataset) -> tuple[float, float]:
     """NOAA GOES-R geostationary navigation equations, returning scan radians."""
     attrs = projection.attrs
@@ -139,7 +158,9 @@ def sample_pixel(path: Path, latitude: float, longitude: float) -> dict[str, obj
             for xx in (float(x_values[col]) - x_step / 2, float(x_values[col]) + x_step / 2):
                 corner_lat, corner_lon = fixed_grid_latlon(xx, yy, nc["goes_imager_projection"])
                 footprint.append({"latitude": corner_lat, "longitude": corner_lon})
-        scan_time = datetime(2000, 1, 1, 12, tzinfo=timezone.utc).timestamp() + float(nc["t"][()])
+        scan_time = _scan_time_utc(nc["t"])
+        projection = nc["goes_imager_projection"].attrs
+        satellite_longitude = float(np.asarray(nc["nominal_satellite_subpoint_lon"][...]).reshape(-1)[0])
         return {
             "row": row, "column": col, "fixed_grid_x_rad": float(x_values[col]),
             "fixed_grid_y_rad": float(y_values[row]), "dqf": dqf,
@@ -148,7 +169,13 @@ def sample_pixel(path: Path, latitude: float, longitude: float) -> dict[str, obj
             "brf": {str(b): _decoded(nc[f"BRF{b}"], (row, col)) for b in (2, 3, 5)},
             "time_coverage_start": nc.attrs["time_coverage_start"].decode(),
             "time_coverage_end": nc.attrs["time_coverage_end"].decode(),
-            "scan_time_utc": datetime.fromtimestamp(scan_time, timezone.utc).isoformat(),
+            "scan_time_utc": scan_time.isoformat(),
+            "view_geometry_parameters": {
+                "satellite_longitude": satellite_longitude,
+                "semi_major": float(np.asarray(projection["semi_major_axis"]).reshape(-1)[0]),
+                "semi_minor": float(np.asarray(projection["semi_minor_axis"]).reshape(-1)[0]),
+                "perspective_height": float(np.asarray(projection["perspective_point_height"]).reshape(-1)[0]),
+            },
             "dataset_name": nc.attrs["dataset_name"].decode(),
         }
 

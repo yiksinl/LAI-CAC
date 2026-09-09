@@ -1,7 +1,16 @@
 from __future__ import annotations
 
+import importlib.util
 import math
-from datetime import datetime, timezone
+from datetime import datetime
+from functools import lru_cache
+from pathlib import Path
+from typing import Callable
+
+import numpy as np
+
+from .assets import SOLAR_GEOMETRY_SHA256, sha256
+from .errors import MissingDependencyError
 
 
 def view_geometry(latitude: float, longitude: float, satellite_longitude: float = -75.0,
@@ -18,26 +27,43 @@ def view_geometry(latitude: float, longitude: float, satellite_longitude: float 
     north = -math.sin(lat)*math.cos(lon)*delta[0] - math.sin(lat)*math.sin(lon)*delta[1] + math.cos(lat)*delta[2]
     up = math.cos(lat)*math.cos(lon)*delta[0] + math.cos(lat)*math.sin(lon)*delta[1] + math.sin(lat)*delta[2]
     slant = math.sqrt(sum(value*value for value in delta))
-    return math.degrees(math.acos(max(-1, min(1, up/slant)))), (math.degrees(math.atan2(east, north))+360)%360
+    view_zenith = math.degrees(math.acos(max(-1, min(1, up/slant))))
+    view_azimuth = (math.degrees(math.atan2(east, north))+360)%360
+    return float(np.float32(view_zenith)), float(np.float32(view_azimuth))
 
 
-def solar_angles(latitude: float, longitude: float, when: datetime) -> tuple[float, float]:
-    """NOAA solar-position approximation; exact research helper comparison remains pending."""
-    when = when.astimezone(timezone.utc)
-    day = when.timetuple().tm_yday
-    hour = when.hour + when.minute/60 + when.second/3600 + when.microsecond/3.6e9
-    gamma = 2*math.pi/365 * (day-1 + (hour-12)/24)
-    eqtime = 229.18*(0.000075 + 0.001868*math.cos(gamma) - 0.032077*math.sin(gamma)
-                     - 0.014615*math.cos(2*gamma) - 0.040849*math.sin(2*gamma))
-    decl = (0.006918 - 0.399912*math.cos(gamma) + 0.070257*math.sin(gamma)
-            - 0.006758*math.cos(2*gamma) + 0.000907*math.sin(2*gamma)
-            - 0.002697*math.cos(3*gamma) + 0.00148*math.sin(3*gamma))
-    hour_angle = math.radians((hour*60 + eqtime + 4*longitude)/4 - 180)
-    lat = math.radians(latitude)
-    cos_zenith = math.sin(lat)*math.sin(decl) + math.cos(lat)*math.cos(decl)*math.cos(hour_angle)
-    zenith = math.degrees(math.acos(max(-1, min(1, cos_zenith))))
-    azimuth = (math.degrees(math.atan2(math.sin(hour_angle), math.cos(hour_angle)*math.sin(lat)-math.tan(decl)*math.cos(lat))) + 180) % 360
-    return zenith, azimuth
+@lru_cache(maxsize=4)
+def _load_solar_calculator(path_text: str) -> Callable:
+    """Import the checksum-verified research module under a non-main module name."""
+    path = Path(path_text)
+    if not path.is_file():
+        raise MissingDependencyError(f"Missing required solar-geometry helper: {path}")
+    actual = sha256(path)
+    if actual != SOLAR_GEOMETRY_SHA256:
+        raise MissingDependencyError(
+            f"Solar-geometry checksum mismatch for {path}: "
+            f"expected {SOLAR_GEOMETRY_SHA256}, got {actual}"
+        )
+    spec = importlib.util.spec_from_file_location("_lai_cac_reference_geometry_goes19", path)
+    if spec is None or spec.loader is None:
+        raise MissingDependencyError(f"Could not create an import specification for {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    calculator = getattr(module, "calculate_solar_angles", None)
+    if not callable(calculator):
+        raise MissingDependencyError(f"Solar-geometry helper has no calculate_solar_angles: {path}")
+    return calculator
+
+
+def solar_angles(latitude: float, longitude: float, when: datetime, helper_path: Path) -> tuple[float, float]:
+    """Call the supplied helper with the notebook's coordinate/output conversions."""
+    calculator = _load_solar_calculator(str(helper_path.resolve()))
+    latitude_values = np.asarray([latitude], dtype=np.float32).astype(float)
+    longitude_values = np.asarray([longitude], dtype=np.float32).astype(float)
+    zenith, azimuth = calculator(latitude_values, longitude_values, when)
+    zenith_values = np.asarray(zenith, dtype=np.float32)
+    azimuth_values = np.asarray(azimuth, dtype=np.float32) % np.float32(360.0)
+    return float(zenith_values.reshape(-1)[0]), float(azimuth_values.reshape(-1)[0])
 
 
 def angle_difference(a: float, b: float) -> float:

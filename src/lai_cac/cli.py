@@ -28,7 +28,8 @@ def main() -> None:
     estimate.add_argument("--start", type=date.fromisoformat, required=True)
     estimate.add_argument("--lat", type=float, required=True)
     estimate.add_argument("--lon", type=float, required=True)
-    estimate.add_argument("--igbp-class", type=int, required=True)
+    estimate.add_argument("--igbp-class", type=int, help="Auditable override; omit to use the exact bundled IGBP grid")
+    estimate.add_argument("--location-name", help="Optional display label stored with the result provenance")
     estimate.add_argument("--output", type=Path, default=ROOT / "data/results/latest.json")
     args = parser.parse_args()
 
@@ -55,7 +56,9 @@ def main() -> None:
         result["dqf_decoded"] = decode_dqf(int(result["dqf"]))
         print(json.dumps(result, indent=2, allow_nan=True))
     else:
-        result = run_estimate(args.lat, args.lon, args.start, args.igbp_class, ROOT, args.output)
+        result = run_estimate(
+            args.lat, args.lon, args.start, args.igbp_class, ROOT, args.output, args.location_name
+        )
         print(json.dumps({key: result[key] for key in ("status", "lai", "units", "model_sha256")}, indent=2))
 
 

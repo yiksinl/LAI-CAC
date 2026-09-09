@@ -34,7 +34,7 @@
         <label for="period">Completed observation period</label>
         <select id="period"><option>Loading periods…</option></select>
         <button id="estimate" disabled>Estimate LAI</button>
-        <p class="button-note">Live prediction remains unavailable until every required scientific input is verified.</p>
+        <p class="button-note">A live estimate recomputes the selected eight-day composite. Historical feature rows are validation evidence, not runtime inputs.</p>
         <div id="status" class="status loading" role="status">Checking scientific dependencies…</div>
       </aside>
     </section>
@@ -71,7 +71,7 @@
 
     <section class="trend-card">
       <div><p class="eyebrow">Trend</p><h2>Change over time</h2></div>
-      <div class="empty-trend"><span aria-hidden="true">○</span><p><strong>More verified estimates are needed.</strong><br>LeafView will leave unavailable periods as gaps and will not draw a trend from this single provisional example.</p></div>
+      <div class="empty-trend"><span aria-hidden="true">○</span><p><strong>More estimates are needed.</strong><br>LeafView will leave unavailable periods as gaps and will not draw a trend from a single completed estimate.</p></div>
     </section>
 
     <details class="methods">
@@ -80,6 +80,8 @@
         <p>LeafView applies Yixuan Li's selected 600-tree XGBoost model to GOES-19 red, near-infrared, and shortwave-infrared reflectance statistics, viewing and illumination geometry, seasonality, and IGBP land cover. The model preserves separate 15, 18, and 21 UTC composites.</p>
         <p>The training reference is a quality-screened MODIS/VIIRS satellite consensus, not direct field ground truth. LAI is leaf area per ground area; it is not a direct plant-health score, drought diagnosis, or irrigation recommendation.</p>
         <ul id="methods-limitations"></ul>
+        <p><strong>Model-compatibility concern</strong></p>
+        <ul id="methods-concerns"></ul>
       </div>
     </details>
   </main>
