@@ -1,0 +1,98 @@
+{
+  "verdict": "VALIDATED_AND_ADOPTED",
+  "question": "Does h5py serialize the HTTP range reads made by four observation threads, and do isolated worker processes reduce cold-query latency without changing numerical results?",
+  "environment": {
+    "python": "3.14.6",
+    "h5py": "3.16.0",
+    "hdf5": "2.0.0",
+    "h5py_ros3_enabled": false,
+    "platform": "darwin"
+  },
+  "query": {
+    "location": {
+      "latitude": 39.1547,
+      "longitude": -77.2405
+    },
+    "period": {
+      "start": "2026-05-09",
+      "end": "2026-05-16"
+    },
+    "available_scans": 23,
+    "possible_observations": 24
+  },
+  "thread_profile": {
+    "executor": "ThreadPoolExecutor",
+    "worker_limit": 4,
+    "scan_discovery_seconds": 0.32188879093155265,
+    "retrieval_seconds": 19.40819670795463,
+    "overall_scan_and_sample_seconds": 19.730093291960657,
+    "listing_requests": 26,
+    "range_requests": 228,
+    "maximum_active_listing_requests": 4,
+    "maximum_active_range_requests": 1,
+    "range_process_count": 1,
+    "range_worker_threads": 5
+  },
+  "process_spike": {
+    "executor": "ProcessPoolExecutor",
+    "worker_limit": 4,
+    "start_method": "spawn",
+    "scan_discovery_seconds": 0.33905212488025427,
+    "retrieval_seconds": 6.262464749859646,
+    "overall_scan_and_sample_seconds": 6.601524041965604,
+    "listing_requests": 26,
+    "range_requests": 228,
+    "maximum_active_listing_requests": 4,
+    "maximum_active_range_requests": 4,
+    "range_process_count_including_initial_parent_read": 5,
+    "sampled_values_exact": true,
+    "retrieval_speedup_factor": 3.09913069105732
+  },
+  "cold_production_benchmark": {
+    "cache": "separate empty partial-data cache under /tmp",
+    "browser_thread_backend_baseline_seconds": 19.008,
+    "process_backend_seconds": 8.007,
+    "process_wall_seconds": 8.010473042028025,
+    "backend_speedup_factor": 2.3741725996003497,
+    "listing_request_count": 26,
+    "range_request_count": 228,
+    "total_http_request_count": 254,
+    "listing_bytes": 59736,
+    "range_downloaded_bytes": 28500159,
+    "total_http_downloaded_bytes": 28559895,
+    "full_download_request_count": 0,
+    "full_file_fallbacks": 0
+  },
+  "warm_process_benchmark": {
+    "pipeline_seconds": 2.251,
+    "wall_seconds": 2.253907000180334,
+    "range_request_count": 0,
+    "range_downloaded_bytes": 0,
+    "range_cache_hit_bytes": 28500159
+  },
+  "concurrent_same_object_process_check": {
+    "reader_processes": 2,
+    "unique_blocks_used_per_reader": 10,
+    "total_range_requests": 10,
+    "duplicate_range_requests": 0,
+    "downloaded_bytes": 1206674,
+    "second_reader_cache_hit_bytes": 1206674,
+    "row_column_brf_and_partial_checksum_exact": true
+  },
+  "numerical_equivalence": {
+    "attempt_scan_keys_exact": true,
+    "partial_data_checksums_exact": true,
+    "filtering_decisions_exact": true,
+    "feature_count": 56,
+    "features_exact": true,
+    "usable_counts": {
+      "15": 3,
+      "18": 2,
+      "21": 0
+    },
+    "usable_total": 5,
+    "lai_thread": 4.112244129180908,
+    "lai_process": 4.112244129180908,
+    "lai_exact": true
+  }
+}

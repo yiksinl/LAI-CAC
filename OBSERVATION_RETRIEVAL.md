@@ -21,10 +21,12 @@ The production order is:
    become an `insufficient_data` result; that state is reserved for successfully
    decoded observations that fail the supplied quality and geometry filters.
 
-The request pool reuses HTTP connections and is bounded to six connections. Scan
-selection and observation sampling use at most four workers. Per-object locks make
-simultaneous queries share each missing block; a two-reader cold test used nine
-requests total rather than eighteen.
+Scan selection uses at most four threads and a shared six-connection pool. Remote
+HDF5 sampling uses at most four spawned worker processes, each with a process-local
+bounded connection pool. This avoids h5py's process-wide `phil` lock, which prevents
+HDF5 operations on separate files from running concurrently in threads. Filesystem
+locks around each partial object make simultaneous threads or processes share each
+missing block; a two-reader cold test used nine requests total rather than eighteen.
 
 ## Numerical consistency
 
@@ -59,6 +61,25 @@ The cold partial route reduced observation-object bytes by 96.07% and completed
 4.76 times faster. It did not invoke the full-file fallback. Results are recorded in
 `benchmarks/observation-retrieval-2026-09-09.json`.
 
+## h5py concurrency follow-up
+
+The May 9–16 Montgomery query exposed the remaining latency bottleneck. Instrumented
+HTTP timings showed scan discovery completing in 0.322 seconds with four concurrent
+listing requests. The original four sampling workers were Python threads, but their
+228 range requests never exceeded one active request and took 19.408 seconds. h5py
+documents that its `phil` lock serializes h5py calls even across different files.
+
+A four-process spike increased measured range-request concurrency from one to four,
+kept all sampled values exact, and reduced the sampling phase from 19.408 to 6.262
+seconds. The production process-worker run, using a separate empty partial cache,
+completed the entire pipeline in 8.007 seconds versus the browser baseline of 19.008
+seconds. Requests and bytes were unchanged, all 56 features and filtering decisions
+matched exactly, retained counts remained 3/2/0, and LAI remained exactly
+`4.112244129180908`. The warm process-worker run completed in 2.251 seconds.
+
+Detailed measurements are recorded in
+`benchmarks/observation-concurrency-2026-09-09.json`.
+
 ## Provenance and checksum scope
 
 Every partial-read attempt records the NOAA bucket/key, S3 URI, HTTPS URL, object
@@ -74,6 +95,7 @@ one was not calculated.
 
 ## Implementation references
 
-- [h5py file-object support](https://docs.h5py.org/en/3.15.0/high/file.html#python-file-like-objects)
+- [h5py file-object support](https://docs.h5py.org/en/3.16.0/high/file.html#python-file-like-objects)
+- [h5py multi-threading and the `phil` lock](https://docs.h5py.org/en/3.16.0/threads.html)
 - [Amazon S3 `GetObject` range semantics](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html)
 - [urllib3 connection pooling](https://urllib3.readthedocs.io/en/stable/reference/urllib3.poolmanager.html)

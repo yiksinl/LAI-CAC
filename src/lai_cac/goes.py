@@ -5,9 +5,16 @@ import re
 import threading
 import urllib.parse
 import xml.etree.ElementTree as ET
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
+from typing import Iterator
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Windows fallback retains in-process locking.
+    fcntl = None
 
 import h5py
 import netCDF4 as netcdf4
@@ -57,6 +64,13 @@ class TransferMetrics:
                 "full_download_bytes": self.full_download_bytes,
             }
 
+    def merge(self, other: dict[str, int]) -> None:
+        with self._lock:
+            self.listing_request_count += int(other.get("listing_request_count", 0))
+            self.listing_bytes += int(other.get("listing_bytes", 0))
+            self.full_download_request_count += int(other.get("full_download_request_count", 0))
+            self.full_download_bytes += int(other.get("full_download_bytes", 0))
+
 
 class ObservationRetrievalError(RuntimeError):
     """A NOAA observation could not be retrieved by either supported route."""
@@ -66,10 +80,22 @@ _DOWNLOAD_LOCKS_GUARD = threading.Lock()
 _DOWNLOAD_LOCKS: dict[str, threading.Lock] = {}
 
 
-def _download_lock(destination: Path) -> threading.Lock:
+@contextmanager
+def _download_lock(destination: Path) -> Iterator[None]:
     key = str(destination.resolve())
     with _DOWNLOAD_LOCKS_GUARD:
-        return _DOWNLOAD_LOCKS.setdefault(key, threading.Lock())
+        thread_lock = _DOWNLOAD_LOCKS.setdefault(key, threading.Lock())
+    with thread_lock:
+        if fcntl is None:
+            yield
+            return
+        lock_path = destination.with_suffix(destination.suffix + ".lock")
+        with lock_path.open("a+b") as lock_file:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
 
 
 def remote_object_metadata(scan: Scan) -> dict[str, object]:

@@ -4,7 +4,14 @@ import hashlib
 import io
 import json
 import threading
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Windows fallback retains in-process locking.
+    fcntl = None
 
 import urllib3
 
@@ -42,6 +49,22 @@ def shared_http_pool() -> urllib3.PoolManager:
 def _object_lock(cache_key: str) -> threading.Lock:
     with _LOCKS_GUARD:
         return _OBJECT_LOCKS.setdefault(cache_key, threading.Lock())
+
+
+@contextmanager
+def _cache_lock(cache_key: str, cache_dir: Path) -> Iterator[None]:
+    """Serialize one object's cache updates across threads and worker processes."""
+    with _object_lock(cache_key):
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        if fcntl is None:
+            yield
+            return
+        with (cache_dir / ".lock").open("a+b") as lock_file:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
 
 
 class HTTPRangeReader(io.RawIOBase):
@@ -102,8 +125,7 @@ class HTTPRangeReader(io.RawIOBase):
                 "these are partial-data checksums, not a whole-file SHA-256."
             ),
         }
-        with _object_lock(self.cache_key):
-            self.cache_dir.mkdir(parents=True, exist_ok=True)
+        with _cache_lock(self.cache_key, self.cache_dir):
             path = self.cache_dir / "object.json"
             encoded = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
             if path.is_file():
@@ -229,7 +251,7 @@ class HTTPRangeReader(io.RawIOBase):
             return self._memory_blocks[block_number]
         if block_number < 0 or block_number * self.block_size >= self.size:
             raise RemoteRangeError(f"HDF5 requested invalid remote block {block_number}")
-        with _object_lock(self.cache_key):
+        with _cache_lock(self.cache_key, self.cache_dir):
             data = self._read_cached_block(block_number)
             if data is None:
                 data = self._fetch_block(block_number)

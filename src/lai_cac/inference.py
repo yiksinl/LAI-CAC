@@ -3,8 +3,9 @@ from __future__ import annotations
 import math
 import time
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta
+from multiprocessing import get_context
 from pathlib import Path
 from typing import Callable
 
@@ -142,6 +143,28 @@ def _retrieve_observation(
         return sample
 
 
+def _retrieve_observation_worker(
+    scan: Scan,
+    destination: Path,
+    partial_cache_root: Path,
+    latitude: float,
+    longitude: float,
+    policy: str,
+) -> tuple[dict[str, object], dict[str, int]]:
+    """Retrieve one observation with process-local transport metrics."""
+    metrics = TransferMetrics()
+    sample = _retrieve_observation(
+        scan,
+        destination,
+        partial_cache_root,
+        latitude,
+        longitude,
+        policy,
+        metrics,
+    )
+    return sample, metrics.snapshot()
+
+
 def prepare_composite(
     latitude: float,
     longitude: float,
@@ -182,6 +205,7 @@ def prepare_composite(
     partial_cache_root = partial_cache_root or root / "data/partial-cache"
     workers = max(1, min(int(max_observation_workers), MAX_OBSERVATION_WORKERS))
     transfer_metrics = TransferMetrics()
+    observation_executor = "serial"
     slots: list[tuple[int, date, int]] = []
     current = start
     while current <= end:
@@ -243,26 +267,50 @@ def prepare_composite(
             completed=retrieved_count,
             total=len(available_slots),
         )
-    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="goes-sample") as executor:
+    requires_remote_hdf5 = retrieval_policy == "partial_required" or any(
+        not (
+            (root / "data/cache" / Path(selected_scans[ordinal].key).name).is_file()
+            and (root / "data/cache" / Path(selected_scans[ordinal].key).name).stat().st_size
+            == selected_scans[ordinal].size
+        )
+        for ordinal, _, _ in remaining_slots
+    )
+    use_processes = bool(
+        remaining_slots
+        and workers > 1
+        and retrieval_policy != "full_only"
+        and requires_remote_hdf5
+    )
+    if use_processes:
+        observation_executor = "processes"
+        executor = ProcessPoolExecutor(
+            max_workers=workers,
+            mp_context=get_context("spawn"),
+        )
+    else:
+        observation_executor = "threads" if remaining_slots and workers > 1 else "serial"
+        executor = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="goes-sample")
+    with executor:
         futures = {}
         for ordinal, _, _ in remaining_slots:
             scan = selected_scans[ordinal]
             assert scan is not None
             destination = root / "data/cache" / Path(scan.key).name
             future = executor.submit(
-                _retrieve_observation,
+                _retrieve_observation_worker,
                 scan,
                 destination,
                 partial_cache_root,
                 latitude,
                 longitude,
                 retrieval_policy,
-                transfer_metrics,
             )
             futures[future] = ordinal
         for future in as_completed(futures):
             ordinal = futures[future]
-            samples[ordinal] = future.result()
+            sample, worker_metrics = future.result()
+            samples[ordinal] = sample
+            transfer_metrics.merge(worker_metrics)
             retrieved_count += 1
             _report(
                 progress,
@@ -471,7 +519,12 @@ def prepare_composite(
                       "policy": retrieval_policy,
                       "strategy": "existing full-file cache, then HTTP byte ranges, then full-file fallback",
                       "max_concurrency": workers,
-                      "connection_reuse": "shared bounded urllib3.PoolManager",
+                      "executor": observation_executor,
+                      "connection_reuse": (
+                          "process-local bounded urllib3.PoolManager instances"
+                          if observation_executor == "processes" else
+                          "shared bounded urllib3.PoolManager"
+                      ),
                       **transfer,
                       "range_request_count": partial_range_requests,
                       "range_downloaded_bytes": partial_downloaded_bytes,

@@ -135,6 +135,23 @@ def test_concurrent_full_fallback_downloads_share_one_transfer(tmp_path: Path, m
     assert metrics.snapshot()["full_download_request_count"] == 1
 
 
+def test_transfer_metrics_merge_process_local_counts():
+    metrics = TransferMetrics()
+    metrics.add("listing", 11)
+    metrics.merge({
+        "listing_request_count": 0,
+        "listing_bytes": 0,
+        "full_download_request_count": 1,
+        "full_download_bytes": 23,
+    })
+    assert metrics.snapshot() == {
+        "listing_request_count": 1,
+        "listing_bytes": 11,
+        "full_download_request_count": 1,
+        "full_download_bytes": 23,
+    }
+
+
 def test_fill_and_out_of_range_values_decode_to_nan(tmp_path: Path):
     path = tmp_path / "missing.h5"
     with h5py.File(path, "w") as target:
