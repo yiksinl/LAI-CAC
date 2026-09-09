@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import math
 import time
 from collections import defaultdict
@@ -30,6 +29,7 @@ from .model import LaiModel
 from .navigation import read_navigation_pixel
 from .remote_hdf5 import RemoteRangeError
 from .result_cache import cache_identity
+from .serialization import strict_json_dumps
 
 IGBP_CATEGORIES = (1, 10, 11, 12, 13, 14, 16, 2, 3, 4, 5, 6, 7, 8, 9)
 ProgressCallback = Callable[[dict[str, object]], None]
@@ -355,12 +355,29 @@ def prepare_composite(
             when,
             solar_geometry_path,
         )
-        strict = (
-            passes_notebook_strict_quality(sample["dqf"])
-            and solar_zenith < 67
-            and view_zenith < 70
-            and all(math.isfinite(v) for v in sample["brf"].values())
-        )
+        quality_ok = passes_notebook_strict_quality(sample["dqf"])
+        solar_zenith_ok = solar_zenith < 67
+        view_zenith_ok = view_zenith < 70
+        finite_brf = all(math.isfinite(v) for v in sample["brf"].values())
+        rejection_reasons = []
+        if not quality_ok:
+            rejection_reasons.append("dqf_not_notebook_strict")
+        if not solar_zenith_ok:
+            rejection_reasons.append(
+                "solar_zenith_not_finite" if not math.isfinite(solar_zenith)
+                else "solar_zenith_not_below_67_degrees"
+            )
+        if not view_zenith_ok:
+            rejection_reasons.append(
+                "view_zenith_not_finite" if not math.isfinite(view_zenith)
+                else "view_zenith_not_below_70_degrees"
+            )
+        if not finite_brf:
+            missing_bands = ",".join(
+                band for band, value in sample["brf"].items() if not math.isfinite(value)
+            )
+            rejection_reasons.append(f"non_finite_brf_bands:{missing_bands}")
+        strict = not rejection_reasons
         record = {
             **sample,
             "date": current.isoformat(),
@@ -369,6 +386,7 @@ def prepare_composite(
             "scan_time_utc": sample["scan_time_utc"],
             "dqf": sample["dqf"],
             "strict": strict,
+            "rejection_reasons": rejection_reasons,
             "solar_zenith": solar_zenith,
             "solar_azimuth": solar_azimuth,
             "projection_derived_pixel_center": sample["sampled_pixel_center"],
@@ -568,7 +586,7 @@ def run_estimate(latitude: float, longitude: float, start: date, igbp_class: int
     _report(progress, 97, "saving", "Saving result and provenance")
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_suffix(output.suffix + ".part")
-    temporary.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
+    temporary.write_text(strict_json_dumps(result, indent=2), encoding="utf-8")
     temporary.replace(output)
     _report(progress, 100, "complete", "Research estimate complete")
     return result

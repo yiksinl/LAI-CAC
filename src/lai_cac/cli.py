@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 from datetime import date
 from pathlib import Path
 
@@ -9,6 +8,7 @@ from .assets import ReferenceAssets
 from .composites import TARGET_HOURS_UTC, aligned_period
 from .goes import decode_dqf, download, nearest_scan, sample_pixel
 from .inference import run_estimate
+from .serialization import strict_json_dumps
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -34,7 +34,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "audit":
-        print(json.dumps(ReferenceAssets(ROOT / "artifacts/reference").audit(), indent=2))
+        print(strict_json_dumps(ReferenceAssets(ROOT / "artifacts/reference").audit(), indent=2))
     elif args.command == "scans":
         start, end = aligned_period(args.start)
         result = []
@@ -46,7 +46,7 @@ def main() -> None:
                                "scan": scan.key if scan else None,
                                "started_at": scan.started_at.isoformat() if scan else None})
             current = date.fromordinal(current.toordinal() + 1)
-        print(json.dumps(result, indent=2))
+        print(strict_json_dumps(result, indent=2))
     elif args.command == "sample":
         scan = nearest_scan(args.date, args.hour)
         if scan is None:
@@ -54,12 +54,15 @@ def main() -> None:
         target = ROOT / "data/cache" / Path(scan.key).name
         result = sample_pixel(download(scan, target), args.lat, args.lon)
         result["dqf_decoded"] = decode_dqf(int(result["dqf"]))
-        print(json.dumps(result, indent=2, allow_nan=True))
+        print(strict_json_dumps(result, indent=2))
     else:
         result = run_estimate(
             args.lat, args.lon, args.start, args.igbp_class, ROOT, args.output, args.location_name
         )
-        print(json.dumps({key: result[key] for key in ("status", "lai", "units", "model_sha256")}, indent=2))
+        print(strict_json_dumps(
+            {key: result[key] for key in ("status", "lai", "units", "model_sha256")},
+            indent=2,
+        ))
 
 
 if __name__ == "__main__":

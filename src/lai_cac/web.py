@@ -21,6 +21,7 @@ from .result_cache import (
     result_matches_identity,
     runtime_cache_path,
 )
+from .serialization import StrictJSONProvider
 
 ROOT = Path(__file__).resolve().parents[2]
 MONTGOMERY = {
@@ -346,6 +347,7 @@ def _parse_estimate_payload(payload: dict) -> tuple[float, float, date, str]:
 
 def create_app(root: Path = ROOT) -> Flask:
     app = Flask(__name__, template_folder=str(root / "templates"), static_folder=str(root / "static"))
+    app.json = StrictJSONProvider(app)
     jobs = EstimateJobs(root)
 
     @app.get("/")

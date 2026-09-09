@@ -1,8 +1,10 @@
 from datetime import date, timedelta
 import json
+import math
 import time
 
 import pytest
+from flask import jsonify
 
 from lai_cac.composites import aligned_period
 from pathlib import Path
@@ -303,6 +305,51 @@ def test_insufficient_data_returns_a_gap_without_calling_model(tmp_path: Path, m
     assert result["lai"] is None
     assert "shown as a gap" in result["data_message"]
     assert json.loads(output.read_text())["lai"] is None
+
+
+def test_nonfinite_rejected_observation_exports_as_null_without_changing_internal_values(
+    tmp_path: Path, monkeypatch
+):
+    import lai_cac.inference as inference
+
+    root = Path(__file__).parents[1]
+    baseline = json.loads(
+        (root / "data/results/montgomery-md-2026-04-07.json").read_text()
+    )
+    features = baseline["features"]
+    provenance = baseline["provenance"]
+    rejected = {
+        **provenance["attempts"][0],
+        "strict": False,
+        "rejection_reasons": ["dqf_not_notebook_strict", "non_finite_brf_bands:2,3,5"],
+        "brf": {"2": math.nan, "3": math.nan, "5": math.nan},
+    }
+    provenance["attempts"] = [rejected, provenance["attempts"][1]]
+    provenance["usable_counts"] = {"15": 1, "18": 0, "21": 0}
+    monkeypatch.setattr(
+        inference, "prepare_composite", lambda *args, **kwargs: (features, provenance)
+    )
+
+    output = tmp_path / "result.json"
+    result = inference.run_estimate(
+        39.1547, -77.2405, date(2026, 4, 7), None, root, output,
+        identity={"key": "nonfinite-regression"},
+    )
+    assert math.isnan(result["provenance"]["attempts"][0]["brf"]["2"])
+
+    stored = json.loads(output.read_text())
+    stored_rejected = stored["provenance"]["attempts"][0]
+    assert stored_rejected["brf"] == {"2": None, "3": None, "5": None}
+    assert stored_rejected["rejection_reasons"] == [
+        "dqf_not_notebook_strict", "non_finite_brf_bands:2,3,5"
+    ]
+
+    app = create_app(root)
+    app.add_url_rule("/_strict-json-regression", view_func=lambda: jsonify(result))
+    response = app.test_client().get("/_strict-json-regression")
+    assert response.status_code == 200
+    assert b"NaN" not in response.data
+    assert response.json["provenance"]["attempts"][0]["brf"]["2"] is None
 
 
 def test_background_jobs_publish_progress_and_complete(tmp_path: Path, monkeypatch):
