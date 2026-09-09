@@ -1,9 +1,38 @@
 const initialPoint = [39.1547, -77.2405];
 const map = L.map("map").setView(initialPoint, 9);
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+const tileMessage = document.getElementById("map-tile-message");
+let tileCycleSucceeded = false;
+let tileWarningTimer = null;
+const tileLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
-  attribution: "© OpenStreetMap"
+  attribution: "© OpenStreetMap",
+  detectRetina: true,
+  keepBuffer: 3,
+  updateWhenIdle: false
 }).addTo(map);
+
+tileLayer.on("loading", () => {
+  tileCycleSucceeded = false;
+  window.clearTimeout(tileWarningTimer);
+});
+tileLayer.on("tileload", () => {
+  tileCycleSucceeded = true;
+  tileMessage.hidden = true;
+  window.clearTimeout(tileWarningTimer);
+});
+tileLayer.on("tileerror", () => {
+  window.clearTimeout(tileWarningTimer);
+  tileWarningTimer = window.setTimeout(() => {
+    if (!tileCycleSucceeded) tileMessage.hidden = false;
+  }, 500);
+});
+tileLayer.on("load", () => {
+  tileMessage.hidden = tileCycleSucceeded;
+});
+
+const resizeMap = () => window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+new ResizeObserver(resizeMap).observe(document.querySelector(".map-wrap"));
+window.addEventListener("resize", resizeMap);
 
 const pointMarker = L.circleMarker(initialPoint, {
   radius: 7, color: "#17332a", weight: 3, fillColor: "#fffefa", fillOpacity: 1
@@ -55,9 +84,14 @@ function resetResultForQuery() {
   section.classList.add("awaiting");
   byId("example-meta").textContent = "No result is attached to this selection yet. Run Estimate LAI.";
   byId("example-lai").textContent = "—";
-  byId("result-badge").textContent = "Awaiting query";
+  byId("lai-units").hidden = true;
+  byId("result-badge").textContent = "Research estimate";
   byId("lai-explanation").textContent = "LeafView will only display a result whose coordinates and period match the selected query.";
   byId("provisional-note").textContent = "";
+  byId("result-source").textContent = "—";
+  byId("result-time").textContent = "—";
+  byId("observation-cache").textContent = "—";
+  byId("result-location").textContent = selectedQuery.displayLocation;
   byId("requested-point").textContent = formatCoordinates(selectedQuery);
   byId("pixel-center").textContent = "—";
   byId("pixel-index").textContent = "—";
@@ -65,6 +99,9 @@ function resetResultForQuery() {
   byId("support-summary").textContent = "";
   byId("observation-dates").replaceChildren();
   byId("footprint-corners").replaceChildren();
+  byId("processing-diagnostics").open = false;
+  byId("observation-details").open = false;
+  byId("pixel-details").open = false;
   byId("estimate").disabled = !dependenciesReady;
 }
 
@@ -77,7 +114,6 @@ function markCustomSelection(latitude, longitude) {
   };
   pointMarker.setLatLng([selectedQuery.latitude, selectedQuery.longitude]);
   byId("selected-name").textContent = selectedQuery.displayLocation;
-  byId("selected-coordinates").textContent = formatCoordinates(selectedQuery);
   resetResultForQuery();
 }
 
@@ -104,7 +140,6 @@ function loadDemoIntoQuery() {
   };
   pointMarker.setLatLng([location.latitude, location.longitude]);
   byId("selected-name").textContent = demoRecord.display_location;
-  byId("selected-coordinates").textContent = formatCoordinates(location);
   byId("period").value = period.start;
   byId("processing").hidden = true;
   renderResult(demoRecord);
@@ -112,18 +147,16 @@ function loadDemoIntoQuery() {
     ? footprintLayer.getBounds().extend(pointMarker.getLatLng())
     : L.latLngBounds([location.latitude, location.longitude]);
   map.fitBounds(bounds.pad(0.65), { maxZoom: 12 });
+  resizeMap();
 }
 
 function renderStatus(data) {
   dependenciesReady = data.ready_for_verified_inference;
   const status = byId("status");
-  status.className = `status ${data.operational_readiness.ready ? "ready" : "blocked"}`;
+  status.className = `status ${dependenciesReady ? "ready" : "blocked"}`;
   const title = document.createElement("strong");
-  title.textContent = data.headline;
+  title.textContent = dependenciesReady ? "Ready to estimate" : data.headline;
   status.replaceChildren(title);
-  const checks = document.createElement("p");
-  checks.textContent = `Execution: ${data.operational_readiness.status}. Preprocessing: ${data.preprocessing_validation.status}. Historical reproduction: ${data.historical_numerical_reproduction.status} (not required at runtime).`;
-  status.append(checks);
   if (data.missing.length) {
     const missing = document.createElement("p");
     missing.textContent = `Still required: ${data.missing.map(item => item.filename).join(" and ")}.`;
@@ -134,6 +167,17 @@ function renderStatus(data) {
     discrepancy.textContent = `Unresolved preprocessing: ${data.preprocessing_discrepancies.map(item => item.name).join("; ")}.`;
     status.append(discrepancy);
   }
+  const readiness = byId("methods-readiness");
+  readiness.replaceChildren();
+  [
+    `Operational readiness: ${data.operational_readiness.status}.`,
+    `Preprocessing validation: ${data.preprocessing_validation.status}.`,
+    `Historical numerical reproduction: ${data.historical_numerical_reproduction.status}; historical feature rows remain non-blocking runtime validation evidence.`
+  ].forEach(text => {
+    const item = document.createElement("li");
+    item.textContent = text;
+    readiness.append(item);
+  });
   byId("estimate").disabled = !dependenciesReady;
 }
 
@@ -185,11 +229,11 @@ function renderSupport(record) {
     fill.style.width = `${100 * passed / possible}%`;
     track.append(fill);
     const count = document.createElement("strong");
-    count.textContent = `${passed} of ${possible}`;
+    count.textContent = `${passed}/${possible}`;
     row.append(hourLabel, track, count);
     container.append(row);
   });
-  byId("support-summary").textContent = `${record.observation_support.passed_total} of ${possible * 3} observations passed filtering.`;
+  byId("support-summary").textContent = `${record.observation_support.passed_total} of ${possible * 3} observations usable.`;
   const dates = byId("observation-dates");
   dates.replaceChildren();
   record.observation_support.usable_dates.forEach(item => {
@@ -205,6 +249,7 @@ function renderSupport(record) {
 }
 
 function renderFootprint(record) {
+  byId("result-location").textContent = record.display_location;
   byId("requested-point").textContent = formatCoordinates(record.query.location);
   byId("pixel-center").textContent = record.sampled_pixel.center
     ? formatCoordinates(record.sampled_pixel.center)
@@ -222,6 +267,18 @@ function renderFootprint(record) {
     list.append(item);
   });
   drawFootprint(record);
+}
+
+function renderDiagnostics(record) {
+  const timing = Number(record.delivery?.request_seconds || 0);
+  byId("result-source").textContent = record.delivery?.cache_hit
+    ? "Provenance-matched cached result"
+    : "Newly processed result";
+  byId("result-time").textContent = `${timing.toFixed(3)} seconds`;
+  const observationCache = record.delivery?.observation_cache || {};
+  const reused = Number(observationCache.reused || 0);
+  const downloaded = Number(observationCache.downloaded || 0);
+  byId("observation-cache").textContent = `${reused} reused · ${downloaded} downloaded`;
 }
 
 function renderMethods(record) {
@@ -251,24 +308,25 @@ function renderResult(record) {
   if (!queryMatchesRecord(record)) return false;
   activeRecord = record;
   byId("result-section").classList.remove("awaiting");
-  const timing = Number(record.delivery?.request_seconds || 0).toFixed(2);
-  const delivery = record.delivery?.cache_hit ? `cached · ${timing}s` : `processed · ${timing}s`;
-  byId("example-meta").textContent = `${record.display_location} · ${formatDate(record.query.period.start)}–${formatDate(record.query.period.end)} · ${delivery}`;
+  byId("example-meta").textContent = `${record.display_location} · ${formatDate(record.query.period.start)}–${formatDate(record.query.period.end)}`;
   if (record.lai == null) {
     byId("example-lai").textContent = "—";
+    byId("lai-units").hidden = true;
     byId("result-badge").textContent = "Insufficient data";
     byId("lai-explanation").textContent = record.data_message || "No research estimate is available for this period.";
   } else {
     const displayed = Number(record.lai.toFixed(2));
     byId("example-lai").textContent = displayed.toFixed(2);
+    byId("lai-units").hidden = false;
     byId("result-badge").textContent = "Research estimate";
-    byId("lai-explanation").textContent = `An LAI of ${displayed.toFixed(2)} represents an estimated ${displayed.toFixed(2)} square meters of leaf area per square meter of ground within this satellite pixel.`;
+    byId("lai-explanation").textContent = `About ${Number(record.lai).toFixed(1)} square meters of leaf area per square meter of ground, averaged across this satellite pixel.`;
   }
   byId("provisional-note").textContent = record.status.startsWith("provisional")
     ? "This output has an unresolved preprocessing limitation; see Methods."
     : "";
   renderSupport(record);
   renderFootprint(record);
+  renderDiagnostics(record);
   renderMethods(record);
   return true;
 }
@@ -280,20 +338,57 @@ function svgElement(name, attributes, text) {
   return node;
 }
 
+let currentTrend = null;
+let renderedTrendWidth = 0;
+
+function formatTrendPeriod(period) {
+  const start = new Date(`${period.start}T00:00:00Z`);
+  const end = new Date(`${period.end}T00:00:00Z`);
+  const startMonth = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(start);
+  const endMonth = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(end);
+  return startMonth === endMonth
+    ? `${startMonth} ${start.getUTCDate()}–${end.getUTCDate()}`
+    : `${startMonth} ${start.getUTCDate()}–${endMonth} ${end.getUTCDate()}`;
+}
+
 function renderTrend(data) {
+  currentTrend = data;
   const periods = data.periods;
   const values = periods.filter(item => item.lai != null).map(item => Number(item.lai));
-  const minimum = values.length ? Math.min(...values) : 0;
-  const maximum = values.length ? Math.max(...values) : 1;
-  const span = Math.max(maximum - minimum, 0.2);
-  const yFor = value => 105 - ((value - minimum) / span) * 55;
-  const xPositions = [90, 300, 510];
+  const maximum = Math.max(3, values.length ? Math.ceil(Math.max(...values) * 2) / 2 : 3);
+  const plot = byId("trend-plot");
+  const width = Math.max(360, Math.round(plot.clientWidth || 760));
+  renderedTrendWidth = width;
+  const height = 240;
+  const margin = { top: 26, right: 20, bottom: 62, left: 56 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const yFor = value => margin.top + plotHeight - (Number(value) / maximum) * plotHeight;
+  const xPositions = periods.map((_, index) => margin.left + (plotWidth * (index + 0.5)) / periods.length);
   const svg = svgElement("svg", {
-    viewBox: "0 0 600 180",
+    viewBox: `0 0 ${width} ${height}`,
     role: "img",
     "aria-label": "Three consecutive Montgomery County research estimate periods"
   });
   svg.append(svgElement("title", {}, "Montgomery County research estimate trend"));
+  [0, maximum / 3, (maximum * 2) / 3, maximum].forEach(value => {
+    const y = yFor(value);
+    svg.append(svgElement("line", {
+      x1: margin.left, y1: y, x2: width - margin.right, y2: y, class: "trend-grid"
+    }));
+    svg.append(svgElement("text", {
+      x: margin.left - 9, y: y + 4, class: "trend-tick"
+    }, value.toFixed(1)));
+  });
+  svg.append(svgElement("line", {
+    x1: margin.left, y1: margin.top, x2: margin.left, y2: margin.top + plotHeight, class: "trend-axis"
+  }));
+  svg.append(svgElement("text", {
+    x: 16,
+    y: margin.top + plotHeight / 2,
+    transform: `rotate(-90 16 ${margin.top + plotHeight / 2})`,
+    class: "trend-axis-label"
+  }, "LAI (m²/m²)"));
   for (let index = 0; index < periods.length - 1; index += 1) {
     const left = periods[index];
     const right = periods[index + 1];
@@ -308,19 +403,28 @@ function renderTrend(data) {
   periods.forEach((item, index) => {
     const x = xPositions[index];
     if (item.lai == null) {
-      svg.append(svgElement("line", { x1: x, y1: 44, x2: x, y2: 112, class: "trend-gap" }));
-      svg.append(svgElement("text", { x, y: 80, class: "trend-gap-label" }, "Gap"));
+      svg.append(svgElement("line", {
+        x1: x, y1: margin.top + 25, x2: x, y2: margin.top + plotHeight - 10, class: "trend-gap"
+      }));
+      svg.append(svgElement("text", {
+        x, y: margin.top + plotHeight / 2 + 4, class: "trend-gap-label"
+      }, "Gap"));
     } else {
       const y = yFor(Number(item.lai));
       svg.append(svgElement("circle", { cx: x, cy: y, r: 7, class: "trend-point" }));
       svg.append(svgElement("text", { x, y: y - 14, class: "trend-value" }, Number(item.lai).toFixed(2)));
     }
-    svg.append(svgElement("text", { x, y: 137, class: "trend-date" }, formatShortDate(item.period.start)));
-    svg.append(svgElement("text", { x, y: 155, class: "trend-count" }, item.lai == null ? "insufficient data" : `${item.usable_total} usable`));
+    svg.append(svgElement("text", { x, y: height - 34, class: "trend-date" }, formatTrendPeriod(item.period)));
+    svg.append(svgElement("text", { x, y: height - 16, class: "trend-count" }, `${item.usable_total}/24`));
   });
-  byId("trend-plot").replaceChildren(svg);
+  plot.replaceChildren(svg);
   byId("trend-meta").textContent = `${data.location.name} · three consecutive completed post-cutoff periods. Missing estimates remain gaps.`;
 }
+
+new ResizeObserver(entries => {
+  const width = Math.round(entries[0]?.contentRect.width || 0);
+  if (currentTrend && width && Math.abs(width - renderedTrendWidth) > 1) renderTrend(currentTrend);
+}).observe(byId("trend-plot"));
 
 async function pollJob(job, generation) {
   let current = job;

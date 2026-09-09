@@ -25,16 +25,19 @@
     <section class="workspace" aria-label="Selected query">
       <div class="map-wrap">
         <div id="map"></div>
+        <div id="map-tile-message" class="map-tile-message" role="alert" hidden>
+          Map tiles could not load. Check the internet connection; the selected point and satellite footprint remain available.
+        </div>
         <div class="map-legend"><span class="legend-point"></span> Requested point <span class="legend-footprint"></span> Sampled GOES pixel</div>
       </div>
       <aside class="query-panel">
-        <p class="eyebrow">Selected query</p>
+        <p class="eyebrow">Location</p>
         <div id="selected-name" class="location-name">Custom location</div>
-        <div id="selected-coordinates" class="coordinates">39.1547, −77.2405</div>
         <label for="period">Completed observation period</label>
         <select id="period"><option>Loading periods…</option></select>
+        <button id="load-example" class="secondary restore-action" disabled>Restore Montgomery demo</button>
         <button id="estimate" disabled>Estimate LAI</button>
-        <p class="button-note">Runs the supplied research pipeline for this exact point and period. Matching observations and results are reused safely.</p>
+        <p class="button-note">Runs the supplied research pipeline for this point and period.</p>
         <div id="status" class="status loading" role="status">Checking scientific dependencies…</div>
         <div id="processing" class="processing" aria-live="polite" hidden>
           <div class="processing-heading"><strong id="processing-stage">Preparing estimate</strong><span id="processing-percent">0%</span></div>
@@ -46,35 +49,50 @@
 
     <section id="result-section" class="example" aria-labelledby="example-title">
       <div class="section-heading">
-        <div><p class="eyebrow">Selected query</p><h2 id="example-title">Research estimate</h2></div>
-        <button id="load-example" class="secondary" disabled>Restore Montgomery demo</button>
+        <div><p class="eyebrow">Selected query</p><h2 id="example-title">Estimated leaf area</h2></div>
       </div>
       <div id="example-meta" class="example-meta">Loading the verified Montgomery record…</div>
       <div class="example-grid">
         <article class="result-card">
-          <div class="result-label"><span>Research estimate</span><span id="result-badge" class="badge">Loading</span></div>
-          <div id="example-lai" class="lai-value">—</div>
+          <div class="result-label"><span id="result-badge" class="badge">Research estimate</span></div>
+          <div class="lai-measure"><span id="example-lai" class="lai-value">—</span><span id="lai-units" class="lai-units" hidden>m²/m²</span></div>
           <p id="lai-explanation" class="lead-explanation">Loading the cached result…</p>
           <p id="provisional-note" class="provisional-note"></p>
+          <details id="processing-diagnostics" class="compact-details diagnostics">
+            <summary>Processing details</summary>
+            <dl>
+              <div><dt>Result source</dt><dd id="result-source">—</dd></div>
+              <div><dt>Request time</dt><dd id="result-time">—</dd></div>
+              <div><dt>Observation cache</dt><dd id="observation-cache">—</dd></div>
+            </dl>
+          </details>
         </article>
         <article class="support-card">
-          <p class="eyebrow">Observation availability</p>
-          <div id="support-bars" class="support-bars"></div>
+          <h3>Data availability</h3>
           <p id="support-summary" class="support-summary"></p>
-          <p class="support-note"><strong>Usable dates</strong></p>
-          <div id="observation-dates" class="observation-dates"></div>
-          <p class="support-note">Availability describes input support, not prediction confidence or accuracy.</p>
+          <p class="support-basis">Eight days × three selected observation times per day.</p>
+          <details id="observation-details" class="compact-details">
+            <summary>Observation details</summary>
+            <div id="support-bars" class="support-bars"></div>
+            <p class="detail-label">Usable dates</p>
+            <div id="observation-dates" class="observation-dates"></div>
+            <p class="support-note">These counts describe data availability, not prediction confidence or accuracy.</p>
+          </details>
         </article>
         <article class="spatial-card">
-          <p class="eyebrow">Spatial coverage</p>
-          <dl>
-            <div><dt>Requested point</dt><dd id="requested-point">—</dd></div>
-            <div><dt>Sampled pixel center</dt><dd id="pixel-center">—</dd></div>
-            <div><dt>Fixed-grid pixel</dt><dd id="pixel-index">—</dd></div>
-          </dl>
-          <p><strong>Footprint corners</strong></p>
-          <ol id="footprint-corners" class="footprint-corners"></ol>
-          <p>The estimate represents the displayed satellite pixel footprint, not an individual yard, tree, or exact point.</p>
+          <h3>Satellite pixel</h3>
+          <p id="result-location" class="result-location">—</p>
+          <p>The estimate is averaged across the entire highlighted satellite pixel, not an individual yard or tree.</p>
+          <details id="pixel-details" class="compact-details">
+            <summary>Pixel details</summary>
+            <dl>
+              <div><dt>Requested point</dt><dd id="requested-point">—</dd></div>
+              <div><dt>Sampled pixel center</dt><dd id="pixel-center">—</dd></div>
+              <div><dt>Fixed-grid pixel</dt><dd id="pixel-index">—</dd></div>
+            </dl>
+            <p class="detail-label">Footprint corners</p>
+            <ol id="footprint-corners" class="footprint-corners"></ol>
+          </details>
         </article>
       </div>
     </section>
@@ -90,10 +108,10 @@
     <details class="methods">
       <summary>Methods and limitations</summary>
       <div class="methods-content">
+        <p><strong>Readiness and validation</strong></p>
+        <ul id="methods-readiness"><li>Checking installed assets and validation status…</li></ul>
         <p>LeafView applies Yixuan Li's selected 600-tree XGBoost model to GOES-19 red, near-infrared, and shortwave-infrared reflectance statistics, viewing and illumination geometry, seasonality, and IGBP land cover. The model preserves separate 15, 18, and 21 UTC composites.</p>
         <p>The training reference is a quality-screened MODIS/VIIRS satellite consensus, not direct field ground truth. LAI is leaf area per ground area; it is not a direct plant-health score, drought diagnosis, or irrigation recommendation.</p>
-        <p><strong>Validation status</strong></p>
-        <p>Installed assets and notebook-compatible preprocessing are verified. Historical feature-row and prediction reproduction remains unverified, but those historical rows are validation evidence rather than runtime inputs and do not block normal inference.</p>
         <ul id="methods-limitations"></ul>
         <p><strong>Model-compatibility concern</strong></p>
         <ul id="methods-concerns"></ul>

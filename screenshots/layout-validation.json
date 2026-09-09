@@ -1,20 +1,50 @@
 {
   "initial": {
-    "location": "Montgomery County, Maryland",
-    "coordinates": "39.1547, −77.2405",
-    "period": "2026-04-07",
+    "viewportWidth": 1440,
+    "readiness": "Ready to estimate",
     "lai": "1.20",
-    "badge": "Research estimate",
-    "context": "Montgomery County, Maryland · Apr 7, 2026–Apr 14, 2026 · cached · 0.00s",
+    "units": "m²/m²",
+    "support": "15 of 24 observations usable.",
+    "mapWrap": {
+      "width": 941.6953125,
+      "height": 460
+    },
+    "map": {
+      "width": 941.6953125,
+      "height": 460
+    },
+    "mapBlankPixels": 0,
+    "loadedTiles": 40,
+    "tileNaturalSizes": [
+      "256x256"
+    ],
+    "tileRenderedSizes": [
+      "128x128"
+    ],
+    "tileMessageHidden": true,
     "footprintPaths": 2,
-    "observationDates": 7,
-    "trendPoints": 3,
-    "trendGaps": 0,
-    "estimateEnabled": true
+    "badges": 1,
+    "detailsClosed": true,
+    "trendLabels": [
+      "Apr 7–14",
+      "Apr 15–22",
+      "Apr 23–30"
+    ],
+    "trendCounts": [
+      "15/24",
+      "5/24",
+      "6/24"
+    ],
+    "trendAxis": "LAI (m²/m²)"
+  },
+  "tileFailureFallback": {
+    "visibleOnFailure": true,
+    "clearedOnRecovery": true
   },
   "existingCache": {
     "lai": "1.20",
-    "context": "Montgomery County, Maryland · Apr 7, 2026–Apr 14, 2026 · cached · 0.00s",
+    "source": "Provenance-matched cached result",
+    "cache": "24 reused · 0 downloaded",
     "progress": "Loaded a provenance-matched cached research estimate"
   },
   "afterPeriodChange": {
@@ -22,32 +52,57 @@
     "context": "No result is attached to this selection yet. Run Estimate LAI.",
     "footprintPaths": 1
   },
-  "changedPeriod": {
-    "period": "2026-04-15",
-    "lai": "2.28",
-    "context": "Montgomery County, Maryland · Apr 15, 2026–Apr 22, 2026 · cached · 0.00s"
-  },
   "supportedLocation": {
     "location": "Custom location",
-    "coordinates": "38.5320, −78.4380",
     "lai": "1.27",
-    "context": "Custom location · Apr 15, 2026–Apr 22, 2026 · processed · 2.53s",
-    "observationDates": 4,
+    "support": "8 of 24 observations usable.",
     "footprintCorners": 4,
-    "progressUpdates": 8,
-    "responsiveTicks": 55
+    "source": "Provenance-matched cached result"
   },
-  "supportedCache": "Custom location · Apr 15, 2026–Apr 22, 2026 · cached · 0.00s",
   "insufficientData": {
     "lai": "—",
     "badge": "Insufficient data",
-    "support": "0 of 24 observations passed filtering.",
-    "dates": "None",
+    "support": "0 of 24 observations usable.",
     "message": "No observations passed the supplied quality and geometry filters; this period is shown as a gap."
   },
-  "afterLocationChange": {
-    "lai": "—",
-    "context": "No result is attached to this selection yet. Run Estimate LAI.",
-    "footprintPaths": 1
+  "restored": {
+    "location": "Montgomery County, Maryland",
+    "period": "2026-04-07",
+    "lai": "1.20",
+    "marker": [
+      39.1547,
+      -77.2405
+    ],
+    "resultMatchesQuery": true
+  },
+  "desktop": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "screenshot": {
+      "width": 1440,
+      "height": 1672
+    },
+    "horizontalOverflow": 0
+  },
+  "narrow": {
+    "viewport": {
+      "width": 430,
+      "height": 900
+    },
+    "screenshot": {
+      "width": 430,
+      "height": 2225
+    },
+    "horizontalOverflow": 0
+  },
+  "narrowLayout": {
+    "mapWidth": 400,
+    "mapHeight": 300,
+    "mapMatchesWrapper": true,
+    "queryBelowMap": true,
+    "readableBodyFont": "16px",
+    "horizontalOverflow": 0
   }
 }

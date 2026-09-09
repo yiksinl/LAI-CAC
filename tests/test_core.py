@@ -181,7 +181,9 @@ def test_checksum_verified_solar_helper_import_skips_demo_and_uses_notebook_conv
 
 
 def test_ui_binds_cached_example_from_api_instead_of_hardcoding_value():
-    source = (Path(__file__).parents[1] / "static/app.js").read_text(encoding="utf-8")
+    root = Path(__file__).parents[1]
+    source = (root / "static/app.js").read_text(encoding="utf-8")
+    template = (root / "templates/index.html").read_text(encoding="utf-8")
     assert 'record.lai.toFixed(2)' in source
     assert "1.29" not in source
     assert 'byId("period").value = period.start' in source
@@ -194,6 +196,18 @@ def test_ui_binds_cached_example_from_api_instead_of_hardcoding_value():
     assert 'fetch(`/api/jobs/${current.job_id}`' in source
     assert 'byId("observation-dates")' in source
     assert "left.lai != null && right.lai != null" in source
+    assert 'detectRetina: true' in source
+    assert 'new ResizeObserver(resizeMap)' in source
+    assert '"Ready to estimate"' in source
+    assert "observations usable" in source
+    assert '"LAI (m²/m²)"' in source
+    assert "formatTrendPeriod(item.period)" in source
+    assert "`${item.usable_total}/24`" in source
+    assert 'id="map-tile-message"' in template
+    assert 'id="processing-diagnostics"' in template
+    assert 'id="observation-details"' in template
+    assert 'id="pixel-details"' in template
+    assert template.count('id="result-badge"') == 1
 
 
 def test_live_estimate_endpoint_validates_payload_without_running_pipeline():
