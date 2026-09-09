@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,6 +18,9 @@ SOLAR_GEOMETRY_SHA256 = "1ebf9fe03be6de656554dbf5f094928b9f49265e291cf8cd53ecb95
 NAVIGATION_NAME = "GOES_Navigation_2kmFD-GOES-East.nc"
 NAVIGATION_SHA256 = "c08fa491793996ab204c936f4bb25f299f4cf18383b0bd3673db87f8bd780e96"
 NAVIGATION_SOURCE_CONFIG_NAME = "navigation-source.json"
+
+_HASH_CACHE: dict[tuple[str, int, int], str] = {}
+_HASH_CACHE_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -116,8 +120,17 @@ class ReferenceAssets:
 
 
 def sha256(path: Path) -> str:
+    stat = path.stat()
+    key = (str(path.resolve()), stat.st_size, stat.st_mtime_ns)
+    with _HASH_CACHE_LOCK:
+        cached = _HASH_CACHE.get(key)
+    if cached is not None:
+        return cached
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
-    return digest.hexdigest()
+    value = digest.hexdigest()
+    with _HASH_CACHE_LOCK:
+        _HASH_CACHE[key] = value
+    return value

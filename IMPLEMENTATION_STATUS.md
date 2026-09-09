@@ -9,6 +9,32 @@ Last updated: 2026-09-08
 3. **Completed:** import and checksum the original IGBP grid and supplied solar helper.
 4. **Completed:** rerun the April 7–14 composite and expose its revised result.
 5. **Completed:** verify and use the notebook's separate GOES navigation grid.
+6. **Completed:** build and browser-test the query-bound LeafView MVP and three-period trend.
+
+## LeafView MVP
+
+- **Estimate LAI** now starts the real supplied inference pipeline for the exact map
+  point and completed post-cutoff period. Work runs outside the request thread, and
+  the browser polls concrete asset, land-cover, observation, feature, model, and save
+  stages while remaining responsive.
+- Derived results are keyed by normalized coordinates, aligned period, pipeline
+  version, filter definition, and the model, IGBP, solar-helper, and navigation
+  checksums. Raw observations are still accepted from cache only when their byte size
+  matches the selected immutable NOAA object.
+- Changing coordinates or period immediately clears the displayed LAI and footprint;
+  a late response is not rendered unless its query still matches. The result panel
+  shows usable dates, 15/18/21 UTC counts, fixed-grid row/column, center, and all four
+  footprint corners.
+- All output is labelled **Research estimate**. Zero-usable-observation runs return
+  `insufficient_data` with `lai: null`; the trend renderer leaves these periods as
+  gaps and never connects a line across one.
+- The real Montgomery demonstration now includes April 7–14 (`1.2043058872`, counts
+  4/5/6), April 15–22 (`2.2830977440`, counts 2/1/2), and April 23–30
+  (`2.6258995533`, counts 2/3/1).
+- Browser validation covered the existing Montgomery result, a period change, a new
+  supported location, a repeated provenance cache hit, a real zero-usable-observation
+  location, stale-result clearing, progress updates, and desktop/narrow layouts.
+  Detailed evidence and timings are in [MVP_VALIDATION.md](MVP_VALIDATION.md).
 
 ## Verified findings
 

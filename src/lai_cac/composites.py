@@ -10,6 +10,11 @@ POST_CUTOFF_ANCHOR = date(2026, 4, 7)
 
 def aligned_period(start: date) -> tuple[date, date]:
     """Return a fixed notebook-calendar 8-day period; reject off-grid starts."""
+    if start <= TRAINING_END:
+        raise ValueError(
+            f"{start.isoformat()} is not after the model-development cutoff "
+            f"{TRAINING_END.isoformat()}"
+        )
     delta = (start - POST_CUTOFF_ANCHOR).days
     if delta % COMPOSITE_DAYS:
         raise ValueError(

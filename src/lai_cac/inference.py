@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 import math
+import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Callable
 
 import h5py
 import numpy as np
@@ -15,8 +17,21 @@ from .geometry import angle_difference, solar_angles, view_geometry
 from .goes import download, nearest_scan, passes_notebook_strict_quality, sample_pixel
 from .model import LaiModel
 from .navigation import read_navigation_pixel
+from .result_cache import cache_identity
 
 IGBP_CATEGORIES = (1, 10, 11, 12, 13, 14, 16, 2, 3, 4, 5, 6, 7, 8, 9)
+ProgressCallback = Callable[[dict[str, object]], None]
+
+
+def _report(
+    callback: ProgressCallback | None,
+    percent: int,
+    stage: str,
+    detail: str,
+    **extra: object,
+) -> None:
+    if callback is not None:
+        callback({"percent": percent, "stage": stage, "detail": detail, **extra})
 
 
 def _sample_std(values: list[float]) -> float | None:
@@ -45,12 +60,15 @@ def read_igbp_class(path: Path, latitude: float, longitude: float) -> int:
 
 
 def prepare_composite(latitude: float, longitude: float, start: date, igbp_class: int | None,
-                      root: Path) -> tuple[dict[str, float | None], dict]:
+                      root: Path, progress: ProgressCallback | None = None
+                      ) -> tuple[dict[str, float | None], dict]:
     start, end = aligned_period(start)
     assets = ReferenceAssets(root / "artifacts/reference")
+    _report(progress, 2, "validating", "Verifying the supplied preprocessing assets")
     solar_geometry_path = assets.require_solar_geometry()
     navigation_path = assets.require_navigation() if assets.navigation.is_file() else None
     igbp_source = "explicit_argument"
+    _report(progress, 5, "land_cover", "Checking the requested location against the IGBP grid")
     if igbp_class is None:
         igbp_class = read_igbp_class(assets.require_igbp(), latitude, longitude)
         igbp_source = "S-NPP_VIIRS_GST_IGBP_8-Year_30arcsec.nc"
@@ -61,14 +79,46 @@ def prepare_composite(latitude: float, longitude: float, start: date, igbp_class
     sampled_center = None
     grouped: dict[int, list[dict]] = defaultdict(list)
     attempts = []
+    observation_cache_hits = 0
+    observation_downloads = 0
+    completed = 0
+    observation_total = len(TARGET_HOURS_UTC) * 8
     current = start
     while current <= end:
         for hour in TARGET_HOURS_UTC:
+            ordinal = completed + 1
+            _report(
+                progress,
+                8 + int(72 * completed / observation_total),
+                "observations",
+                f"Finding observation {ordinal} of {observation_total} ({current.isoformat()} at {hour} UTC)",
+                completed=completed,
+                total=observation_total,
+            )
             scan = nearest_scan(current, hour)
             if scan is None:
                 attempts.append({"date": current.isoformat(), "target_hour": hour, "status": "missing_scan"})
+                completed += 1
                 continue
-            path = download(scan, root / "data/cache" / Path(scan.key).name)
+            destination = root / "data/cache" / Path(scan.key).name
+            reused = destination.is_file() and destination.stat().st_size == scan.size
+            _report(
+                progress,
+                8 + int(72 * completed / observation_total),
+                "observations",
+                (
+                    f"Reusing cached observation {ordinal} of {observation_total}"
+                    if reused else f"Downloading observation {ordinal} of {observation_total}"
+                ),
+                completed=completed,
+                total=observation_total,
+                cache_hit=reused,
+            )
+            path = download(scan, destination)
+            if reused:
+                observation_cache_hits += 1
+            else:
+                observation_downloads += 1
             sample = sample_pixel(path, latitude, longitude)
             if sampled_center is None:
                 if navigation_path:
@@ -134,9 +184,20 @@ def prepare_composite(latitude: float, longitude: float, start: date, igbp_class
             attempts.append(record)
             if strict:
                 grouped[hour].append(record)
+            completed += 1
+            _report(
+                progress,
+                8 + int(72 * completed / observation_total),
+                "observations",
+                f"Processed observation {completed} of {observation_total}",
+                completed=completed,
+                total=observation_total,
+                usable=sum(len(records) for records in grouped.values()),
+            )
         current += timedelta(days=1)
     if sampled_center is None or view_zenith is None or view_azimuth is None or navigation is None:
         raise ValueError("No GOES-19 scans were available for the requested composite")
+    _report(progress, 82, "features", "Constructing the notebook-compatible feature row")
     row: dict[str, float | None] = {name: None for name in LaiModel(assets.require_model()).features}
     row.update({"viewZenithDeg": view_zenith, "viewAzimuthSin": math.sin(math.radians(view_azimuth)),
                 "viewAzimuthCos": math.cos(math.radians(view_azimuth)),
@@ -177,18 +238,35 @@ def prepare_composite(latitude: float, longitude: float, start: date, igbp_class
                       "timestamp_source": "GOES t variable decoded with its CF units and calendar as UTC",
                       "output_conversion": "solar zenith and azimuth cast to float32; azimuth modulo 360",
                   }, "attempts": attempts,
-                  "usable_counts": {str(hour): len(grouped[hour]) for hour in TARGET_HOURS_UTC}}
+                  "usable_counts": {str(hour): len(grouped[hour]) for hour in TARGET_HOURS_UTC},
+                  "observation_cache": {
+                      "reused": observation_cache_hits,
+                      "downloaded": observation_downloads,
+                      "total_selected": observation_cache_hits + observation_downloads,
+                  }}
     return row, provenance
 
 
 def run_estimate(latitude: float, longitude: float, start: date, igbp_class: int | None,
-                 root: Path, output: Path, location_name: str | None = None) -> dict:
-    row, provenance = prepare_composite(latitude, longitude, start, igbp_class, root)
+                 root: Path, output: Path, location_name: str | None = None,
+                 progress: ProgressCallback | None = None,
+                 identity: dict[str, object] | None = None) -> dict:
+    started = time.perf_counter()
+    identity = identity or cache_identity(
+        latitude, longitude, start, root, igbp_override=igbp_class
+    )
+    row, provenance = prepare_composite(
+        latitude, longitude, start, igbp_class, root, progress=progress
+    )
     if location_name:
         provenance["location_name"] = location_name
-    model = LaiModel(ReferenceAssets(root / "artifacts/reference").require_model())
+    provenance["cache_identity"] = identity
     usable = sum(provenance["usable_counts"].values())
-    prediction = model.predict(row, usable)
+    prediction = None
+    if usable:
+        _report(progress, 91, "model", "Applying the supplied 600-tree LAI model")
+        model = LaiModel(ReferenceAssets(root / "artifacts/reference").require_model())
+        prediction = model.predict(row, usable)
     limitations = []
     if provenance["igbp"]["source"] == "explicit_argument":
         limitations.append("IGBP class was explicitly supplied instead of read from the exact eight-year grid.")
@@ -198,7 +276,15 @@ def run_estimate(latitude: float, longitude: float, start: date, igbp_class: int
             "separate navigation grid is unavailable; numerical equivalence remains unverified."
         )
     preprocessing_verified = not limitations
-    result = {"status": "provisional_dependency_override" if limitations else "verified", "lai": prediction, "units": "m² leaf area per m² ground area",
+    if not usable:
+        status = "insufficient_data"
+    else:
+        status = "provisional_dependency_override" if limitations else "verified"
+    provenance["processing"] = {
+        "duration_seconds": round(time.perf_counter() - started, 3),
+        "result_cache_hit": False,
+    }
+    result = {"status": status, "label": "Research estimate", "lai": prediction, "units": "m² leaf area per m² ground area",
               "model_sha256": ReferenceAssets(root / "artifacts/reference").audit()["model"]["sha256"],
               "features": row, "provenance": provenance,
               "limitations": limitations,
@@ -229,6 +315,15 @@ def run_estimate(latitude: float, longitude: float, start: date, igbp_class: int
                   "formula produces a different convention. The formula is intentionally preserved for "
                   "model compatibility; see SCIENTIFIC_NOTES.md."
               ]}
+    if not usable:
+        result["data_message"] = (
+            "No observations passed the supplied quality and geometry filters; "
+            "this period is shown as a gap."
+        )
+    _report(progress, 97, "saving", "Saving result and provenance")
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
+    temporary = output.with_suffix(output.suffix + ".part")
+    temporary.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
+    temporary.replace(output)
+    _report(progress, 100, "complete", "Research estimate complete")
     return result

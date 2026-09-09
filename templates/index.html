@@ -34,20 +34,25 @@
         <label for="period">Completed observation period</label>
         <select id="period"><option>Loading periods…</option></select>
         <button id="estimate" disabled>Estimate LAI</button>
-        <p class="button-note">A live estimate recomputes the selected eight-day composite. Historical feature rows are validation evidence, not runtime inputs.</p>
+        <p class="button-note">Runs the supplied research pipeline for this exact point and period. Matching observations and results are reused safely.</p>
         <div id="status" class="status loading" role="status">Checking scientific dependencies…</div>
+        <div id="processing" class="processing" aria-live="polite" hidden>
+          <div class="processing-heading"><strong id="processing-stage">Preparing estimate</strong><span id="processing-percent">0%</span></div>
+          <progress id="processing-bar" max="100" value="0"></progress>
+          <p id="processing-detail">Preparing the selected query…</p>
+        </div>
       </aside>
     </section>
 
-    <section class="example" aria-labelledby="example-title">
+    <section id="result-section" class="example" aria-labelledby="example-title">
       <div class="section-heading">
-        <div><p class="eyebrow">Reliable demonstration</p><h2 id="example-title">Cached example</h2></div>
-        <button id="load-example" class="secondary" disabled>Load this example</button>
+        <div><p class="eyebrow">Selected query</p><h2 id="example-title">Research estimate</h2></div>
+        <button id="load-example" class="secondary" disabled>Restore Montgomery demo</button>
       </div>
-      <div id="example-meta" class="example-meta">Loading verified record metadata…</div>
+      <div id="example-meta" class="example-meta">Loading the verified Montgomery record…</div>
       <div class="example-grid">
         <article class="result-card">
-          <div class="result-label"><span>LAI estimate</span><span id="result-badge" class="badge">Loading</span></div>
+          <div class="result-label"><span>Research estimate</span><span id="result-badge" class="badge">Loading</span></div>
           <div id="example-lai" class="lai-value">—</div>
           <p id="lai-explanation" class="lead-explanation">Loading the cached result…</p>
           <p id="provisional-note" class="provisional-note"></p>
@@ -56,6 +61,8 @@
           <p class="eyebrow">Observation availability</p>
           <div id="support-bars" class="support-bars"></div>
           <p id="support-summary" class="support-summary"></p>
+          <p class="support-note"><strong>Usable dates</strong></p>
+          <div id="observation-dates" class="observation-dates"></div>
           <p class="support-note">Availability describes input support, not prediction confidence or accuracy.</p>
         </article>
         <article class="spatial-card">
@@ -63,7 +70,10 @@
           <dl>
             <div><dt>Requested point</dt><dd id="requested-point">—</dd></div>
             <div><dt>Sampled pixel center</dt><dd id="pixel-center">—</dd></div>
+            <div><dt>Fixed-grid pixel</dt><dd id="pixel-index">—</dd></div>
           </dl>
+          <p><strong>Footprint corners</strong></p>
+          <ol id="footprint-corners" class="footprint-corners"></ol>
           <p>The estimate represents the displayed satellite pixel footprint, not an individual yard, tree, or exact point.</p>
         </article>
       </div>
@@ -71,7 +81,10 @@
 
     <section class="trend-card">
       <div><p class="eyebrow">Trend</p><h2>Change over time</h2></div>
-      <div class="empty-trend"><span aria-hidden="true">○</span><p><strong>More estimates are needed.</strong><br>LeafView will leave unavailable periods as gaps and will not draw a trend from a single completed estimate.</p></div>
+      <div>
+        <p id="trend-meta" class="trend-meta">Loading three real Montgomery County periods…</p>
+        <div id="trend-plot" class="trend-plot" aria-live="polite"></div>
+      </div>
     </section>
 
     <details class="methods">
@@ -79,6 +92,8 @@
       <div class="methods-content">
         <p>LeafView applies Yixuan Li's selected 600-tree XGBoost model to GOES-19 red, near-infrared, and shortwave-infrared reflectance statistics, viewing and illumination geometry, seasonality, and IGBP land cover. The model preserves separate 15, 18, and 21 UTC composites.</p>
         <p>The training reference is a quality-screened MODIS/VIIRS satellite consensus, not direct field ground truth. LAI is leaf area per ground area; it is not a direct plant-health score, drought diagnosis, or irrigation recommendation.</p>
+        <p><strong>Validation status</strong></p>
+        <p>Installed assets and notebook-compatible preprocessing are verified. Historical feature-row and prediction reproduction remains unverified, but those historical rows are validation evidence rather than runtime inputs and do not block normal inference.</p>
         <ul id="methods-limitations"></ul>
         <p><strong>Model-compatibility concern</strong></p>
         <ul id="methods-concerns"></ul>

@@ -28,12 +28,30 @@ Run the local browser shell at <http://127.0.0.1:8781>:
 .venv/bin/lai-cac-web
 ```
 
-The interface includes a cached April 7–14 research result. Live estimates are
-enabled when runtime inputs and supplied preprocessing validation both pass.
+The interface includes a three-period Montgomery County demonstration and runs live
+research estimates when runtime inputs and supplied preprocessing validation both
+pass. Select a completed eight-day period and click the map to choose a location.
+The app then:
 
-The cached example is a separate, query-bound result card. Use **Load this example**
-to synchronize the map, requested point, pixel footprint, and period selector. A
-different map point or period never relabels the cached result.
+- starts the real inference pipeline in a background job and reports progress as it
+  selects, downloads or reuses, samples, filters, and models 24 observations;
+- applies GOES coverage, exact IGBP class, DQF, reflectance, solar-zenith, and
+  view-zenith checks to the selected query;
+- displays the query-bound LAI, usable dates and per-hour counts, sampled pixel
+  center/index, and all four footprint corners; and
+- reuses a derived result only when its coordinates, period, pipeline version, and
+  model/IGBP/solar/navigation checksums match.
+
+Changing the map point or period clears the displayed output immediately. A late job
+response is discarded unless it still matches the selected query. Use **Restore
+Montgomery demo** to return to the verified first-period result. Every output is
+labelled **Research estimate**; a period with no usable observations is displayed as
+an explicit gap rather than a model prediction.
+
+The real Montgomery trend contains the consecutive April 7–14, April 15–22, and
+April 23–30 periods, with LAI values `1.2043058872`, `2.2830977440`, and
+`2.6258995533`. See [MVP_VALIDATION.md](MVP_VALIDATION.md) for browser checks,
+observation counts, and cold/warm-cache timings.
 
 Inspect the real scan selection for the first post-cutoff composite:
 
@@ -84,9 +102,11 @@ The navigation raster remains in Downloads and is read directly through
 `artifacts/reference/navigation-source.json`; LAI-CAC does not create another full
 copy. The configured source must remain at that path for future inference.
 
-`/api/status` generates this state from the live dependency audit. HTML, JavaScript,
-CSS, and API responses use `Cache-Control: no-store` to prevent a restarted local
-server from being confused with browser caching.
+`/api/status` generates this state from the live dependency audit. `/api/estimate`
+starts or reuses a query-bound job, `/api/jobs/<id>` reports progress, and
+`/api/trends/montgomery` serves the three-period demonstration. HTML, JavaScript,
+CSS, and API responses use `Cache-Control: no-store`; scientific result reuse is
+controlled separately by explicit provenance identities.
 
 ## Scientific boundaries
 

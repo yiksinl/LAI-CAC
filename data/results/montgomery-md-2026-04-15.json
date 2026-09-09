@@ -1,51 +1,51 @@
 {
   "status": "verified",
   "label": "Research estimate",
-  "lai": 1.20430588722229,
+  "lai": 2.283097743988037,
   "units": "m\u00b2 leaf area per m\u00b2 ground area",
   "model_sha256": "815ed3b7cb92b95d598e24385527874864c5e6e282cf05d7dabbcca26391d4c6",
   "features": {
-    "brfBand2RedMeanHour15": 0.0693249982487032,
-    "brfBand2RedStdHour15": 0.003293807237608277,
-    "brfBand3NirMeanHour15": 0.26282499336048204,
-    "brfBand3NirStdHour15": 0.010588790976079133,
-    "brfBand5SwirMeanHour15": 0.21664999452696065,
-    "brfBand5SwirStdHour15": 0.0030027764171024047,
-    "brfBand2RedMeanHour18": 0.07323999814980198,
-    "brfBand2RedStdHour18": 0.002207487203540563,
-    "brfBand3NirMeanHour18": 0.27915999294782523,
-    "brfBand3NirStdHour18": 0.013413723976184726,
-    "brfBand5SwirMeanHour18": 0.23665999402146554,
-    "brfBand5SwirStdHour18": 0.006406090689850236,
-    "brfBand2RedMeanHour21": 0.05504999860932003,
-    "brfBand2RedStdHour21": 0.0027819057512778606,
-    "brfBand3NirMeanHour21": 0.23284999411771423,
-    "brfBand3NirStdHour21": 0.018827718451528128,
-    "brfBand5SwirMeanHour21": 0.1799833287865719,
-    "brfBand5SwirStdHour21": 0.0029687819423734672,
+    "brfBand2RedMeanHour15": 0.05359999864595011,
+    "brfBand2RedStdHour15": 0.0022627416426352887,
+    "brfBand3NirMeanHour15": 0.3201999919110676,
+    "brfBand3NirStdHour15": 0.0009899494686529389,
+    "brfBand5SwirMeanHour15": 0.18924999521914287,
+    "brfBand5SwirStdHour15": 0.007000356956902925,
+    "brfBand2RedMeanHour18": 0.0576999985423754,
+    "brfBand2RedStdHour18": null,
+    "brfBand3NirMeanHour18": 0.3291999916837085,
+    "brfBand3NirStdHour18": null,
+    "brfBand5SwirMeanHour18": 0.19919999496778473,
+    "brfBand5SwirStdHour18": null,
+    "brfBand2RedMeanHour21": 0.04494999886446749,
+    "brfBand2RedStdHour21": 0.003040559082291169,
+    "brfBand3NirMeanHour21": 0.2819499928773439,
+    "brfBand3NirStdHour21": 0.011667261594838208,
+    "brfBand5SwirMeanHour21": 0.16239999589743093,
+    "brfBand5SwirStdHour21": 0.009758073333864683,
     "viewZenithDeg": 45.385860443115234,
     "viewAzimuthSin": 0.0564705039718864,
     "viewAzimuthCos": -0.9984042679101293,
-    "dayOfYearSin": 0.9952176027737294,
-    "dayOfYearCos": -0.09768276782171598,
-    "solarZenithDegMeanHour15": 41.74742889404297,
-    "solarZenithDegStdHour15": 0.5709683708146774,
-    "solarAzimuthSinMeanHour15": 0.7715525109925556,
-    "solarAzimuthCosMeanHour15": 0.6361317690037587,
-    "relativeAzimuthSinMeanHour15": 0.8062439816384898,
-    "relativeAzimuthCosMeanHour15": -0.5915467407199579,
-    "solarZenithDegMeanHour18": 33.36484222412109,
-    "solarZenithDegStdHour18": 0.8877915530282455,
-    "solarAzimuthSinMeanHour18": -0.4272002240060596,
-    "solarAzimuthCosMeanHour18": 0.9040426585550803,
-    "relativeAzimuthSinMeanHour18": 0.37546678235912373,
-    "relativeAzimuthCosMeanHour18": -0.9267242606207369,
-    "solarZenithDegMeanHour21": 60.79942385355631,
-    "solarZenithDegStdHour21": 0.47051133102162374,
-    "solarAzimuthSinMeanHour21": -0.9691479029452638,
-    "solarAzimuthCosMeanHour21": 0.24605011721143755,
-    "relativeAzimuthSinMeanHour21": 0.9537068284154313,
-    "relativeAzimuthCosMeanHour21": -0.3003857576463027,
+    "dayOfYearSin": 0.9724075561219968,
+    "dayOfYearCos": -0.23328854407545518,
+    "solarZenithDegMeanHour15": 38.82209014892578,
+    "solarZenithDegStdHour15": 0.6327610891124829,
+    "solarAzimuthSinMeanHour15": 0.7984832871605881,
+    "solarAzimuthCosMeanHour15": 0.6019715804433681,
+    "relativeAzimuthSinMeanHour15": 0.8312027602804305,
+    "relativeAzimuthCosMeanHour15": -0.5559202414361775,
+    "solarZenithDegMeanHour18": 29.94936180114746,
+    "solarZenithDegStdHour18": null,
+    "solarAzimuthSinMeanHour18": -0.4861269608136508,
+    "solarAzimuthCosMeanHour18": 0.8738881953488576,
+    "relativeAzimuthSinMeanHour18": 0.4360023256160968,
+    "relativeAzimuthCosMeanHour18": -0.8999455383840486,
+    "solarZenithDegMeanHour21": 59.20793533325195,
+    "solarZenithDegStdHour21": 0.623983755028998,
+    "solarAzimuthSinMeanHour21": -0.9811025822621465,
+    "solarAzimuthCosMeanHour21": 0.19288097001763505,
+    "relativeAzimuthSinMeanHour21": 0.9686449198046936,
+    "relativeAzimuthCosMeanHour21": -0.24797654093271498,
     "igbpClass_1": 0.0,
     "igbpClass_10": 0.0,
     "igbpClass_11": 0.0,
@@ -72,8 +72,8 @@
       "longitude": -77.2435531616211
     },
     "composite": {
-      "start": "2026-04-07",
-      "end": "2026-04-14"
+      "start": "2026-04-15",
+      "end": "2026-04-22"
     },
     "igbp": {
       "class": 4,
@@ -268,296 +268,26 @@
           }
         ],
         "brf": {
-          "2": 0.07479999811039306,
-          "3": 0.25259999361878727,
-          "5": 0.21899999446759466
+          "2": 0.08599999782745726,
+          "3": 0.341199991380563,
+          "5": 0.23929999395477353
         },
-        "time_coverage_start": "2026-04-07T15:00:21.1Z",
-        "time_coverage_end": "2026-04-07T15:09:52.0Z",
-        "scan_time_utc": "2026-04-07T15:05:06.591278+00:00",
+        "time_coverage_start": "2026-04-15T15:00:20.6Z",
+        "time_coverage_end": "2026-04-15T15:09:51.4Z",
+        "scan_time_utc": "2026-04-15T15:05:06.051570+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20260971500211_e20260971509520_c20260971515065.nc",
-        "date": "2026-04-07",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261051500206_e20261051509514_c20261051514303.nc",
+        "date": "2026-04-15",
         "target_hour": 15,
-        "scan": "ABI-L2-BRFF/2026/097/15/OR_ABI-L2-BRFF-M6_G19_s20260971500211_e20260971509520_c20260971515065.nc",
+        "scan": "ABI-L2-BRFF/2026/105/15/OR_ABI-L2-BRFF-M6_G19_s20261051500206_e20261051509514_c20261051514303.nc",
         "strict": false,
-        "solar_zenith": 42.84249496459961,
-        "solar_azimuth": 49.67524337768555,
-        "projection_derived_pixel_center": {
-          "latitude": 39.150265776691576,
-          "longitude": -77.24354489634419
-        }
-      },
-      {
-        "row": 797,
-        "column": 2619,
-        "fixed_grid_x_rad": -0.005179986357688904,
-        "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
-        "sampled_pixel_center": {
-          "latitude": 39.1502685546875,
-          "longitude": -77.2435531616211
-        },
-        "sampled_pixel_corners": [
-          {
-            "latitude": 39.13690382935686,
-            "longitude": -77.25519221333856
-          },
-          {
-            "latitude": 39.136791353332015,
-            "longitude": -77.23091846862489
-          },
-          {
-            "latitude": 39.16374449775544,
-            "longitude": -77.25617728341183
-          },
-          {
-            "latitude": 39.16363184842506,
-            "longitude": -77.23189291305735
-          }
-        ],
-        "brf": {
-          "2": 0.07109999820386292,
-          "3": 0.26969999318680493,
-          "5": 0.2435999938461464
-        },
-        "time_coverage_start": "2026-04-07T18:00:20.9Z",
-        "time_coverage_end": "2026-04-07T18:09:51.7Z",
-        "scan_time_utc": "2026-04-07T18:05:06.371253+00:00",
-        "view_geometry_parameters": {
-          "satellite_longitude": -75.19999694824219,
-          "semi_major": 6378137.0,
-          "semi_minor": 6356752.31414,
-          "perspective_height": 35786023.0
-        },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20260971800209_e20260971809517_c20260971814512.nc",
-        "date": "2026-04-07",
-        "target_hour": 18,
-        "scan": "ABI-L2-BRFF/2026/097/18/OR_ABI-L2-BRFF-M6_G19_s20260971800209_e20260971809517_c20260971814512.nc",
-        "strict": true,
-        "solar_zenith": 34.34491729736328,
-        "solar_azimuth": 335.7112731933594,
-        "projection_derived_pixel_center": {
-          "latitude": 39.150265776691576,
-          "longitude": -77.24354489634419
-        }
-      },
-      {
-        "row": 797,
-        "column": 2619,
-        "fixed_grid_x_rad": -0.005179986357688904,
-        "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
-        "sampled_pixel_center": {
-          "latitude": 39.1502685546875,
-          "longitude": -77.2435531616211
-        },
-        "sampled_pixel_corners": [
-          {
-            "latitude": 39.13690382935686,
-            "longitude": -77.25519221333856
-          },
-          {
-            "latitude": 39.136791353332015,
-            "longitude": -77.23091846862489
-          },
-          {
-            "latitude": 39.16374449775544,
-            "longitude": -77.25617728341183
-          },
-          {
-            "latitude": 39.16363184842506,
-            "longitude": -77.23189291305735
-          }
-        ],
-        "brf": {
-          "2": 0.05349999864847632,
-          "3": 0.2219999943918083,
-          "5": 0.17879999548313208
-        },
-        "time_coverage_start": "2026-04-07T21:00:20.9Z",
-        "time_coverage_end": "2026-04-07T21:09:51.7Z",
-        "scan_time_utc": "2026-04-07T21:05:06.381033+00:00",
-        "view_geometry_parameters": {
-          "satellite_longitude": -75.19999694824219,
-          "semi_major": 6378137.0,
-          "semi_minor": 6356752.31414,
-          "perspective_height": 35786023.0
-        },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20260972100209_e20260972109517_c20260972114548.nc",
-        "date": "2026-04-07",
-        "target_hour": 21,
-        "scan": "ABI-L2-BRFF/2026/097/21/OR_ABI-L2-BRFF-M6_G19_s20260972100209_e20260972109517_c20260972114548.nc",
-        "strict": true,
-        "solar_zenith": 61.34085464477539,
-        "solar_azimuth": 285.2935485839844,
-        "projection_derived_pixel_center": {
-          "latitude": 39.150265776691576,
-          "longitude": -77.24354489634419
-        }
-      },
-      {
-        "row": 797,
-        "column": 2619,
-        "fixed_grid_x_rad": -0.005179986357688904,
-        "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
-        "sampled_pixel_center": {
-          "latitude": 39.1502685546875,
-          "longitude": -77.2435531616211
-        },
-        "sampled_pixel_corners": [
-          {
-            "latitude": 39.13690382935686,
-            "longitude": -77.25519221333856
-          },
-          {
-            "latitude": 39.136791353332015,
-            "longitude": -77.23091846862489
-          },
-          {
-            "latitude": 39.16374449775544,
-            "longitude": -77.25617728341183
-          },
-          {
-            "latitude": 39.16363184842506,
-            "longitude": -77.23189291305735
-          }
-        ],
-        "brf": {
-          "2": 0.06639999832259491,
-          "3": 0.25339999359857757,
-          "5": 0.2161999945383286
-        },
-        "time_coverage_start": "2026-04-08T15:00:21.2Z",
-        "time_coverage_end": "2026-04-08T15:09:52.0Z",
-        "scan_time_utc": "2026-04-08T15:05:06.679654+00:00",
-        "view_geometry_parameters": {
-          "satellite_longitude": -75.19999694824219,
-          "semi_major": 6378137.0,
-          "semi_minor": 6356752.31414,
-          "perspective_height": 35786023.0
-        },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20260981500212_e20260981509520_c20260981514446.nc",
-        "date": "2026-04-08",
-        "target_hour": 15,
-        "scan": "ABI-L2-BRFF/2026/098/15/OR_ABI-L2-BRFF-M6_G19_s20260981500212_e20260981509520_c20260981514446.nc",
-        "strict": true,
-        "solar_zenith": 42.50139236450195,
-        "solar_azimuth": 49.9238166809082,
-        "projection_derived_pixel_center": {
-          "latitude": 39.150265776691576,
-          "longitude": -77.24354489634419
-        }
-      },
-      {
-        "row": 797,
-        "column": 2619,
-        "fixed_grid_x_rad": -0.005179986357688904,
-        "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
-        "sampled_pixel_center": {
-          "latitude": 39.1502685546875,
-          "longitude": -77.2435531616211
-        },
-        "sampled_pixel_corners": [
-          {
-            "latitude": 39.13690382935686,
-            "longitude": -77.25519221333856
-          },
-          {
-            "latitude": 39.136791353332015,
-            "longitude": -77.23091846862489
-          },
-          {
-            "latitude": 39.16374449775544,
-            "longitude": -77.25617728341183
-          },
-          {
-            "latitude": 39.16363184842506,
-            "longitude": -77.23189291305735
-          }
-        ],
-        "brf": {
-          "2": 0.07569999808765715,
-          "3": 0.26799999322975054,
-          "5": 0.2395999939471949
-        },
-        "time_coverage_start": "2026-04-08T18:00:21.0Z",
-        "time_coverage_end": "2026-04-08T18:09:51.8Z",
-        "scan_time_utc": "2026-04-08T18:05:06.462070+00:00",
-        "view_geometry_parameters": {
-          "satellite_longitude": -75.19999694824219,
-          "semi_major": 6378137.0,
-          "semi_minor": 6356752.31414,
-          "perspective_height": 35786023.0
-        },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20260981800210_e20260981809518_c20260981814455.nc",
-        "date": "2026-04-08",
-        "target_hour": 18,
-        "scan": "ABI-L2-BRFF/2026/098/18/OR_ABI-L2-BRFF-M6_G19_s20260981800210_e20260981809518_c20260981814455.nc",
-        "strict": true,
-        "solar_zenith": 34.01317596435547,
-        "solar_azimuth": 335.3807373046875,
-        "projection_derived_pixel_center": {
-          "latitude": 39.150265776691576,
-          "longitude": -77.24354489634419
-        }
-      },
-      {
-        "row": 797,
-        "column": 2619,
-        "fixed_grid_x_rad": -0.005179986357688904,
-        "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
-        "sampled_pixel_center": {
-          "latitude": 39.1502685546875,
-          "longitude": -77.2435531616211
-        },
-        "sampled_pixel_corners": [
-          {
-            "latitude": 39.13690382935686,
-            "longitude": -77.25519221333856
-          },
-          {
-            "latitude": 39.136791353332015,
-            "longitude": -77.23091846862489
-          },
-          {
-            "latitude": 39.16374449775544,
-            "longitude": -77.25617728341183
-          },
-          {
-            "latitude": 39.16363184842506,
-            "longitude": -77.23189291305735
-          }
-        ],
-        "brf": {
-          "2": 0.056599998570163734,
-          "3": 0.21829999448527815,
-          "5": 0.17889999548060587
-        },
-        "time_coverage_start": "2026-04-08T21:00:21.0Z",
-        "time_coverage_end": "2026-04-08T21:09:51.8Z",
-        "scan_time_utc": "2026-04-08T21:05:06.474249+00:00",
-        "view_geometry_parameters": {
-          "satellite_longitude": -75.19999694824219,
-          "semi_major": 6378137.0,
-          "semi_minor": 6356752.31414,
-          "perspective_height": 35786023.0
-        },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20260982100210_e20260982109518_c20260982114526.nc",
-        "date": "2026-04-08",
-        "target_hour": 21,
-        "scan": "ABI-L2-BRFF/2026/098/21/OR_ABI-L2-BRFF-M6_G19_s20260982100210_e20260982109518_c20260982114526.nc",
-        "strict": true,
-        "solar_zenith": 61.14717483520508,
-        "solar_azimuth": 284.9207458496094,
+        "solar_zenith": 40.201377868652344,
+        "solar_azimuth": 51.74207305908203,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -592,80 +322,26 @@
           }
         ],
         "brf": {
-          "2": 0.07349999814323382,
-          "3": 0.24709999375772895,
-          "5": 0.2114999946570606
+          "2": 0.08029999797145138,
+          "3": 0.2921999926184071,
+          "5": 0.22639999428065494
         },
-        "time_coverage_start": "2026-04-09T15:00:21.3Z",
-        "time_coverage_end": "2026-04-09T15:09:52.2Z",
-        "scan_time_utc": "2026-04-09T15:05:06.792540+00:00",
+        "time_coverage_start": "2026-04-15T18:00:20.4Z",
+        "time_coverage_end": "2026-04-15T18:09:51.2Z",
+        "scan_time_utc": "2026-04-15T18:05:05.828823+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20260991500213_e20260991509522_c20260991515044.nc",
-        "date": "2026-04-09",
-        "target_hour": 15,
-        "scan": "ABI-L2-BRFF/2026/099/15/OR_ABI-L2-BRFF-M6_G19_s20260991500213_e20260991509522_c20260991515044.nc",
-        "strict": false,
-        "solar_zenith": 42.16316604614258,
-        "solar_azimuth": 50.17512893676758,
-        "projection_derived_pixel_center": {
-          "latitude": 39.150265776691576,
-          "longitude": -77.24354489634419
-        }
-      },
-      {
-        "row": 797,
-        "column": 2619,
-        "fixed_grid_x_rad": -0.005179986357688904,
-        "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 204,
-        "sampled_pixel_center": {
-          "latitude": 39.1502685546875,
-          "longitude": -77.2435531616211
-        },
-        "sampled_pixel_corners": [
-          {
-            "latitude": 39.13690382935686,
-            "longitude": -77.25519221333856
-          },
-          {
-            "latitude": 39.136791353332015,
-            "longitude": -77.23091846862489
-          },
-          {
-            "latitude": 39.16374449775544,
-            "longitude": -77.25617728341183
-          },
-          {
-            "latitude": 39.16363184842506,
-            "longitude": -77.23189291305735
-          }
-        ],
-        "brf": {
-          "2": 0.08449999786535045,
-          "3": 0.27109999315143796,
-          "5": 0.23909999395982595
-        },
-        "time_coverage_start": "2026-04-09T18:00:21.1Z",
-        "time_coverage_end": "2026-04-09T18:09:51.9Z",
-        "scan_time_utc": "2026-04-09T18:05:06.560579+00:00",
-        "view_geometry_parameters": {
-          "satellite_longitude": -75.19999694824219,
-          "semi_major": 6378137.0,
-          "semi_minor": 6356752.31414,
-          "perspective_height": 35786023.0
-        },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20260991800211_e20260991809519_c20260991814425.nc",
-        "date": "2026-04-09",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261051800204_e20261051809512_c20261051814433.nc",
+        "date": "2026-04-15",
         "target_hour": 18,
-        "scan": "ABI-L2-BRFF/2026/099/18/OR_ABI-L2-BRFF-M6_G19_s20260991800211_e20260991809519_c20260991814425.nc",
+        "scan": "ABI-L2-BRFF/2026/105/18/OR_ABI-L2-BRFF-M6_G19_s20261051800204_e20261051809512_c20261051814433.nc",
         "strict": false,
-        "solar_zenith": 33.683921813964844,
-        "solar_azimuth": 335.0476989746094,
+        "solar_zenith": 31.762744903564453,
+        "solar_azimuth": 333.0121765136719,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -676,7 +352,7 @@
         "column": 2619,
         "fixed_grid_x_rad": -0.005179986357688904,
         "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
+        "dqf": 204,
         "sampled_pixel_center": {
           "latitude": 39.1502685546875,
           "longitude": -77.2435531616211
@@ -700,26 +376,26 @@
           }
         ],
         "brf": {
-          "2": 0.0560999985827948,
-          "3": 0.2249999943160219,
-          "5": 0.1801999954477651
+          "2": 0.06449999837059295,
+          "3": 0.24579999379056972,
+          "5": 0.17199999565491453
         },
-        "time_coverage_start": "2026-04-09T21:00:21.1Z",
-        "time_coverage_end": "2026-04-09T21:09:51.9Z",
-        "scan_time_utc": "2026-04-09T21:05:06.569970+00:00",
+        "time_coverage_start": "2026-04-15T21:00:20.4Z",
+        "time_coverage_end": "2026-04-15T21:09:51.2Z",
+        "scan_time_utc": "2026-04-15T21:05:05.843765+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20260992100211_e20260992109519_c20260992114336.nc",
-        "date": "2026-04-09",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261052100204_e20261052109512_c20261052114540.nc",
+        "date": "2026-04-15",
         "target_hour": 21,
-        "scan": "ABI-L2-BRFF/2026/099/21/OR_ABI-L2-BRFF-M6_G19_s20260992100211_e20260992109519_c20260992114336.nc",
-        "strict": true,
-        "solar_zenith": 60.955020904541016,
-        "solar_azimuth": 284.54925537109375,
+        "scan": "ABI-L2-BRFF/2026/105/21/OR_ABI-L2-BRFF-M6_G19_s20261052100204_e20261052109512_c20261052114540.nc",
+        "strict": false,
+        "solar_zenith": 59.83074951171875,
+        "solar_azimuth": 282.3584289550781,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -730,7 +406,7 @@
         "column": 2619,
         "fixed_grid_x_rad": -0.005179986357688904,
         "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
+        "dqf": 204,
         "sampled_pixel_center": {
           "latitude": 39.1502685546875,
           "longitude": -77.2435531616211
@@ -754,26 +430,26 @@
           }
         ],
         "brf": {
-          "2": 0.07159999819123186,
-          "3": 0.2563999935227912,
-          "5": 0.21649999453074997
+          "2": 0.07779999803460669,
+          "3": 0.2850999927977682,
+          "5": 0.20599999479600228
         },
-        "time_coverage_start": "2026-04-10T15:00:21.4Z",
-        "time_coverage_end": "2026-04-10T15:09:52.2Z",
-        "scan_time_utc": "2026-04-10T15:05:06.875762+00:00",
+        "time_coverage_start": "2026-04-16T15:00:20.7Z",
+        "time_coverage_end": "2026-04-16T15:09:51.5Z",
+        "scan_time_utc": "2026-04-16T15:05:06.150355+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261001500214_e20261001509522_c20261001514383.nc",
-        "date": "2026-04-10",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261061500207_e20261061509515_c20261061515145.nc",
+        "date": "2026-04-16",
         "target_hour": 15,
-        "scan": "ABI-L2-BRFF/2026/100/15/OR_ABI-L2-BRFF-M6_G19_s20261001500214_e20261001509522_c20261001514383.nc",
-        "strict": true,
-        "solar_zenith": 41.827945709228516,
-        "solar_azimuth": 50.42921829223633,
+        "scan": "ABI-L2-BRFF/2026/106/15/OR_ABI-L2-BRFF-M6_G19_s20261061500207_e20261061509515_c20261061515145.nc",
+        "strict": false,
+        "solar_zenith": 39.8868408203125,
+        "solar_azimuth": 52.01320266723633,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -784,7 +460,7 @@
         "column": 2619,
         "fixed_grid_x_rad": -0.005179986357688904,
         "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
+        "dqf": 147,
         "sampled_pixel_center": {
           "latitude": 39.1502685546875,
           "longitude": -77.2435531616211
@@ -808,26 +484,26 @@
           }
         ],
         "brf": {
-          "2": 0.07519999810028821,
-          "3": 0.27669999300997006,
-          "5": 0.23889999396487838
+          "2": 0.06439999837311916,
+          "3": 0.27419999307312537,
+          "5": 0.18469999533408554
         },
-        "time_coverage_start": "2026-04-10T18:00:21.2Z",
-        "time_coverage_end": "2026-04-10T18:09:52.0Z",
-        "scan_time_utc": "2026-04-10T18:05:06.655402+00:00",
+        "time_coverage_start": "2026-04-16T18:00:20.5Z",
+        "time_coverage_end": "2026-04-16T18:09:51.3Z",
+        "scan_time_utc": "2026-04-16T18:05:05.929923+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261001800212_e20261001809520_c20261001814361.nc",
-        "date": "2026-04-10",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261061800205_e20261061809513_c20261061815032.nc",
+        "date": "2026-04-16",
         "target_hour": 18,
-        "scan": "ABI-L2-BRFF/2026/100/18/OR_ABI-L2-BRFF-M6_G19_s20261001800212_e20261001809520_c20261001814361.nc",
-        "strict": true,
-        "solar_zenith": 33.35721969604492,
-        "solar_azimuth": 334.7122497558594,
+        "scan": "ABI-L2-BRFF/2026/106/18/OR_ABI-L2-BRFF-M6_G19_s20261061800205_e20261061809513_c20261061815032.nc",
+        "strict": false,
+        "solar_zenith": 31.452646255493164,
+        "solar_azimuth": 332.66595458984375,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -862,26 +538,26 @@
           }
         ],
         "brf": {
-          "2": 0.05909999850700842,
-          "3": 0.23009999418718508,
-          "5": 0.18329999536945252
+          "2": 0.04709999881015392,
+          "3": 0.27369999308575643,
+          "5": 0.16929999572312227
         },
-        "time_coverage_start": "2026-04-10T21:00:21.2Z",
-        "time_coverage_end": "2026-04-10T21:09:52.0Z",
-        "scan_time_utc": "2026-04-10T21:05:06.661477+00:00",
+        "time_coverage_start": "2026-04-16T21:00:20.5Z",
+        "time_coverage_end": "2026-04-16T21:09:51.3Z",
+        "scan_time_utc": "2026-04-16T21:05:05.940178+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261002100212_e20261002109520_c20261002114396.nc",
-        "date": "2026-04-10",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261062100205_e20261062109513_c20261062115011.nc",
+        "date": "2026-04-16",
         "target_hour": 21,
-        "scan": "ABI-L2-BRFF/2026/100/21/OR_ABI-L2-BRFF-M6_G19_s20261002100212_e20261002109520_c20261002114396.nc",
+        "scan": "ABI-L2-BRFF/2026/106/21/OR_ABI-L2-BRFF-M6_G19_s20261062100205_e20261062109513_c20261062115011.nc",
         "strict": true,
-        "solar_zenith": 60.76438522338867,
-        "solar_azimuth": 284.1791687011719,
+        "solar_zenith": 59.6491584777832,
+        "solar_azimuth": 282.0,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -892,7 +568,7 @@
         "column": 2619,
         "fixed_grid_x_rad": -0.005179986357688904,
         "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
+        "dqf": 147,
         "sampled_pixel_center": {
           "latitude": 39.1502685546875,
           "longitude": -77.2435531616211
@@ -916,26 +592,26 @@
           }
         ],
         "brf": {
-          "2": 0.06659999831754249,
-          "3": 0.2643999933206942,
-          "5": 0.21329999461158877
+          "2": 0.06439999837311916,
+          "3": 0.3194999919287511,
+          "5": 0.19839999498799443
         },
-        "time_coverage_start": "2026-04-11T15:00:21.5Z",
-        "time_coverage_end": "2026-04-11T15:09:52.3Z",
-        "scan_time_utc": "2026-04-11T15:05:06.963624+00:00",
+        "time_coverage_start": "2026-04-17T15:00:20.8Z",
+        "time_coverage_end": "2026-04-17T15:09:51.6Z",
+        "scan_time_utc": "2026-04-17T15:05:06.247716+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261011500215_e20261011509523_c20261011515063.nc",
-        "date": "2026-04-11",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261071500208_e20261071509516_c20261071515070.nc",
+        "date": "2026-04-17",
         "target_hour": 15,
-        "scan": "ABI-L2-BRFF/2026/101/15/OR_ABI-L2-BRFF-M6_G19_s20261011500215_e20261011509523_c20261011515063.nc",
-        "strict": true,
-        "solar_zenith": 41.49585723876953,
-        "solar_azimuth": 50.68611145019531,
+        "scan": "ABI-L2-BRFF/2026/107/15/OR_ABI-L2-BRFF-M6_G19_s20261071500208_e20261071509516_c20261071515070.nc",
+        "strict": false,
+        "solar_zenith": 39.5761833190918,
+        "solar_azimuth": 52.28718185424805,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -946,7 +622,7 @@
         "column": 2619,
         "fixed_grid_x_rad": -0.005179986357688904,
         "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
+        "dqf": 204,
         "sampled_pixel_center": {
           "latitude": 39.1502685546875,
           "longitude": -77.2435531616211
@@ -970,26 +646,26 @@
           }
         ],
         "brf": {
-          "2": 0.07319999815081246,
-          "3": 0.27989999292913126,
-          "5": 0.23439999407855794
+          "2": 0.08199999792850576,
+          "3": 0.3107999921485316,
+          "5": 0.22369999434886267
         },
-        "time_coverage_start": "2026-04-11T18:00:21.3Z",
-        "time_coverage_end": "2026-04-11T18:09:52.1Z",
-        "scan_time_utc": "2026-04-11T18:05:06.748815+00:00",
+        "time_coverage_start": "2026-04-17T18:00:20.6Z",
+        "time_coverage_end": "2026-04-17T18:09:51.4Z",
+        "scan_time_utc": "2026-04-17T18:05:06.029588+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261011800213_e20261011809521_c20261011814459.nc",
-        "date": "2026-04-11",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261071800206_e20261071809514_c20261071814523.nc",
+        "date": "2026-04-17",
         "target_hour": 18,
-        "scan": "ABI-L2-BRFF/2026/101/18/OR_ABI-L2-BRFF-M6_G19_s20261011800213_e20261011809521_c20261011814459.nc",
-        "strict": true,
-        "solar_zenith": 33.03313446044922,
-        "solar_azimuth": 334.37457275390625,
+        "scan": "ABI-L2-BRFF/2026/107/18/OR_ABI-L2-BRFF-M6_G19_s20261071800206_e20261071809514_c20261071814523.nc",
+        "strict": false,
+        "solar_zenith": 31.147016525268555,
+        "solar_azimuth": 332.3111572265625,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1000,7 +676,7 @@
         "column": 2619,
         "fixed_grid_x_rad": -0.005179986357688904,
         "fixed_grid_y_rad": 0.10721199214458466,
-        "dqf": 16,
+        "dqf": 147,
         "sampled_pixel_center": {
           "latitude": 39.1502685546875,
           "longitude": -77.2435531616211
@@ -1024,26 +700,26 @@
           }
         ],
         "brf": {
-          "2": 0.05119999870657921,
-          "3": 0.23179999414423946,
-          "5": 0.1754999955664971
+          "2": 0.05999999848427251,
+          "3": 0.28379999283060897,
+          "5": 0.1682999957483844
         },
-        "time_coverage_start": "2026-04-11T21:00:21.3Z",
-        "time_coverage_end": "2026-04-11T21:09:52.1Z",
-        "scan_time_utc": "2026-04-11T21:05:06.761599+00:00",
+        "time_coverage_start": "2026-04-17T21:00:20.6Z",
+        "time_coverage_end": "2026-04-17T21:09:51.4Z",
+        "scan_time_utc": "2026-04-17T21:05:06.034899+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261012100213_e20261012109521_c20261012114419.nc",
-        "date": "2026-04-11",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261072100206_e20261072109514_c20261072115158.nc",
+        "date": "2026-04-17",
         "target_hour": 21,
-        "scan": "ABI-L2-BRFF/2026/101/21/OR_ABI-L2-BRFF-M6_G19_s20261012100213_e20261012109521_c20261012114419.nc",
-        "strict": true,
-        "solar_zenith": 60.57526779174805,
-        "solar_azimuth": 283.8106689453125,
+        "scan": "ABI-L2-BRFF/2026/107/21/OR_ABI-L2-BRFF-M6_G19_s20261072100206_e20261072109514_c20261072115158.nc",
+        "strict": false,
+        "solar_zenith": 59.472225189208984,
+        "solar_azimuth": 281.6410217285156,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1078,26 +754,26 @@
           }
         ],
         "brf": {
-          "2": 0.07269999816344352,
-          "3": 0.2770999929998652,
-          "5": 0.22059999442717526
+          "2": 0.05519999860553071,
+          "3": 0.3194999919287511,
+          "5": 0.19419999509409536
         },
-        "time_coverage_start": "2026-04-12T15:00:21.6Z",
-        "time_coverage_end": "2026-04-12T15:09:52.4Z",
-        "scan_time_utc": "2026-04-12T15:05:07.066630+00:00",
+        "time_coverage_start": "2026-04-18T15:00:20.9Z",
+        "time_coverage_end": "2026-04-18T15:09:51.7Z",
+        "scan_time_utc": "2026-04-18T15:05:06.342554+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261021500216_e20261021509524_c20261021514388.nc",
-        "date": "2026-04-12",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261081500209_e20261081509517_c20261081514399.nc",
+        "date": "2026-04-18",
         "target_hour": 15,
-        "scan": "ABI-L2-BRFF/2026/102/15/OR_ABI-L2-BRFF-M6_G19_s20261021500216_e20261021509524_c20261021514388.nc",
+        "scan": "ABI-L2-BRFF/2026/108/15/OR_ABI-L2-BRFF-M6_G19_s20261081500209_e20261081509517_c20261081514399.nc",
         "strict": true,
-        "solar_zenith": 41.164520263671875,
-        "solar_azimuth": 50.94087219238281,
+        "solar_zenith": 39.2695198059082,
+        "solar_azimuth": 52.563995361328125,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1132,26 +808,26 @@
           }
         ],
         "brf": {
-          "2": 0.08049999796639895,
-          "3": 0.27739999299228657,
-          "5": 0.23279999411897734
+          "2": 0.07599999808007851,
+          "3": 0.30969999217631994,
+          "5": 0.21909999446506845
         },
-        "time_coverage_start": "2026-04-12T18:00:21.4Z",
-        "time_coverage_end": "2026-04-12T18:09:52.2Z",
-        "scan_time_utc": "2026-04-12T18:05:06.852665+00:00",
+        "time_coverage_start": "2026-04-18T18:00:20.7Z",
+        "time_coverage_end": "2026-04-18T18:09:51.5Z",
+        "scan_time_utc": "2026-04-18T18:05:06.122667+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261021800214_e20261021809522_c20261021814541.nc",
-        "date": "2026-04-12",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261081800207_e20261081809515_c20261081814492.nc",
+        "date": "2026-04-18",
         "target_hour": 18,
-        "scan": "ABI-L2-BRFF/2026/102/18/OR_ABI-L2-BRFF-M6_G19_s20261021800214_e20261021809522_c20261021814541.nc",
+        "scan": "ABI-L2-BRFF/2026/108/18/OR_ABI-L2-BRFF-M6_G19_s20261081800207_e20261081809515_c20261081814492.nc",
         "strict": false,
-        "solar_zenith": 32.71173095703125,
-        "solar_azimuth": 334.0348205566406,
+        "solar_zenith": 30.842933654785156,
+        "solar_azimuth": 331.9627380371094,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1186,26 +862,26 @@
           }
         ],
         "brf": {
-          "2": 0.05889999851206085,
-          "3": 0.22939999420486856,
-          "5": 0.17569999556144467
+          "2": 0.0576999985423754,
+          "3": 0.2795999929367099,
+          "5": 0.1689999957307009
         },
-        "time_coverage_start": "2026-04-12T21:00:21.4Z",
-        "time_coverage_end": "2026-04-12T21:09:52.2Z",
-        "scan_time_utc": "2026-04-12T21:05:06.859185+00:00",
+        "time_coverage_start": "2026-04-18T21:00:20.7Z",
+        "time_coverage_end": "2026-04-18T21:09:51.5Z",
+        "scan_time_utc": "2026-04-18T21:05:06.137187+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261022100214_e20261022109522_c20261022114436.nc",
-        "date": "2026-04-12",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261082100207_e20261082109515_c20261082114460.nc",
+        "date": "2026-04-18",
         "target_hour": 21,
-        "scan": "ABI-L2-BRFF/2026/102/21/OR_ABI-L2-BRFF-M6_G19_s20261022100214_e20261022109522_c20261022114436.nc",
+        "scan": "ABI-L2-BRFF/2026/108/21/OR_ABI-L2-BRFF-M6_G19_s20261082100207_e20261082109515_c20261082114460.nc",
         "strict": false,
-        "solar_zenith": 60.387664794921875,
-        "solar_azimuth": 283.44390869140625,
+        "solar_zenith": 59.29362487792969,
+        "solar_azimuth": 281.28765869140625,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1240,26 +916,26 @@
           }
         ],
         "brf": {
-          "2": 0.07229999817354837,
-          "3": 0.26149999339395436,
-          "5": 0.20919999471516348
+          "2": 0.06759999829228036,
+          "3": 0.3053999922849471,
+          "5": 0.19009999519767007
         },
-        "time_coverage_start": "2026-04-13T15:00:21.7Z",
-        "time_coverage_end": "2026-04-13T15:09:52.5Z",
-        "scan_time_utc": "2026-04-13T15:05:07.161911+00:00",
+        "time_coverage_start": "2026-04-19T15:00:21.0Z",
+        "time_coverage_end": "2026-04-19T15:09:51.8Z",
+        "scan_time_utc": "2026-04-19T15:05:06.442805+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261031500217_e20261031509525_c20261031514352.nc",
-        "date": "2026-04-13",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261091500210_e20261091509518_c20261091514368.nc",
+        "date": "2026-04-19",
         "target_hour": 15,
-        "scan": "ABI-L2-BRFF/2026/103/15/OR_ABI-L2-BRFF-M6_G19_s20261031500217_e20261031509525_c20261031514352.nc",
+        "scan": "ABI-L2-BRFF/2026/109/15/OR_ABI-L2-BRFF-M6_G19_s20261091500210_e20261091509518_c20261091514368.nc",
         "strict": false,
-        "solar_zenith": 40.839073181152344,
-        "solar_azimuth": 51.20341873168945,
+        "solar_zenith": 38.96697235107422,
+        "solar_azimuth": 52.84362030029297,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1294,26 +970,26 @@
           }
         ],
         "brf": {
-          "2": 0.08209999792597955,
-          "3": 0.2820999928735546,
-          "5": 0.2322999941316084
+          "2": 0.07539999809523579,
+          "3": 0.32309999183780747,
+          "5": 0.20689999477326637
         },
-        "time_coverage_start": "2026-04-13T18:00:21.5Z",
-        "time_coverage_end": "2026-04-13T18:09:52.3Z",
-        "scan_time_utc": "2026-04-13T18:05:06.944351+00:00",
+        "time_coverage_start": "2026-04-19T18:00:20.8Z",
+        "time_coverage_end": "2026-04-19T18:09:51.6Z",
+        "scan_time_utc": "2026-04-19T18:05:06.224993+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261031800215_e20261031809523_c20261031814475.nc",
-        "date": "2026-04-13",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261091800208_e20261091809516_c20261091815046.nc",
+        "date": "2026-04-19",
         "target_hour": 18,
-        "scan": "ABI-L2-BRFF/2026/103/18/OR_ABI-L2-BRFF-M6_G19_s20261031800215_e20261031809523_c20261031814475.nc",
+        "scan": "ABI-L2-BRFF/2026/109/18/OR_ABI-L2-BRFF-M6_G19_s20261091800208_e20261091809516_c20261091815046.nc",
         "strict": false,
-        "solar_zenith": 32.39306640625,
-        "solar_azimuth": 333.69317626953125,
+        "solar_zenith": 30.54193115234375,
+        "solar_azimuth": 331.613525390625,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1348,26 +1024,26 @@
           }
         ],
         "brf": {
-          "2": 0.05909999850700842,
-          "3": 0.2331999941088725,
-          "5": 0.17719999552355148
+          "2": 0.055399998600478284,
+          "3": 0.2756999930352322,
+          "5": 0.16479999583680183
         },
-        "time_coverage_start": "2026-04-13T21:00:21.5Z",
-        "time_coverage_end": "2026-04-13T21:09:52.3Z",
-        "scan_time_utc": "2026-04-13T21:05:06.950829+00:00",
+        "time_coverage_start": "2026-04-19T21:00:20.8Z",
+        "time_coverage_end": "2026-04-19T21:09:51.6Z",
+        "scan_time_utc": "2026-04-19T21:05:06.234031+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261032100215_e20261032109523_c20261032115162.nc",
-        "date": "2026-04-13",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261092100208_e20261092109516_c20261092114490.nc",
+        "date": "2026-04-19",
         "target_hour": 21,
-        "scan": "ABI-L2-BRFF/2026/103/21/OR_ABI-L2-BRFF-M6_G19_s20261032100215_e20261032109523_c20261032115162.nc",
+        "scan": "ABI-L2-BRFF/2026/109/21/OR_ABI-L2-BRFF-M6_G19_s20261092100208_e20261092109516_c20261092114490.nc",
         "strict": false,
-        "solar_zenith": 60.20157241821289,
-        "solar_azimuth": 283.0790100097656,
+        "solar_zenith": 59.11650466918945,
+        "solar_azimuth": 280.93701171875,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1402,26 +1078,134 @@
           }
         ],
         "brf": {
-          "2": 0.07349999814323382,
-          "3": 0.25899999345710967,
-          "5": 0.20799999474547803
+          "2": 0.06549999834533082,
+          "3": 0.3018999923733645,
+          "5": 0.18679999528103508
         },
-        "time_coverage_start": "2026-04-14T15:00:20.5Z",
-        "time_coverage_end": "2026-04-14T15:09:51.3Z",
-        "scan_time_utc": "2026-04-14T15:05:05.948671+00:00",
+        "time_coverage_start": "2026-04-20T15:00:21.1Z",
+        "time_coverage_end": "2026-04-20T15:09:51.9Z",
+        "scan_time_utc": "2026-04-20T15:05:06.538159+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261041500205_e20261041509513_c20261041514405.nc",
-        "date": "2026-04-14",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261101500211_e20261101509519_c20261101515057.nc",
+        "date": "2026-04-20",
         "target_hour": 15,
-        "scan": "ABI-L2-BRFF/2026/104/15/OR_ABI-L2-BRFF-M6_G19_s20261041500205_e20261041509513_c20261041514405.nc",
+        "scan": "ABI-L2-BRFF/2026/110/15/OR_ABI-L2-BRFF-M6_G19_s20261101500211_e20261101509519_c20261101515057.nc",
         "strict": false,
-        "solar_zenith": 40.52220153808594,
-        "solar_azimuth": 51.478782653808594,
+        "solar_zenith": 38.66864776611328,
+        "solar_azimuth": 53.12602615356445,
+        "projection_derived_pixel_center": {
+          "latitude": 39.150265776691576,
+          "longitude": -77.24354489634419
+        }
+      },
+      {
+        "row": 797,
+        "column": 2619,
+        "fixed_grid_x_rad": -0.005179986357688904,
+        "fixed_grid_y_rad": 0.10721199214458466,
+        "dqf": 204,
+        "sampled_pixel_center": {
+          "latitude": 39.1502685546875,
+          "longitude": -77.2435531616211
+        },
+        "sampled_pixel_corners": [
+          {
+            "latitude": 39.13690382935686,
+            "longitude": -77.25519221333856
+          },
+          {
+            "latitude": 39.136791353332015,
+            "longitude": -77.23091846862489
+          },
+          {
+            "latitude": 39.16374449775544,
+            "longitude": -77.25617728341183
+          },
+          {
+            "latitude": 39.16363184842506,
+            "longitude": -77.23189291305735
+          }
+        ],
+        "brf": {
+          "2": 0.07259999816596974,
+          "3": 0.3170999919893802,
+          "5": 0.20159999490715563
+        },
+        "time_coverage_start": "2026-04-20T18:00:20.9Z",
+        "time_coverage_end": "2026-04-20T18:09:51.7Z",
+        "scan_time_utc": "2026-04-20T18:05:06.320570+00:00",
+        "view_geometry_parameters": {
+          "satellite_longitude": -75.19999694824219,
+          "semi_major": 6378137.0,
+          "semi_minor": 6356752.31414,
+          "perspective_height": 35786023.0
+        },
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261101800209_e20261101809517_c20261101814366.nc",
+        "date": "2026-04-20",
+        "target_hour": 18,
+        "scan": "ABI-L2-BRFF/2026/110/18/OR_ABI-L2-BRFF-M6_G19_s20261101800209_e20261101809517_c20261101814366.nc",
+        "strict": false,
+        "solar_zenith": 30.244056701660156,
+        "solar_azimuth": 331.2637634277344,
+        "projection_derived_pixel_center": {
+          "latitude": 39.150265776691576,
+          "longitude": -77.24354489634419
+        }
+      },
+      {
+        "row": 797,
+        "column": 2619,
+        "fixed_grid_x_rad": -0.005179986357688904,
+        "fixed_grid_y_rad": 0.10721199214458466,
+        "dqf": 204,
+        "sampled_pixel_center": {
+          "latitude": 39.1502685546875,
+          "longitude": -77.2435531616211
+        },
+        "sampled_pixel_corners": [
+          {
+            "latitude": 39.13690382935686,
+            "longitude": -77.25519221333856
+          },
+          {
+            "latitude": 39.136791353332015,
+            "longitude": -77.23091846862489
+          },
+          {
+            "latitude": 39.16374449775544,
+            "longitude": -77.25617728341183
+          },
+          {
+            "latitude": 39.16363184842506,
+            "longitude": -77.23189291305735
+          }
+        ],
+        "brf": {
+          "2": 0.054199998630792834,
+          "3": 0.27589999303017976,
+          "5": 0.16329999587469501
+        },
+        "time_coverage_start": "2026-04-20T21:00:20.9Z",
+        "time_coverage_end": "2026-04-20T21:09:51.7Z",
+        "scan_time_utc": "2026-04-20T21:05:06.324475+00:00",
+        "view_geometry_parameters": {
+          "satellite_longitude": -75.19999694824219,
+          "semi_major": 6378137.0,
+          "semi_minor": 6356752.31414,
+          "perspective_height": 35786023.0
+        },
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261102100209_e20261102109517_c20261102115101.nc",
+        "date": "2026-04-20",
+        "target_hour": 21,
+        "scan": "ABI-L2-BRFF/2026/110/21/OR_ABI-L2-BRFF-M6_G19_s20261102100209_e20261102109517_c20261102115101.nc",
+        "strict": false,
+        "solar_zenith": 58.94087219238281,
+        "solar_azimuth": 280.58929443359375,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1456,26 +1240,26 @@
           }
         ],
         "brf": {
-          "2": 0.07099999820638914,
-          "3": 0.30149999238346936,
-          "5": 0.2267999942705501
+          "2": 0.05199999868636951,
+          "3": 0.32089999189338414,
+          "5": 0.1842999953441904
         },
-        "time_coverage_start": "2026-04-14T18:00:20.3Z",
-        "time_coverage_end": "2026-04-14T18:09:51.1Z",
-        "scan_time_utc": "2026-04-14T18:05:05.733885+00:00",
+        "time_coverage_start": "2026-04-21T15:00:21.2Z",
+        "time_coverage_end": "2026-04-21T15:09:52.0Z",
+        "scan_time_utc": "2026-04-21T15:05:06.633035+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261041800203_e20261041809511_c20261041814457.nc",
-        "date": "2026-04-14",
-        "target_hour": 18,
-        "scan": "ABI-L2-BRFF/2026/104/18/OR_ABI-L2-BRFF-M6_G19_s20261041800203_e20261041809511_c20261041814457.nc",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261111500212_e20261111509520_c20261111514409.nc",
+        "date": "2026-04-21",
+        "target_hour": 15,
+        "scan": "ABI-L2-BRFF/2026/111/15/OR_ABI-L2-BRFF-M6_G19_s20261111500212_e20261111509520_c20261111514409.nc",
         "strict": true,
-        "solar_zenith": 32.07576370239258,
-        "solar_azimuth": 333.3570556640625,
+        "solar_zenith": 38.37466049194336,
+        "solar_azimuth": 53.41117858886719,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1510,26 +1294,242 @@
           }
         ],
         "brf": {
-          "2": 0.053799998640897684,
-          "3": 0.2698999931817525,
-          "5": 0.18319999537197873
+          "2": 0.0576999985423754,
+          "3": 0.3291999916837085,
+          "5": 0.19919999496778473
         },
-        "time_coverage_start": "2026-04-14T21:00:20.3Z",
-        "time_coverage_end": "2026-04-14T21:09:51.1Z",
-        "scan_time_utc": "2026-04-14T21:05:05.738301+00:00",
+        "time_coverage_start": "2026-04-21T18:00:21.0Z",
+        "time_coverage_end": "2026-04-21T18:09:51.8Z",
+        "scan_time_utc": "2026-04-21T18:05:06.413923+00:00",
         "view_geometry_parameters": {
           "satellite_longitude": -75.19999694824219,
           "semi_major": 6378137.0,
           "semi_minor": 6356752.31414,
           "perspective_height": 35786023.0
         },
-        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261042100203_e20261042109511_c20261042114380.nc",
-        "date": "2026-04-14",
-        "target_hour": 21,
-        "scan": "ABI-L2-BRFF/2026/104/21/OR_ABI-L2-BRFF-M6_G19_s20261042100203_e20261042109511_c20261042114380.nc",
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261111800210_e20261111809518_c20261111814475.nc",
+        "date": "2026-04-21",
+        "target_hour": 18,
+        "scan": "ABI-L2-BRFF/2026/111/18/OR_ABI-L2-BRFF-M6_G19_s20261111800210_e20261111809518_c20261111814475.nc",
         "strict": true,
-        "solar_zenith": 60.01383972167969,
-        "solar_azimuth": 282.7191467285156,
+        "solar_zenith": 29.94936180114746,
+        "solar_azimuth": 330.9136657714844,
+        "projection_derived_pixel_center": {
+          "latitude": 39.150265776691576,
+          "longitude": -77.24354489634419
+        }
+      },
+      {
+        "row": 797,
+        "column": 2619,
+        "fixed_grid_x_rad": -0.005179986357688904,
+        "fixed_grid_y_rad": 0.10721199214458466,
+        "dqf": 16,
+        "sampled_pixel_center": {
+          "latitude": 39.1502685546875,
+          "longitude": -77.2435531616211
+        },
+        "sampled_pixel_corners": [
+          {
+            "latitude": 39.13690382935686,
+            "longitude": -77.25519221333856
+          },
+          {
+            "latitude": 39.136791353332015,
+            "longitude": -77.23091846862489
+          },
+          {
+            "latitude": 39.16374449775544,
+            "longitude": -77.25617728341183
+          },
+          {
+            "latitude": 39.16363184842506,
+            "longitude": -77.23189291305735
+          }
+        ],
+        "brf": {
+          "2": 0.04279999891878106,
+          "3": 0.2901999926689314,
+          "5": 0.1554999960717396
+        },
+        "time_coverage_start": "2026-04-21T21:00:21.0Z",
+        "time_coverage_end": "2026-04-21T21:09:51.8Z",
+        "scan_time_utc": "2026-04-21T21:05:06.428738+00:00",
+        "view_geometry_parameters": {
+          "satellite_longitude": -75.19999694824219,
+          "semi_major": 6378137.0,
+          "semi_minor": 6356752.31414,
+          "perspective_height": 35786023.0
+        },
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261112100210_e20261112109518_c20261112114515.nc",
+        "date": "2026-04-21",
+        "target_hour": 21,
+        "scan": "ABI-L2-BRFF/2026/111/21/OR_ABI-L2-BRFF-M6_G19_s20261112100210_e20261112109518_c20261112114515.nc",
+        "strict": true,
+        "solar_zenith": 58.7667121887207,
+        "solar_azimuth": 280.24456787109375,
+        "projection_derived_pixel_center": {
+          "latitude": 39.150265776691576,
+          "longitude": -77.24354489634419
+        }
+      },
+      {
+        "row": 797,
+        "column": 2619,
+        "fixed_grid_x_rad": -0.005179986357688904,
+        "fixed_grid_y_rad": 0.10721199214458466,
+        "dqf": 204,
+        "sampled_pixel_center": {
+          "latitude": 39.1502685546875,
+          "longitude": -77.2435531616211
+        },
+        "sampled_pixel_corners": [
+          {
+            "latitude": 39.13690382935686,
+            "longitude": -77.25519221333856
+          },
+          {
+            "latitude": 39.136791353332015,
+            "longitude": -77.23091846862489
+          },
+          {
+            "latitude": 39.16374449775544,
+            "longitude": -77.25617728341183
+          },
+          {
+            "latitude": 39.16363184842506,
+            "longitude": -77.23189291305735
+          }
+        ],
+        "brf": {
+          "2": 0.06189999843627447,
+          "3": 0.31189999212074326,
+          "5": 0.18089999543008162
+        },
+        "time_coverage_start": "2026-04-22T15:00:21.3Z",
+        "time_coverage_end": "2026-04-22T15:09:52.1Z",
+        "scan_time_utc": "2026-04-22T15:05:06.739246+00:00",
+        "view_geometry_parameters": {
+          "satellite_longitude": -75.19999694824219,
+          "semi_major": 6378137.0,
+          "semi_minor": 6356752.31414,
+          "perspective_height": 35786023.0
+        },
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261121500213_e20261121509521_c20261121514396.nc",
+        "date": "2026-04-22",
+        "target_hour": 15,
+        "scan": "ABI-L2-BRFF/2026/112/15/OR_ABI-L2-BRFF-M6_G19_s20261121500213_e20261121509521_c20261121514396.nc",
+        "strict": false,
+        "solar_zenith": 38.08512878417969,
+        "solar_azimuth": 53.69902420043945,
+        "projection_derived_pixel_center": {
+          "latitude": 39.150265776691576,
+          "longitude": -77.24354489634419
+        }
+      },
+      {
+        "row": 797,
+        "column": 2619,
+        "fixed_grid_x_rad": -0.005179986357688904,
+        "fixed_grid_y_rad": 0.10721199214458466,
+        "dqf": 147,
+        "sampled_pixel_center": {
+          "latitude": 39.1502685546875,
+          "longitude": -77.2435531616211
+        },
+        "sampled_pixel_corners": [
+          {
+            "latitude": 39.13690382935686,
+            "longitude": -77.25519221333856
+          },
+          {
+            "latitude": 39.136791353332015,
+            "longitude": -77.23091846862489
+          },
+          {
+            "latitude": 39.16374449775544,
+            "longitude": -77.25617728341183
+          },
+          {
+            "latitude": 39.16363184842506,
+            "longitude": -77.23189291305735
+          }
+        ],
+        "brf": {
+          "2": 0.1000999974712613,
+          "3": 0.3475999912188854,
+          "5": 0.22969999419728993
+        },
+        "time_coverage_start": "2026-04-22T18:00:21.1Z",
+        "time_coverage_end": "2026-04-22T18:09:51.9Z",
+        "scan_time_utc": "2026-04-22T18:05:06.521098+00:00",
+        "view_geometry_parameters": {
+          "satellite_longitude": -75.19999694824219,
+          "semi_major": 6378137.0,
+          "semi_minor": 6356752.31414,
+          "perspective_height": 35786023.0
+        },
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261121800211_e20261121809519_c20261121814326.nc",
+        "date": "2026-04-22",
+        "target_hour": 18,
+        "scan": "ABI-L2-BRFF/2026/112/18/OR_ABI-L2-BRFF-M6_G19_s20261121800211_e20261121809519_c20261121814326.nc",
+        "strict": false,
+        "solar_zenith": 29.65789222717285,
+        "solar_azimuth": 330.5634460449219,
+        "projection_derived_pixel_center": {
+          "latitude": 39.150265776691576,
+          "longitude": -77.24354489634419
+        }
+      },
+      {
+        "row": 797,
+        "column": 2619,
+        "fixed_grid_x_rad": -0.005179986357688904,
+        "fixed_grid_y_rad": 0.10721199214458466,
+        "dqf": 204,
+        "sampled_pixel_center": {
+          "latitude": 39.1502685546875,
+          "longitude": -77.2435531616211
+        },
+        "sampled_pixel_corners": [
+          {
+            "latitude": 39.13690382935686,
+            "longitude": -77.25519221333856
+          },
+          {
+            "latitude": 39.136791353332015,
+            "longitude": -77.23091846862489
+          },
+          {
+            "latitude": 39.16374449775544,
+            "longitude": -77.25617728341183
+          },
+          {
+            "latitude": 39.16363184842506,
+            "longitude": -77.23189291305735
+          }
+        ],
+        "brf": {
+          "2": 0.05099999871163163,
+          "3": 0.2852999927927158,
+          "5": 0.1530999961323687
+        },
+        "time_coverage_start": "2026-04-22T21:00:21.1Z",
+        "time_coverage_end": "2026-04-22T21:09:51.9Z",
+        "scan_time_utc": "2026-04-22T21:05:06.528543+00:00",
+        "view_geometry_parameters": {
+          "satellite_longitude": -75.19999694824219,
+          "semi_major": 6378137.0,
+          "semi_minor": 6356752.31414,
+          "perspective_height": 35786023.0
+        },
+        "dataset_name": "OR_ABI-L2-BRFF-M6_G19_s20261122100211_e20261122109519_c20261122114421.nc",
+        "date": "2026-04-22",
+        "target_hour": 21,
+        "scan": "ABI-L2-BRFF/2026/112/21/OR_ABI-L2-BRFF-M6_G19_s20261122100211_e20261122109519_c20261122114421.nc",
+        "strict": false,
+        "solar_zenith": 58.594032287597656,
+        "solar_azimuth": 279.90301513671875,
         "projection_derived_pixel_center": {
           "latitude": 39.150265776691576,
           "longitude": -77.24354489634419
@@ -1537,13 +1537,13 @@
       }
     ],
     "usable_counts": {
-      "15": 4,
-      "18": 5,
-      "21": 6
+      "15": 2,
+      "18": 1,
+      "21": 2
     },
     "observation_cache": {
-      "reused": 24,
-      "downloaded": 0,
+      "reused": 0,
+      "downloaded": 24,
       "total_selected": 24
     },
     "location_name": "Montgomery County, Maryland",
@@ -1552,8 +1552,8 @@
       "query": {
         "latitude": 39.1547,
         "longitude": -77.2405,
-        "start": "2026-04-07",
-        "end": "2026-04-14"
+        "start": "2026-04-15",
+        "end": "2026-04-22"
       },
       "assets": {
         "model": "815ed3b7cb92b95d598e24385527874864c5e6e282cf05d7dabbcca26391d4c6",
@@ -1568,10 +1568,10 @@
         21
       ],
       "strict_quality_filter": "notebook_dqf_and_solar_zenith_lt_67_and_view_zenith_lt_70",
-      "key": "175009662cb14664ce36e15b709efca384b16117afe6a10cbad549d1e6a5024f"
+      "key": "d9e359e719034a93d1d3306e321398a531b0a14ebdfdd1be875ba62f7846cccc"
     },
     "processing": {
-      "duration_seconds": 3.606,
+      "duration_seconds": 99.262,
       "result_cache_hit": false
     }
   },
