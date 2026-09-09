@@ -1,0 +1,104 @@
+{
+  "verdict": "VALIDATED_AND_ADOPTED",
+  "reader": {
+    "hdf5_interface": "h5py seekable Python file object",
+    "transport": "HTTP GET byte ranges from NOAA public Amazon S3",
+    "block_size_bytes": 131072,
+    "max_observation_concurrency": 4,
+    "connection_pool_size": 6,
+    "full_download_fallback": true
+  },
+  "single_object_spike": {
+    "remote_object_size_bytes": 37471131,
+    "request_count": 9,
+    "downloaded_bytes": 1164187,
+    "download_fraction": 0.031068904752301178,
+    "elapsed_seconds": 0.5233155828900635,
+    "row_column_brf_dqf_timestamp_and_metadata_exact": true
+  },
+  "numerical_verification": {
+    "period": {
+      "start": "2026-04-07",
+      "end": "2026-04-14"
+    },
+    "attempt_count": 24,
+    "all_attempt_fields_exact_after_excluding_new_retrieval_provenance": true,
+    "missing_value_check": {
+      "pixel": [0, 0],
+      "brf2_brf3_brf5_local_and_remote_all_nan": true,
+      "dqf_local": 255,
+      "dqf_remote": 255
+    },
+    "filtering_decisions_exact": true,
+    "feature_count": 56,
+    "features_exact": true,
+    "usable_counts": {
+      "15": 4,
+      "18": 5,
+      "21": 6
+    },
+    "lai_expected": 1.20430588722229,
+    "lai_partial_reader": 1.20430588722229,
+    "lai_exact": true
+  },
+  "cold_complete_query_benchmark": {
+    "period": {
+      "start": "2026-04-15",
+      "end": "2026-04-22"
+    },
+    "location": {
+      "latitude": 39.1547,
+      "longitude": -77.2405
+    },
+    "existing_full_download_baseline": {
+      "source": "data/results/montgomery-md-2026-04-15.json",
+      "elapsed_seconds": 99.262,
+      "observation_bytes": 778474187,
+      "whole_object_get_requests": 24,
+      "listing_requests": 24
+    },
+    "empty_partial_cache": {
+      "pipeline_elapsed_seconds": 20.852,
+      "wall_elapsed_seconds": 20.853828834136948,
+      "total_http_downloaded_bytes": 30637884,
+      "range_downloaded_bytes": 30576780,
+      "listing_bytes": 61104,
+      "total_http_request_count": 268,
+      "range_request_count": 244,
+      "listing_request_count": 24,
+      "full_file_fallbacks": 0
+    },
+    "observation_byte_reduction_fraction": 0.960722165859046,
+    "elapsed_speedup_factor": 4.760310761557644,
+    "features_exact": true,
+    "usable_counts": {
+      "15": 2,
+      "18": 1,
+      "21": 2
+    },
+    "lai_expected": 2.283097743988037,
+    "lai_partial_reader": 2.283097743988037,
+    "lai_exact": true
+  },
+  "warm_partial_cache": {
+    "period": {
+      "start": "2026-04-15",
+      "end": "2026-04-22"
+    },
+    "pipeline_elapsed_seconds": 1.812,
+    "wall_elapsed_seconds": 1.8133917909581214,
+    "range_request_count": 0,
+    "range_downloaded_bytes": 0,
+    "range_cache_hit_bytes": 30576780,
+    "listing_request_count": 24,
+    "objects_reused_from_partial_cache": 24,
+    "features_exact": true
+  },
+  "concurrent_same_object_check": {
+    "reader_count": 2,
+    "unique_blocks_used_per_reader": 9,
+    "total_range_requests": 9,
+    "duplicate_range_requests": 0,
+    "values_exact": true
+  }
+}

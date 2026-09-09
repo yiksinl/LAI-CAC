@@ -278,7 +278,13 @@ function renderDiagnostics(record) {
   const observationCache = record.delivery?.observation_cache || {};
   const reused = Number(observationCache.reused || 0);
   const downloaded = Number(observationCache.downloaded || 0);
-  byId("observation-cache").textContent = `${reused} reused · ${downloaded} downloaded`;
+  const partialRemote = Number(observationCache.partial_remote || 0);
+  const partialReused = Number(observationCache.partial_reused || 0);
+  const parts = [`${reused} full-file reused`, `${downloaded} full-file downloaded`];
+  if (partialRemote || partialReused) {
+    parts.push(`${partialRemote} range-read`, `${partialReused} partial-cache reused`);
+  }
+  byId("observation-cache").textContent = parts.join(" · ");
 }
 
 function renderMethods(record) {

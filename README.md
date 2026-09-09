@@ -42,6 +42,13 @@ The app then:
 - reuses a derived result only when its coordinates, period, pipeline version, and
   model/IGBP/solar/navigation checksums match.
 
+For a first-time observation, LeafView opens the NOAA GOES-19 HDF5 object through
+checksummed HTTP byte ranges and caches only the blocks needed for the sampled pixel.
+Existing full NetCDF files remain preferred and untouched, and a failed partial read
+falls back to the complete-file download route. See
+[OBSERVATION_RETRIEVAL.md](OBSERVATION_RETRIEVAL.md) for numerical comparisons,
+checksum scope, concurrency behavior, and the cold-cache benchmark.
+
 Changing the map point or period clears the displayed output immediately. A late job
 response is discarded unless it still matches the selected query. Use **Restore
 Montgomery demo** to return to the verified first-period result. Every output is

@@ -13,6 +13,7 @@ dependencies = [
   "matplotlib==3.11.1",
   "netCDF4==1.7.4",
   "numpy==2.3.2",
+  "urllib3==2.7.0",
   "xgboost==3.3.0",
 ]
 

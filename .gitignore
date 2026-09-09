@@ -5,6 +5,7 @@ __pycache__/
 .tmp/
 data/raw/
 data/cache/
+data/partial-cache/
 data/results/runtime/
 artifacts/reference/*.ipynb
 artifacts/reference/*.json

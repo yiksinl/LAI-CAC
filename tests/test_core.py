@@ -195,6 +195,7 @@ def test_ui_binds_cached_example_from_api_instead_of_hardcoding_value():
     assert "requestGeneration" in source
     assert 'fetch(`/api/jobs/${current.job_id}`' in source
     assert 'byId("observation-dates")' in source
+    assert "partial-cache reused" in source
     assert "left.lai != null && right.lai != null" in source
     assert 'detectRetina: true' in source
     assert 'new ResizeObserver(resizeMap)' in source
