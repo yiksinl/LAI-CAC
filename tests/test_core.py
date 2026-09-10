@@ -453,6 +453,7 @@ def test_checksum_verified_solar_helper_import_skips_demo_and_uses_notebook_conv
 def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_history():
     root = Path(__file__).parents[1]
     source = (root / "static/app.js").read_text(encoding="utf-8")
+    styles = (root / "static/app.css").read_text(encoding="utf-8")
     template = (root / "templates/index.html").read_text(encoding="utf-8")
     assert 'Number(record.lai).toFixed(2)' in source
     assert "1.29" not in source
@@ -496,7 +497,7 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert 'detectRetina: true' in source
     assert 'new ResizeObserver(resizeMap)' in source
     assert '"Ready to estimate"' in source
-    assert "observations usable, covering" in source
+    assert "expected observations were usable" in source
     assert '"LAI (m²/m²)"' in source
     assert "formatTrendPeriod(item.period)" in source
     assert 'fetch("/api/history"' in source
@@ -517,6 +518,19 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert 'id="processing-diagnostics"' in template
     assert 'id="observation-details"' in template
     assert 'id="pixel-details"' in template
+    assert 'class="results-layout"' in template
+    assert 'id="results-location-name"' in template
+    assert 'id="results-location-details"' in template
+    assert '<h3 id="example-title">Estimated leaf area</h3>' in template
+    assert 'id="observation-period-dates"' in template
+    assert 'id="observation-total"' in template
+    assert "This describes data availability, not prediction confidence." in template
+    assert "distinctUsableDates.size" in source
+    assert "Usable observations from ${distinctUsableDates.size} of ${support.possible_days} days" in source
+    assert "passed_total / 3" not in source
+    assert "passed_total/3" not in source
+    assert "grid-template-columns: minmax(300px, 1fr) minmax(0, 2fr)" in styles
+    assert "@media (max-width: 760px)" in styles
     assert "April 6, 2026, the model’s training cutoff" in template
     assert "How LeafView works" in template
     assert "How LeafView estimates leaf area" in template
@@ -527,7 +541,7 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "implementation consistency, not prediction accuracy" in template
     assert "LAI alone cannot diagnose plant health or drought" in template
     assert "Methods and limitations" not in template
-    assert "An eight-day estimate updated daily." in template
+    assert "Estimated leaf area" in template
     assert "Explore the leaves in your landscape" in template
     assert "What is leaf area index?" in template
     assert "3 square meters of leaves for every square meter of ground" in template

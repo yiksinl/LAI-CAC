@@ -133,11 +133,13 @@ function renderSelectedLocationCopy() {
   byId("selected-name").textContent = selectedQuery.displayLocation;
   byId("selected-location-details").textContent = details;
   byId("place-name-attribution").hidden = selectedQuery.placeNameSource !== "OpenStreetMap";
+  byId("results-location-name").textContent = selectedQuery.displayLocation;
+  byId("results-location-details").textContent = details;
   byId("result-location").textContent = selectedQuery.displayLocation;
   byId("result-location-details").textContent = details;
   if (activeRecord && sameLocation(activeRecord.query.location, selectedQuery)) {
     const period = activeRecord.query.period;
-    byId("example-meta").textContent = `${selectedQuery.displayLocation} · ${formatDate(period.start)}–${formatDate(period.end)} UTC · observations selected from these eight dates`;
+    byId("example-meta").textContent = `Observation period: ${formatDate(period.start)}–${formatDate(period.end)} UTC`;
   }
   if (currentHistory && sameLocation(currentHistory.query.location, selectedQuery)) {
     renderHistory(currentHistory);
@@ -172,6 +174,8 @@ function resetResultPanel(message = "Loading the latest complete window for this
   byId("pixel-area-copy").textContent = "The highlighted box will show the area represented by one satellite pixel.";
   byId("support-bars").replaceChildren();
   byId("support-summary").textContent = "";
+  byId("observation-total").textContent = "";
+  byId("observation-period-dates").replaceChildren();
   byId("observation-dates").replaceChildren();
   byId("footprint-corners").replaceChildren();
   byId("processing-diagnostics").open = false;
@@ -409,18 +413,60 @@ function renderSupport(record) {
     container.append(row);
   });
   const support = record.observation_support;
-  byId("support-summary").textContent = `${support.passed_total} of ${support.possible_total} observations usable, covering ${support.usable_days} of ${support.possible_days} days.`;
+  const periodDates = [];
+  const currentDate = new Date(`${record.query.period.start}T00:00:00Z`);
+  const finalDate = new Date(`${record.query.period.end}T00:00:00Z`);
+  while (currentDate <= finalDate) {
+    periodDates.push(currentDate.toISOString().slice(0, 10));
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+  }
+
+  const periodDateList = byId("observation-period-dates");
+  periodDateList.replaceChildren();
+  periodDates.forEach(date => {
+    const label = document.createElement("span");
+    label.className = "observation-period-date";
+    label.textContent = formatDate(date);
+    periodDateList.append(label);
+  });
+
+  // Count distinct strict-pass dates from the result metadata; observation totals
+  // cannot be divided by the three daily time slots to obtain this value.
+  const distinctUsableDates = new Set(
+    (support.observation_dates || [])
+      .filter(item => Number(item.usable) > 0)
+      .map(item => item.date)
+  );
+  (support.usable_dates || []).forEach(item => {
+    distinctUsableDates.add(typeof item === "string" ? item : item.date);
+  });
+  distinctUsableDates.delete(undefined);
+  distinctUsableDates.delete(null);
+  byId("support-summary").textContent = `Usable observations from ${distinctUsableDates.size} of ${support.possible_days} days`;
+  byId("observation-total").textContent = `${support.passed_total} of ${support.possible_total} expected observations were usable.`;
+
   const dates = byId("observation-dates");
   dates.replaceChildren();
-  support.observation_dates.forEach(item => {
-    const label = document.createElement("span");
+  const metadataByDate = new Map((support.observation_dates || []).map(item => [item.date, item]));
+  periodDates.forEach(date => {
+    const item = metadataByDate.get(date) || {
+      date,
+      observations: 0,
+      usable: 0,
+      hours_utc: [],
+      usable_hours_utc: []
+    };
+    const label = document.createElement("div");
     label.className = "observation-date";
-    const usable = item.usable === 1 ? "1 usable observation" : `${item.usable} usable observations`;
-    label.textContent = `${formatShortDate(item.date)}: ${usable} (${item.observations} observed)`;
-    label.title = `Observed at ${item.hours_utc.join(", ")} UTC; usable at ${item.usable_hours_utc.join(", ") || "none"} UTC`;
+    const counts = document.createElement("strong");
+    counts.textContent = `${formatDate(item.date)}: ${item.usable} of ${item.observations} available observations usable`;
+    const times = document.createElement("span");
+    const selectedTimes = item.hours_utc?.length ? `${item.hours_utc.join(", ")} UTC` : "none available";
+    const usableTimes = item.usable_hours_utc?.length ? `${item.usable_hours_utc.join(", ")} UTC` : "none";
+    times.textContent = `Selected observation times: ${selectedTimes}. Usable times: ${usableTimes}.`;
+    label.append(counts, times);
     dates.append(label);
   });
-  if (!support.observation_dates.length) dates.textContent = "No satellite observations were available.";
 }
 
 function renderFootprint(record) {
@@ -481,11 +527,11 @@ function renderResult(record, expected) {
   activeRecord = record;
   byId("result-section").classList.remove("awaiting");
   const period = record.query.period;
-  byId("example-title").textContent = record.experience_label;
   byId("result-context").textContent = period.start === latestPeriod.start
-    ? "Latest at selected location"
-    : "Historical window at selected location";
-  byId("example-meta").textContent = `${selectedQuery.displayLocation} · ${formatDate(period.start)}–${formatDate(period.end)} UTC · observations selected from these eight dates`;
+    ? "Latest eight-day estimate"
+    : "Historical eight-day estimate";
+  byId("example-title").textContent = "Estimated leaf area";
+  byId("example-meta").textContent = `Observation period: ${formatDate(period.start)}–${formatDate(period.end)} UTC`;
   if (record.lai == null) {
     byId("example-lai").textContent = "—";
     byId("lai-units").hidden = true;
@@ -706,7 +752,7 @@ function renderHistory(data) {
       r: item.period.start === selectedWindowStart ? 5 : 2.5,
       class: className
     });
-    point.append(svgElement("title", {}, `${formatTrendPeriod(item.period)} · ${historyItemText(item)} · ${historyItemSupport(item)}`));
+    point.append(svgElement("title", {}, `${formatTrendPeriod(item.period)} · ${historyItemText(item)} · ${historyItemSupport(item)} · ${historyObservationDates(item)}`));
     svg.append(point);
   });
   periods.forEach((item, index) => {

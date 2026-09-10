@@ -131,91 +131,101 @@
       </aside>
     </section>
 
-    <section id="result-section" class="example" aria-labelledby="example-title">
-      <div class="section-heading">
-        <div><p id="result-context" class="eyebrow">Latest at selected location</p><h2 id="example-title">An eight-day estimate updated daily.</h2></div>
+    <section class="results-shell" aria-labelledby="results-location-name">
+      <div class="results-location-heading">
+        <p class="eyebrow">Results for selected location</p>
+        <h2 id="results-location-name">Montgomery County, Maryland</h2>
+        <p id="results-location-details" class="location-details">Selected coordinates will appear here.</p>
       </div>
-      <div id="example-meta" class="example-meta">Choose a location to load its latest complete window.</div>
-      <div class="example-grid">
-        <article class="result-card">
-          <div class="result-label"><span id="result-badge" class="badge">Research estimate</span><a id="compare-landscapes" href="#landscape-guide">Compare with landscape examples</a></div>
-          <div class="lai-measure"><span id="example-lai" class="lai-value">—</span><span id="lai-units" class="lai-units" hidden>m²/m²</span></div>
-          <p id="lai-explanation" class="lead-explanation">Loading the cached result…</p>
-          <p id="calculation-source" class="calculation-source">Checking how this result was calculated…</p>
-          <p id="calculated-at" class="calculated-at" hidden></p>
-          <p id="provisional-note" class="provisional-note"></p>
-          <details id="processing-diagnostics" class="compact-details diagnostics">
-            <summary>Processing details</summary>
-            <dl>
-              <div><dt>Result source</dt><dd id="result-source">—</dd></div>
-              <div><dt>Request time</dt><dd id="result-time">—</dd></div>
-              <div><dt>Observation cache</dt><dd id="observation-cache">—</dd></div>
-            </dl>
-          </details>
-        </article>
-        <article class="support-card">
-          <h3>How much data was usable?</h3>
-          <p id="support-summary" class="support-summary"></p>
-          <p class="support-basis">Eight days × three selected observation times per day.</p>
-          <p class="support-note">Usable days are dates with at least one observation that passed the supplied data-quality and viewing checks.</p>
-          <details id="observation-details" class="compact-details">
-            <summary>Observation details</summary>
-            <div id="support-bars" class="support-bars"></div>
-            <p class="detail-label">Actual observation dates (UTC)</p>
-            <div id="observation-dates" class="observation-dates"></div>
-            <p class="support-note">These counts describe data availability, not prediction confidence or accuracy.</p>
-          </details>
-        </article>
-        <article class="spatial-card">
-          <h3>Satellite pixel</h3>
-          <p id="result-location" class="result-location">—</p>
-          <p id="result-location-details" class="location-details">Selected coordinates will appear here.</p>
-          <p id="pixel-area-copy">The highlighted box is the area represented by one satellite pixel. The estimate is an average for that whole area, not one yard or tree.</p>
-          <details id="pixel-details" class="compact-details">
-            <summary>Pixel details</summary>
-            <dl>
-              <div><dt>Requested point</dt><dd id="requested-point">—</dd></div>
-              <div><dt>Sampled pixel center</dt><dd id="pixel-center">—</dd></div>
-              <div><dt>Fixed-grid pixel</dt><dd id="pixel-index">—</dd></div>
-            </dl>
-            <p class="detail-label">Footprint corners</p>
-            <ol id="footprint-corners" class="footprint-corners"></ol>
-          </details>
-        </article>
-      </div>
-    </section>
 
-    <section id="trend-section" class="trend-card history-card" aria-labelledby="trend-title">
-      <div class="trend-heading">
-        <p class="eyebrow">History at selected location</p>
-        <h2 id="trend-title">Monthly snapshots</h2>
-        <p class="trend-lead">Each point summarizes eight days of satellite observations.</p>
-      </div>
-      <div class="history-content">
-        <p id="trend-meta" class="trend-meta">History will start after the latest estimate.</p>
-        <div id="history-state" class="history-state" role="status">Waiting for a location.</div>
-        <button id="retry-history" class="secondary retry-action history-retry" hidden>Retry</button>
-        <div class="history-legend" aria-label="History status legend">
-          <span><i class="legend-available"></i> Available</span>
-          <span><i class="legend-loading"></i> Pending</span>
-          <span><i class="legend-insufficient"></i> Insufficient data</span>
-          <span><i class="legend-error"></i> Network or retrieval error</span>
-          <span><i class="legend-error"></i> Processing error</span>
-        </div>
-        <div id="trend-plot" class="trend-plot" aria-live="polite"></div>
-        <details class="history-picker">
-          <summary>View an older eight-day window</summary>
-          <div class="history-picker-row">
-            <label for="history-date">Window ending date (UTC)</label>
-            <input id="history-date" type="date">
-            <button id="view-history-date" class="secondary" disabled>View this window</button>
-            <button id="view-latest" class="secondary" disabled>Return to latest</button>
+      <div class="results-layout">
+        <section id="result-section" class="estimate-panel awaiting" aria-labelledby="example-title">
+          <div class="panel-heading">
+            <p id="result-context" class="eyebrow">Latest eight-day estimate</p>
+            <h3 id="example-title">Estimated leaf area</h3>
           </div>
-        </details>
-        <details id="history-details" class="history-results" open>
-          <summary>Browse monthly snapshots</summary>
-          <div id="history-list" class="history-list"></div>
-        </details>
+          <div id="example-meta" class="example-meta">Choose a location to load its latest complete window.</div>
+          <div class="estimate-content">
+            <div class="result-label"><span id="result-badge" class="badge">Research estimate</span><a id="compare-landscapes" href="#landscape-guide">Compare with landscape examples</a></div>
+            <div class="lai-measure"><span id="example-lai" class="lai-value">—</span><span id="lai-units" class="lai-units" hidden>m²/m²</span></div>
+            <p id="lai-explanation" class="lead-explanation">Loading the cached result…</p>
+
+            <p class="detail-label observation-period-label">Eight-day observation dates (UTC)</p>
+            <div id="observation-period-dates" class="observation-period-dates" aria-label="Eight-day observation dates"></div>
+            <p id="support-summary" class="support-summary"></p>
+
+            <p id="calculation-source" class="calculation-source">Checking how this result was calculated…</p>
+            <p id="calculated-at" class="calculated-at" hidden></p>
+            <p id="provisional-note" class="provisional-note"></p>
+
+            <details id="observation-details" class="compact-details">
+              <summary>Observation details</summary>
+              <p id="observation-total" class="observation-total"></p>
+              <p class="detail-label">Usable observations by selected time</p>
+              <div id="support-bars" class="support-bars"></div>
+              <p class="detail-label">Per-day counts and selected observation times (UTC)</p>
+              <div id="observation-dates" class="observation-dates"></div>
+              <p class="support-note">This describes data availability, not prediction confidence.</p>
+            </details>
+
+            <details id="processing-diagnostics" class="compact-details diagnostics">
+              <summary>Processing details</summary>
+              <dl>
+                <div><dt>Result source</dt><dd id="result-source">—</dd></div>
+                <div><dt>Request time</dt><dd id="result-time">—</dd></div>
+                <div><dt>Observation cache</dt><dd id="observation-cache">—</dd></div>
+              </dl>
+            </details>
+
+            <details id="pixel-details" class="compact-details">
+              <summary>Satellite pixel details</summary>
+              <p id="result-location" class="result-location">—</p>
+              <p id="result-location-details" class="location-details">Selected coordinates will appear here.</p>
+              <p id="pixel-area-copy" class="pixel-area-copy">The highlighted box is the area represented by one satellite pixel. The estimate is an average for that whole area, not one yard or tree.</p>
+              <dl>
+                <div><dt>Requested point</dt><dd id="requested-point">—</dd></div>
+                <div><dt>Sampled pixel center</dt><dd id="pixel-center">—</dd></div>
+                <div><dt>Fixed-grid pixel</dt><dd id="pixel-index">—</dd></div>
+              </dl>
+              <p class="detail-label">Footprint corners</p>
+              <ol id="footprint-corners" class="footprint-corners"></ol>
+            </details>
+          </div>
+        </section>
+
+        <section id="trend-section" class="trend-card history-panel history-card" aria-labelledby="trend-title">
+          <div class="trend-heading">
+            <p class="eyebrow">History at selected location</p>
+            <h3 id="trend-title">Monthly snapshots</h3>
+            <p class="trend-lead">Each point summarizes eight days of satellite observations.</p>
+          </div>
+          <div class="history-content">
+            <p id="trend-meta" class="trend-meta">History will start after the latest estimate.</p>
+            <div id="history-state" class="history-state" role="status">Waiting for a location.</div>
+            <button id="retry-history" class="secondary retry-action history-retry" hidden>Retry</button>
+            <div class="history-legend" aria-label="History status legend">
+              <span><i class="legend-available"></i> Available</span>
+              <span><i class="legend-loading"></i> Pending</span>
+              <span><i class="legend-insufficient"></i> Insufficient data</span>
+              <span><i class="legend-error"></i> Network or retrieval error</span>
+              <span><i class="legend-error"></i> Processing error</span>
+            </div>
+            <div id="trend-plot" class="trend-plot" aria-live="polite"></div>
+            <details class="history-picker">
+              <summary>View an older eight-day window</summary>
+              <div class="history-picker-row">
+                <label for="history-date">Window ending date (UTC)</label>
+                <input id="history-date" type="date">
+                <button id="view-history-date" class="secondary" disabled>View this window</button>
+                <button id="view-latest" class="secondary" disabled>Return to latest</button>
+              </div>
+            </details>
+            <details id="history-details" class="history-results" open>
+              <summary>Browse monthly snapshots</summary>
+              <div id="history-list" class="history-list"></div>
+            </details>
+          </div>
+        </section>
       </div>
     </section>
 

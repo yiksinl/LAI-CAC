@@ -1,198 +1,79 @@
 {
+  "checkedAtUtc": "2026-09-10T23:15:06.302Z",
   "desktop": {
-    "latestReadyMs": 659,
-    "historyReadyMs": 659,
-    "headline": "An eight-day estimate updated daily.",
-    "displayedLai": "3.59",
+    "estimateBeforeHistory": {
+      "lai": "3.59",
+      "estimateState": "Estimate ready",
+      "historyState": "Monthly snapshots pending: checking the newest point first.",
+      "historyPoints": 0
+    },
+    "viewportWidth": 1440,
+    "horizontalOverflow": false,
+    "layoutColumns": "433.328px 866.672px",
+    "panelWidthRatio": 2.0000360581256986,
+    "panelsShareRow": true,
+    "locationHeadingAbovePanels": true,
+    "locationName": "Montgomery County, Maryland",
+    "locationDetails": "County: Montgomery County · Selected coordinates: 39.1547, −77.2405",
+    "title": "Estimated leaf area",
+    "lai": "3.59",
     "units": "m²/m²",
-    "unitGapPixels": 9,
-    "resultDates": "Montgomery County, Maryland · Sep 2, 2026–Sep 9, 2026 UTC · observations selected from these eight dates",
-    "latestBoundary": "Latest observation period: September 2–9, 2026 UTC.",
-    "latestTechnicalDetails": "UTC boundaries: 00:00 on Sep 2, 2026 through 00:00 on Sep 10, 2026 (end exclusive). LeafView waits two hours after the final 21:00 UTC observation group before choosing the newest complete day.",
-    "estimateState": "Estimate ready",
-    "processingHidden": true,
-    "calculationSource": "Showing a saved estimate for this location and period.",
-    "calculatedAt": "Calculation time unavailable.",
-    "supportSummary": "9 of 24 observations usable, covering 6 of 8 days.",
-    "observationDates": [
-      "Sep 2: 0 usable observations (3 observed)",
-      "Sep 3: 1 usable observation (3 observed)",
-      "Sep 4: 1 usable observation (3 observed)",
-      "Sep 5: 0 usable observations (3 observed)",
-      "Sep 6: 1 usable observation (3 observed)",
-      "Sep 7: 2 usable observations (3 observed)",
-      "Sep 8: 1 usable observation (3 observed)",
-      "Sep 9: 3 usable observations (3 observed)"
+    "period": "Observation period: Sep 3, 2026–Sep 10, 2026 UTC",
+    "periodDates": [
+      "Sep 3, 2026",
+      "Sep 4, 2026",
+      "Sep 5, 2026",
+      "Sep 6, 2026",
+      "Sep 7, 2026",
+      "Sep 8, 2026",
+      "Sep 9, 2026",
+      "Sep 10, 2026"
     ],
-    "pixelArea": "The highlighted satellite pixel represents about 6.2 square kilometers. The estimate is an average for that whole area, not one yard or tree.",
-    "locationPanelName": "Montgomery County, Maryland",
-    "locationPanelDetails": "County: Montgomery County · Selected coordinates: 39.1547, −77.2405",
-    "resultLocation": "Montgomery County, Maryland",
-    "resultLocationDetails": "County: Montgomery County · Selected coordinates: 39.1547, −77.2405",
-    "historyMeta": "Monthly snapshots for Montgomery County, Maryland run from Apr 23, 2026–Apr 30, 2026 through Sep 2, 2026–Sep 9, 2026. Each point summarizes eight days of satellite observations. The asterisk marks the latest rolling eight-day window. Windows ending Sep 10, 2025 through Apr 13, 2026 are outside scope because every input observation must be after Apr 6, 2026.",
+    "supportSummary": "Usable observations from 6 of 8 days",
+    "observationTotal": "9 of 24 expected observations were usable.",
+    "observationDays": [
+      "Sep 3, 2026: 1 of 3 available observations usableSelected observation times: 15, 18, 21 UTC. Usable times: 21 UTC.",
+      "Sep 4, 2026: 1 of 3 available observations usableSelected observation times: 15, 18, 21 UTC. Usable times: 15 UTC.",
+      "Sep 5, 2026: 0 of 3 available observations usableSelected observation times: 15, 18, 21 UTC. Usable times: none.",
+      "Sep 6, 2026: 1 of 3 available observations usableSelected observation times: 15, 18, 21 UTC. Usable times: 15 UTC.",
+      "Sep 7, 2026: 2 of 3 available observations usableSelected observation times: 15, 18, 21 UTC. Usable times: 15, 21 UTC.",
+      "Sep 8, 2026: 1 of 3 available observations usableSelected observation times: 15, 18, 21 UTC. Usable times: 15 UTC.",
+      "Sep 9, 2026: 3 of 3 available observations usableSelected observation times: 15, 18, 21 UTC. Usable times: 15, 18, 21 UTC.",
+      "Sep 10, 2026: 0 of 3 available observations usableSelected observation times: 15, 18, 21 UTC. Usable times: none."
+    ],
+    "availabilityNote": "This describes data availability, not prediction confidence.",
     "historyState": "Monthly snapshots loaded in 0.0 seconds. 6 estimates are available; 0 snapshots had insufficient data.",
     "historyPoints": 6,
-    "historyGaps": 0,
-    "historyErrors": 0,
-    "historyLines": 5,
-    "monthLabels": [
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep*"
+    "historyPointTitles": [
+      "Apr 23–Apr 30 · 2.63 m²/m² · 6/24 observations · 3/8 days · Actual observations (UTC): Apr 23 2/3 usable · Apr 24 1/3 usable · Apr 25 0/3 usable · Apr 26 0/3 usable · Apr 27 3/3 usable · Apr 28 0/3 usable · Apr 29 0/3 usable · Apr 30 0/3 usable",
+      "May 24–May 31 · 4.81 m²/m² · 10/24 observations · 4/8 days · Actual observations (UTC): May 24 0/3 usable · May 25 0/3 usable · May 26 0/3 usable · May 27 0/3 usable · May 28 1/3 usable · May 29 3/3 usable · May 30 3/3 usable · May 31 3/3 usable",
+      "Jun 23–Jun 30 · 4.40 m²/m² · 4/24 observations · 2/8 days · Actual observations (UTC): Jun 23 0/3 usable · Jun 24 3/3 usable · Jun 25 1/3 usable · Jun 26 0/3 usable · Jun 27 0/3 usable · Jun 28 0/3 usable · Jun 29 0/1 usable · Jun 30 0/3 usable",
+      "Jul 24–Jul 31 · 4.53 m²/m² · 1/24 observations · 1/8 days · Actual observations (UTC): Jul 24 0/3 usable · Jul 25 0/3 usable · Jul 26 0/3 usable · Jul 27 0/3 usable · Jul 28 0/3 usable · Jul 29 0/3 usable · Jul 30 1/3 usable · Jul 31 0/3 usable",
+      "Aug 24–Aug 31 · 4.53 m²/m² · 10/24 observations · 7/8 days · Actual observations (UTC): Aug 24 3/3 usable · Aug 25 1/3 usable · Aug 26 1/3 usable · Aug 27 1/3 usable · Aug 28 1/3 usable · Aug 29 2/3 usable · Aug 30 1/3 usable · Aug 31 0/3 usable",
+      "Sep 3–Sep 10 · 3.59 m²/m² · 9/24 observations · 6/8 days · Actual observations (UTC): Sep 3 1/3 usable · Sep 4 1/3 usable · Sep 5 0/3 usable · Sep 6 1/3 usable · Sep 7 2/3 usable · Sep 8 1/3 usable · Sep 9 3/3 usable · Sep 10 0/3 usable"
     ],
-    "snapshotRows": 6,
-    "snapshotSummaries": [
-      "September 2026 · latestSep 2, 2026–Sep 9, 20263.59 m²/m²9/24 observations · 6/8 days",
-      "August 2026Aug 24, 2026–Aug 31, 20264.53 m²/m²10/24 observations · 7/8 days",
-      "July 2026Jul 24, 2026–Jul 31, 20264.53 m²/m²1/24 observations · 1/8 days",
-      "June 2026Jun 23, 2026–Jun 30, 20264.40 m²/m²4/24 observations · 2/8 days",
-      "May 2026May 24, 2026–May 31, 20264.81 m²/m²10/24 observations · 4/8 days",
-      "April 2026Apr 23, 2026–Apr 30, 20262.63 m²/m²6/24 observations · 3/8 days"
-    ],
-    "snapshotObservationDates": [
-      "Actual observations (UTC): Sep 2 0/3 usable · Sep 3 1/3 usable · Sep 4 1/3 usable · Sep 5 0/3 usable · Sep 6 1/3 usable · Sep 7 2/3 usable · Sep 8 1/3 usable · Sep 9 3/3 usable",
-      "Actual observations (UTC): Aug 24 3/3 usable · Aug 25 1/3 usable · Aug 26 1/3 usable · Aug 27 1/3 usable · Aug 28 1/3 usable · Aug 29 2/3 usable · Aug 30 1/3 usable · Aug 31 0/3 usable",
-      "Actual observations (UTC): Jul 24 0/3 usable · Jul 25 0/3 usable · Jul 26 0/3 usable · Jul 27 0/3 usable · Jul 28 0/3 usable · Jul 29 0/3 usable · Jul 30 1/3 usable · Jul 31 0/3 usable",
-      "Actual observations (UTC): Jun 23 0/3 usable · Jun 24 3/3 usable · Jun 25 1/3 usable · Jun 26 0/3 usable · Jun 27 0/3 usable · Jun 28 0/3 usable · Jun 29 0/1 usable · Jun 30 0/3 usable",
-      "Actual observations (UTC): May 24 0/3 usable · May 25 0/3 usable · May 26 0/3 usable · May 27 0/3 usable · May 28 1/3 usable · May 29 3/3 usable · May 30 3/3 usable · May 31 3/3 usable",
-      "Actual observations (UTC): Apr 23 2/3 usable · Apr 24 1/3 usable · Apr 25 0/3 usable · Apr 26 0/3 usable · Apr 27 3/3 usable · Apr 28 0/3 usable · Apr 29 0/3 usable · Apr 30 0/3 usable"
-    ],
-    "historyLocationMatchesResult": true,
-    "landscapeGuideOpen": true,
-    "landscapeGuideRows": 6,
-    "landscapeGuideBeforeMap": true,
-    "methods": "How LeafView estimates leaf area LeafView uses a machine-learning model developed by Yixuan Li during his CISESS research. It estimates leaf area from GOES-19 satellite observations, using reflected light, viewing and illumination angles, season, and land cover. The model was trained against quality-screened MODIS and VIIRS satellite LAI estimates. These are satellite-based reference values, rather than direct field measurements. Observation periods and history Each estimate combines observations from eight consecutive UTC dates. The latest estimate uses a rolling window that advances daily. It represents the entire eight-day period, rather than conditions on one day. The history chart shows monthly snapshots, each based on an eight-day observation window—not a monthly average. Exact dates are available for each point, and periods without sufficient observations remain gaps. LeafView uses only observations after April 6, 2026, the model’s training cutoff. It estimates leaf area from observations collected after training; it does not forecast future conditions. Processing checks and validation Processing checks have confirmed compatibility with the supplied model and preprocessing, rolling-window construction, and numerical consistency. These checks establish implementation consistency, not prediction accuracy. Accuracy for rolling eight-day estimates has not yet been evaluated. The original training-period results remain unreproduced because the historical feature rows are unavailable. Interpreting the results LAI describes leaf area per unit of ground area across the sampled satellite footprint. That footprint may contain a mixture of trees, fields, roads, buildings, and other land cover. The number of usable observations indicates how much data contributed to an estimate. It is not a confidence or accuracy score. Results can help users explore estimated leaf area and changes over time. LAI alone cannot diagnose plant health or drought, explain the cause of a change, or determine watering needs. Technical details LeafView uses the selected 600-tree XGBoost model with the original feature definitions and preprocessing. It preserves separate composites for observations around 15, 18, and 21 UTC. Seasonality is calculated from each window’s start date using the original notebook formula.",
-    "mapSize": {
-      "x": 942,
-      "y": 460
-    },
-    "horizontalOverflow": false
+    "consoleErrors": []
   },
   "narrow": {
     "viewportWidth": 430,
     "horizontalOverflow": false,
-    "workspaceColumns": "400px",
-    "resultColumns": "364px",
-    "trendColumns": "364px",
-    "plotWidth": 364,
-    "observationDateWidths": [
-      160,
-      160,
-      160,
-      160,
-      160,
-      160,
-      160,
-      160
-    ],
-    "locationDetailsWidth": 364,
-    "landscapeGuideOpen": true,
-    "landscapeGuideRows": 6,
-    "landscapeTableLayout": "block",
-    "mapSize": {
-      "x": 400,
-      "y": 300
-    }
-  },
-  "guideAccessAfterResult": {
-    "open": true,
-    "summaryFocused": true,
-    "resultStillVisible": true
-  },
-  "guideAccessBeforeResult": {
-    "open": true,
-    "resultCleared": true,
-    "selectedLocationVisible": true
-  },
-  "placeNameSuccess": {
-    "requestedPlaceCoordinates": {
-      "latitude": 39.1547,
-      "longitude": -77.2405
-    },
-    "estimateReadyMs": 500.2999999988824,
-    "placeNameReadyMs": 1112.0999999996275,
-    "estimateFinishedFirst": true,
-    "nameAtEstimateReady": "39.1547, −77.2405",
-    "panelName": "Germantown, Maryland",
-    "panelDetails": "County: Montgomery County · Selected coordinates: 39.1547, −77.2405",
-    "resultName": "Germantown, Maryland",
-    "resultDetails": "County: Montgomery County · Selected coordinates: 39.1547, −77.2405",
-    "resultMeta": "Germantown, Maryland · Sep 2, 2026–Sep 9, 2026 UTC · observations selected from these eight dates",
-    "historyMeta": "Monthly snapshots for Germantown, Maryland run from Apr 23, 2026–Apr 30, 2026 through Sep 2, 2026–Sep 9, 2026. Each point summarizes eight days of satellite observations. The asterisk marks the latest rolling eight-day window. Windows ending Sep 10, 2025 through Apr 13, 2026 are outside scope because every input observation must be after Apr 6, 2026.",
-    "attributionVisible": true
-  },
-  "placeNameFailure": {
-    "estimateStillLoaded": true,
-    "panelName": "39.1547, −77.2405",
-    "panelDetails": "Selected coordinates: 39.1547, −77.2405 · Place name unavailable",
-    "resultName": "39.1547, −77.2405",
-    "attributionHidden": true
-  },
-  "stalePlaceName": {
-    "requests": [
-      {
-        "latitude": 39.101,
-        "longitude": -77.101
-      },
-      {
-        "latitude": 39.202,
-        "longitude": -77.202
-      }
-    ],
-    "clearedOldNameImmediately": true,
-    "panelName": "New Area, Maryland",
-    "panelDetails": "County: New County · Selected coordinates: 39.2020, −77.2020",
-    "resultCleared": true
-  },
-  "staleEstimate": {
-    "selectedLocation": "Custom location",
-    "displayedLai": "—",
-    "activeRecord": null,
-    "footprintPresent": false,
-    "currentHistory": null,
-    "calculationSource": "",
-    "calculationTimestamp": "",
-    "calculationTimestampHidden": true,
-    "estimateState": "Estimate ready"
-  },
-  "staleHistory": {
-    "selectedLocation": "Custom location",
-    "historyText": "Waiting for the latest result.",
-    "historyPoints": 0,
-    "currentHistory": null
+    "layoutColumns": "402px",
+    "estimateAboveHistory": true,
+    "equalPanelWidths": true,
+    "locationHeadingAbovePanels": true,
+    "periodDateColumns": "179px 179px",
+    "periodDateCount": 8,
+    "supportSummary": "Usable observations from 6 of 8 days",
+    "consoleErrors": []
   },
   "images": {
     "desktop": {
-      "requested": {
-        "width": 1440,
-        "height": 4361
-      },
-      "nativeCapture": {
-        "width": 2880,
-        "height": 8722
-      },
-      "saved": {
-        "width": 1440,
-        "height": 4361
-      }
+      "width": 1440,
+      "filename": "leafview-desktop.png"
     },
     "narrow": {
-      "requested": {
-        "width": 430,
-        "height": 7869
-      },
-      "nativeCapture": {
-        "width": 860,
-        "height": 15738
-      },
-      "saved": {
-        "width": 430,
-        "height": 7869
-      }
+      "width": 430,
+      "filename": "leafview-narrow.png"
     }
-  },
-  "consoleErrors": []
+  }
 }
