@@ -323,6 +323,14 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert 'id="load-example"' not in template
     assert "Use Montgomery example" not in template
     assert 'byId("load-example")' not in source
+    assert 'id="estimate"' not in template
+    assert "Get latest estimate" not in template
+    assert 'byId("estimate")' not in source
+    assert "Choose a location on the map. Your latest estimate and available history will load automatically." in template
+    assert 'id="retry-estimate"' in template
+    assert 'id="retry-history"' in template
+    assert "estimateRetryAction" in source
+    assert 'byId("retry-history").hidden = false' in source
     assert "latestPeriod.start" in source
     assert "Latest observation period:" in source
     assert "formatObservationPeriod" in source
@@ -378,7 +386,7 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "Observation availability" in template
     assert "LeafView selects the observation period automatically." in template
     assert "Research estimates: prediction accuracy for the rolling eight-day windows has not yet been evaluated." in template
-    assert "Choose a location below to begin." in template
+    assert "Choose a location below to begin." not in template
     assert "View an older eight-day window" in template
     assert "History at selected location" in template
     assert "Monthly snapshots" in template

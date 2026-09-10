@@ -52,6 +52,7 @@ let selectedWindowStart = null;
 let requestGeneration = 0;
 let historyGeneration = 0;
 let automaticEstimateTimer = null;
+let estimateRetryAction = null;
 let selectedQuery = { ...montgomery };
 
 const byId = (id) => document.getElementById(id);
@@ -117,6 +118,8 @@ function resetResultPanel(message = "Loading the latest complete window for this
   activeRecord = null;
   clearFootprint();
   byId("processing").hidden = true;
+  estimateRetryAction = null;
+  byId("retry-estimate").hidden = true;
   byId("result-section").classList.add("awaiting");
   byId("example-meta").textContent = message;
   byId("example-lai").textContent = "—";
@@ -145,7 +148,7 @@ function resetResultPanel(message = "Loading the latest complete window for this
   byId("pixel-details").open = false;
 }
 
-function showEstimateState(label, state = "ready") {
+function showEstimateState(label, state = "ready", retryAction = null) {
   byId("processing").hidden = true;
   const status = byId("status");
   status.hidden = false;
@@ -153,6 +156,8 @@ function showEstimateState(label, state = "ready") {
   const title = document.createElement("strong");
   title.textContent = label;
   status.replaceChildren(title);
+  estimateRetryAction = retryAction;
+  byId("retry-estimate").hidden = retryAction == null;
 }
 
 function clearHistory(message = "History will start after the latest estimate.") {
@@ -164,6 +169,7 @@ function clearHistory(message = "History will start after the latest estimate.")
   byId("trend-meta").textContent = message;
   byId("history-state").className = "history-state";
   byId("history-state").textContent = "Waiting for the latest result.";
+  byId("retry-history").hidden = true;
 }
 
 function scheduleLatestEstimate() {
@@ -179,8 +185,13 @@ function resetForLocation() {
   resetResultPanel();
   clearHistory();
   byId("result-context").textContent = "Latest at selected location";
-  if (dependenciesReady) showEstimateState("Ready to estimate");
-  byId("estimate").disabled = !dependenciesReady;
+  if (dependenciesReady) {
+    renderProgress({
+      stage: "Preparing estimate",
+      percent: 0,
+      detail: "Starting the latest estimate for the selected location…"
+    });
+  }
   byId("view-latest").disabled = !dependenciesReady;
 }
 
@@ -259,12 +270,13 @@ function renderStatus(data) {
   historyDate.value = data.historical_date_range.maximum_end;
   byId("view-history-date").disabled = !dependenciesReady;
   byId("view-latest").disabled = !dependenciesReady;
-  byId("estimate").disabled = !dependenciesReady;
 }
 
 function renderProgress(progress) {
   const panel = byId("processing");
   byId("status").hidden = true;
+  estimateRetryAction = null;
+  byId("retry-estimate").hidden = true;
   panel.hidden = false;
   const percent = Math.max(0, Math.min(100, Number(progress.percent || 0)));
   byId("processing-stage").textContent = String(progress.stage || "processing")
@@ -418,11 +430,14 @@ async function runEstimate(periodStart = null) {
   resetResultPanel(periodStart
     ? "Loading this historical eight-day window…"
     : "Loading the latest complete eight-day window…");
-  showEstimateState("Ready to estimate");
+  renderProgress({
+    stage: periodStart ? "Loading older window" : "Loading latest estimate",
+    percent: 0,
+    detail: periodStart
+      ? "Starting the selected eight-day estimate…"
+      : "Starting the latest estimate for the selected location…"
+  });
   if (currentHistory) renderHistory(currentHistory);
-  const button = byId("estimate");
-  button.disabled = true;
-  button.textContent = periodStart ? "Loading older window…" : "Loading latest…";
   const payload = {
     latitude: expected.latitude,
     longitude: expected.longitude,
@@ -447,12 +462,11 @@ async function runEstimate(periodStart = null) {
     if (!periodStart) startHistory();
   } catch (error) {
     if (generation !== requestGeneration) return;
-    showEstimateState(`Estimate unavailable: ${error.message}`, "blocked");
-  } finally {
-    if (generation === requestGeneration) {
-      button.disabled = !dependenciesReady;
-      button.textContent = "Get latest estimate";
-    }
+    showEstimateState(
+      `Estimate unavailable: ${error.message}`,
+      "blocked",
+      () => runEstimate(periodStart)
+    );
   }
 }
 
@@ -626,12 +640,15 @@ function renderHistory(data) {
     state.className = "history-state complete";
     state.textContent = `Monthly snapshots loaded in ${Number(data.elapsed_seconds).toFixed(1)} seconds. ${available.length} estimates are available; ${insufficient} snapshots had insufficient data.`;
   }
+  byId("retry-history").hidden = data.state === "running"
+    || !(retrievalErrors || processingErrors);
   renderHistoryList(data);
 }
 
 async function startHistory() {
   const generation = ++historyGeneration;
   const query = { ...selectedQuery };
+  byId("retry-history").hidden = true;
   byId("history-state").className = "history-state";
   byId("history-state").textContent = "Monthly snapshots pending: checking the newest point first.";
   try {
@@ -664,6 +681,7 @@ async function startHistory() {
     byId("trend-plot").replaceChildren();
     byId("history-state").className = "history-state error";
     byId("history-state").textContent = `History could not load: ${error.message}`;
+    byId("retry-history").hidden = false;
   }
 }
 
@@ -672,7 +690,11 @@ new ResizeObserver(entries => {
   if (currentHistory && width && Math.abs(width - renderedTrendWidth) > 1) renderHistory(currentHistory);
 }).observe(byId("trend-plot"));
 
-byId("estimate").addEventListener("click", () => runEstimate());
+byId("retry-estimate").addEventListener("click", () => {
+  const retry = estimateRetryAction;
+  if (retry) retry();
+});
+byId("retry-history").addEventListener("click", () => startHistory());
 byId("view-latest").addEventListener("click", () => runEstimate());
 byId("view-history-date").addEventListener("click", () => {
   const endValue = byId("history-date").value;
@@ -682,17 +704,23 @@ byId("view-history-date").addEventListener("click", () => {
   runEstimate(start.toISOString().slice(0, 10));
 });
 
-fetch("/api/status", { cache: "no-store" })
-  .then(async response => {
+async function loadStatus() {
+  showEstimateState("Checking scientific dependencies…", "loading");
+  try {
+    const response = await fetch("/api/status", { cache: "no-store" });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Scientific status unavailable");
     renderStatus(data);
     byId("selected-name").textContent = selectedQuery.displayLocation;
     resetForLocation();
     if (dependenciesReady) runEstimate();
-  })
-  .catch(error => {
-    const status = byId("status");
-    status.className = "status blocked";
-    status.textContent = `The local scientific service is unavailable: ${error.message}`;
-  });
+  } catch (error) {
+    showEstimateState(
+      `The local scientific service is unavailable: ${error.message}`,
+      "blocked",
+      loadStatus
+    );
+  }
+}
+
+loadStatus();

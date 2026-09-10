@@ -46,7 +46,7 @@
       </div>
 
       <p class="intro-caveat"><em>Research estimates: prediction accuracy for the rolling eight-day windows has not yet been evaluated.</em></p>
-      <p class="intro-begin"><strong>Choose a location below to begin.</strong></p>
+      <p class="intro-begin"><strong>Choose a location on the map. Your latest estimate and available history will load automatically.</strong></p>
     </section>
 
     <section class="workspace" aria-label="Selected query">
@@ -65,10 +65,8 @@
           <summary>Technical date details</summary>
           <p id="latest-window-details">Exact UTC boundaries and archive timing will appear here.</p>
         </details>
-        <div class="estimate-action">
-          <button id="estimate" disabled>Get latest estimate</button>
-        </div>
         <div id="status" class="status loading" role="status">Checking scientific dependencies…</div>
+        <button id="retry-estimate" class="secondary retry-action" hidden>Retry</button>
         <div id="processing" class="processing" aria-live="polite" hidden>
           <div class="processing-heading"><strong id="processing-stage">Preparing estimate</strong><span id="processing-percent">0%</span></div>
           <progress id="processing-bar" max="100" value="0"></progress>
@@ -139,6 +137,7 @@
       <div class="history-content">
         <p id="trend-meta" class="trend-meta">History will start after the latest estimate.</p>
         <div id="history-state" class="history-state" role="status">Waiting for a location.</div>
+        <button id="retry-history" class="secondary retry-action history-retry" hidden>Retry</button>
         <div class="history-legend" aria-label="History status legend">
           <span><i class="legend-available"></i> Available</span>
           <span><i class="legend-loading"></i> Pending</span>
