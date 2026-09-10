@@ -1,19 +1,32 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import math
 import threading
 import time
 import uuid
 from copy import deepcopy
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Callable
 
 from flask import Flask, jsonify, render_template, request
 
 from .assets import ReferenceAssets
-from .composites import aligned_period, periods_after_cutoff
-from .inference import run_estimate
+from .composites import (
+    ARCHIVE_PUBLICATION_DELAY,
+    HISTORY_DAYS,
+    POST_CUTOFF_ANCHOR,
+    TRAINING_END,
+    archive_ready_after,
+    latest_completed_rolling_period,
+    rolling_period,
+    rolling_periods_through,
+    utc_window_boundaries,
+)
+from .goes import ObservationRetrievalError
+from .inference import ObservationMemo, run_estimate
 from .result_cache import (
     cache_identity,
     load_compatible_result,
@@ -145,6 +158,28 @@ def _usable_dates(provenance: dict) -> list[dict[str, object]]:
     ]
 
 
+def _observation_dates(provenance: dict) -> list[dict[str, object]]:
+    dates: dict[str, dict[str, object]] = {}
+    for attempt in provenance.get("attempts", []):
+        if not attempt.get("scan"):
+            continue
+        day = str(attempt["date"])
+        item = dates.setdefault(day, {
+            "date": day,
+            "observations": 0,
+            "usable": 0,
+            "hours_utc": [],
+            "usable_hours_utc": [],
+        })
+        hour = int(attempt["target_hour"])
+        item["observations"] = int(item["observations"]) + 1
+        item["hours_utc"].append(hour)
+        if attempt.get("strict"):
+            item["usable"] = int(item["usable"]) + 1
+            item["usable_hours_utc"].append(hour)
+    return [dates[day] for day in sorted(dates)]
+
+
 def _observation_support(provenance: dict) -> dict[str, object]:
     passed = provenance["usable_counts"]
     usable_dates = _usable_dates(provenance)
@@ -160,6 +195,7 @@ def _observation_support(provenance: dict) -> dict[str, object]:
         "usable_days": len(usable_dates),
         "possible_days": possible_days,
         "usable_dates": usable_dates,
+        "observation_dates": _observation_dates(provenance),
     }
 
 
@@ -187,7 +223,7 @@ def _delivery_details(
         }
     elif int(observation_cache.get("reused", 0)) or int(
         observation_cache.get("partial_reused", 0)
-    ):
+    ) or int(observation_cache.get("memory_reused", 0)):
         calculation = {
             "kind": "cached_observations",
             "summary": "Calculated using cached satellite observations.",
@@ -208,6 +244,7 @@ def public_result(
     delivery: dict[str, object] | None = None,
 ) -> dict:
     provenance = result["provenance"]
+    period_start = date.fromisoformat(str(provenance["composite"]["start"]))
     first_footprint = next(
         (
             attempt.get("sampled_pixel_corners")
@@ -219,6 +256,7 @@ def public_result(
     return {
         "id": identifier,
         "label": "Research estimate",
+        "experience_label": "An eight-day estimate updated daily.",
         "display_location": display_location,
         "status": result["status"],
         "lai": result["lai"],
@@ -229,7 +267,7 @@ def public_result(
         "scientific_concerns": result.get("scientific_concerns", []),
         "query": {
             "location": provenance["requested_location"],
-            "period": provenance["composite"],
+            "period": utc_window_boundaries(period_start),
             "key": provenance.get("cache_identity", {}).get("key"),
         },
         "sampled_pixel": {
@@ -244,50 +282,65 @@ def public_result(
     }
 
 
-def _selected_trend_periods(period_start: date) -> list[tuple[date, date]]:
-    completed = periods_after_cutoff(date.today())
-    starts = [start for start, _ in completed]
-    try:
-        selected_index = starts.index(period_start)
-    except ValueError as error:
-        raise ValueError("The selected period is not a completed post-cutoff period") from error
-    window_size = min(3, len(completed))
-    first_index = max(0, selected_index - window_size + 1)
-    first_index = min(first_index, len(completed) - window_size)
-    return completed[first_index:first_index + window_size]
-
-
-def _trend_period(
-    root: Path,
-    latitude: float,
-    longitude: float,
-    period_start: date,
-    selected_start: date,
-) -> dict[str, object]:
-    query = normalized_query(latitude, longitude, period_start)
-    identity = cache_identity(latitude, longitude, period_start, root)
-    cached = load_compatible_result(root, identity)
-    base = {
-        "period": {"start": query["start"], "end": query["end"]},
-        "query_key": identity["key"],
-        "selected": period_start == selected_start,
-    }
-    if not cached:
-        return {
-            **base,
-            "status": "unavailable",
-            "lai": None,
-            "usable_total": None,
-            "possible_total": 24,
-            "usable_days": None,
-            "possible_days": 8,
-            "gap": True,
-            "message": "No provenance-matched result has been calculated for this period.",
+def _history_scope(latest_start: date) -> dict[str, object]:
+    windows = rolling_periods_through(latest_start)
+    latest_end = windows[-1][1]
+    requested_start = latest_end - timedelta(days=HISTORY_DAYS - 1)
+    first_start, first_end = windows[0]
+    outside_scope = None
+    first_eligible_end = first_end
+    if requested_start < first_eligible_end:
+        outside_scope = {
+            "start": requested_start.isoformat(),
+            "end": (first_eligible_end - timedelta(days=1)).isoformat(),
+            "status": "outside_scope",
+            "message": (
+                "These ending dates would require a window containing observations "
+                "from the model-development period."
+            ),
         }
-    result, _ = cached
+    return {
+        "requested_days": HISTORY_DAYS,
+        "requested_start": requested_start.isoformat(),
+        "requested_end": latest_end.isoformat(),
+        "available_start": first_start.isoformat(),
+        "available_first_end": first_end.isoformat(),
+        "available_latest_start": windows[-1][0].isoformat(),
+        "available_end": latest_end.isoformat(),
+        "training_cutoff": TRAINING_END.isoformat(),
+        "outside_scope": outside_scope,
+        "window_count": len(windows),
+    }
+
+
+def _history_item(
+    identity: dict[str, object],
+    period_start: date,
+    result: dict | None = None,
+    *,
+    state: str = "loading",
+    message: str | None = None,
+) -> dict[str, object]:
+    base = {
+        "period": utc_window_boundaries(period_start),
+        "query_key": identity["key"],
+        "state": state,
+        "status": state,
+        "lai": None,
+        "usable_total": None,
+        "possible_total": 24,
+        "usable_days": None,
+        "possible_days": 8,
+        "gap": True,
+        "message": message,
+    }
+    if result is None:
+        return base
     support = _observation_support(result["provenance"])
+    item_state = "insufficient_data" if result["lai"] is None else "available"
     return {
         **base,
+        "state": item_state,
         "status": result["status"],
         "lai": result["lai"],
         "usable_total": support["passed_total"],
@@ -295,14 +348,16 @@ def _trend_period(
         "usable_days": support["usable_days"],
         "possible_days": support["possible_days"],
         "usable_counts": support["passed_by_hour"],
+        "observation_dates": support["observation_dates"],
         "gap": result["lai"] is None,
         "message": result.get("data_message"),
     }
 
 
 class EstimateJobs:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, observation_memo: ObservationMemo | None = None):
         self.root = root
+        self.observation_memo = observation_memo or ObservationMemo()
         self._lock = threading.Lock()
         self._jobs: dict[str, dict] = {}
         self._running_by_query: dict[str, str] = {}
@@ -319,6 +374,10 @@ class EstimateJobs:
             job = self._jobs.get(job_id)
             return deepcopy(job) if job else None
 
+    def active_count(self) -> int:
+        with self._lock:
+            return len(self._running_by_query)
+
     def start(
         self, latitude: float, longitude: float, period_start: date, display_location: str
     ) -> dict:
@@ -328,6 +387,7 @@ class EstimateJobs:
         cached = load_compatible_result(self.root, identity)
         if cached:
             result, source = cached
+            self.observation_memo.seed_result(result)
             job_id = uuid.uuid4().hex
             delivery = {
                 "cache_hit": True,
@@ -400,6 +460,7 @@ class EstimateJobs:
                 display_location,
                 progress=lambda update: self._progress(job_id, update),
                 identity=identity,
+                observation_memo=self.observation_memo,
             )
             delivery = {
                 "cache_hit": False,
@@ -427,36 +488,296 @@ class EstimateJobs:
                 state="error",
                 progress={"percent": 100, "stage": "error", "detail": "Estimate could not be completed"},
                 error=str(error),
+                error_kind=(
+                    "retrieval_error"
+                    if isinstance(error, ObservationRetrievalError)
+                    else "processing_error"
+                ),
             )
         finally:
             with self._lock:
                 self._running_by_query.pop(key, None)
 
 
-def _parse_estimate_payload(payload: dict) -> tuple[float, float, date, str]:
+class HistoryJobs:
+    def __init__(
+        self,
+        root: Path,
+        observation_memo: ObservationMemo,
+        estimate_jobs: EstimateJobs,
+    ):
+        self.root = root
+        self.observation_memo = observation_memo
+        self.estimate_jobs = estimate_jobs
+        self._lock = threading.Lock()
+        self._jobs: dict[str, dict] = {}
+        self._running_by_query: dict[str, str] = {}
+
+    def snapshot(self, job_id: str) -> dict | None:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            return deepcopy(job) if job else None
+
+    def active_count(self) -> int:
+        with self._lock:
+            return len(self._running_by_query)
+
+    def _set(self, job_id: str, **changes: object) -> None:
+        with self._lock:
+            self._jobs[job_id].update(changes)
+
+    def _set_item(self, job_id: str, index: int, item: dict, **changes: object) -> None:
+        with self._lock:
+            job = self._jobs[job_id]
+            job["periods"][index] = item
+            job.update(changes)
+
+    def start(
+        self,
+        latitude: float,
+        longitude: float,
+        latest_start: date,
+        display_location: str,
+    ) -> dict:
+        started = time.perf_counter()
+        windows = rolling_periods_through(latest_start)
+        identities = [
+            cache_identity(latitude, longitude, period_start, self.root)
+            for period_start, _ in windows
+        ]
+        query_document = {
+            "version": "daily-rolling-history-v1",
+            "latitude": latitude,
+            "longitude": longitude,
+            "latest_start": latest_start.isoformat(),
+            "first_start": windows[0][0].isoformat(),
+        }
+        query_key = hashlib.sha256(
+            json.dumps(query_document, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        with self._lock:
+            running_id = self._running_by_query.get(query_key)
+            if running_id:
+                return deepcopy(self._jobs[running_id])
+
+        items = []
+        completed = 0
+        for (period_start, _), identity in zip(windows, identities, strict=True):
+            cached = load_compatible_result(self.root, identity)
+            if cached:
+                result, _ = cached
+                self.observation_memo.seed_result(result)
+                items.append(_history_item(identity, period_start, result))
+                completed += 1
+            else:
+                items.append(_history_item(
+                    identity,
+                    period_start,
+                    message="This rolling window is waiting to be calculated.",
+                ))
+        job_id = uuid.uuid4().hex
+        state = "complete" if completed == len(items) else "running"
+        job = {
+            "job_id": job_id,
+            "state": state,
+            "query_key": query_key,
+            "query": {
+                "location": {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "name": display_location,
+                },
+                "latest_period": utc_window_boundaries(latest_start),
+            },
+            "scope": _history_scope(latest_start),
+            "periods": items,
+            "progress": {
+                "completed": completed,
+                "total": len(items),
+                "percent": round(100 * completed / len(items), 1),
+                "detail": (
+                    "Available history loaded from provenance-matched results."
+                    if state == "complete" else
+                    "Loading the newest available rolling windows first."
+                ),
+            },
+            "elapsed_seconds": round(time.perf_counter() - started, 3) if state == "complete" else None,
+            "error_count": 0,
+        }
+        with self._lock:
+            self._jobs[job_id] = job
+            if state == "running":
+                self._running_by_query[query_key] = job_id
+        if state == "running":
+            worker = threading.Thread(
+                target=self._run,
+                args=(
+                    job_id,
+                    query_key,
+                    windows,
+                    identities,
+                    latitude,
+                    longitude,
+                    display_location,
+                    completed,
+                    started,
+                ),
+                daemon=True,
+                name=f"leafview-history-{job_id[:8]}",
+            )
+            worker.start()
+        return deepcopy(job)
+
+    def _run(
+        self,
+        job_id: str,
+        query_key: str,
+        windows: list[tuple[date, date]],
+        identities: list[dict[str, object]],
+        latitude: float,
+        longitude: float,
+        display_location: str,
+        completed: int,
+        started: float,
+    ) -> None:
+        errors = 0
+        total = len(windows)
+        try:
+            for index in range(total - 1, -1, -1):
+                with self._lock:
+                    if self._jobs[job_id]["periods"][index]["state"] != "loading":
+                        continue
+                period_start = windows[index][0]
+                identity = identities[index]
+
+                estimate_job = self.estimate_jobs.start(
+                    latitude,
+                    longitude,
+                    period_start,
+                    display_location,
+                )
+                while estimate_job["state"] == "running":
+                    update = estimate_job.get("progress", {})
+                    overall = 100 * (
+                        completed + float(update.get("percent", 0)) / 100
+                    ) / total
+                    self._set(job_id, progress={
+                        "completed": completed,
+                        "total": total,
+                        "percent": round(overall, 1),
+                        "current_period": utc_window_boundaries(period_start),
+                        "window_progress": update,
+                        "detail": f"Loading {period_start.isoformat()} rolling window.",
+                    })
+                    time.sleep(0.1)
+                    estimate_job = self.estimate_jobs.snapshot(estimate_job["job_id"])
+                    if estimate_job is None:
+                        break
+                if estimate_job is None:
+                    errors += 1
+                    item = _history_item(
+                        identity,
+                        period_start,
+                        state="error",
+                        message="The shared estimate job disappeared before completion.",
+                    )
+                elif estimate_job["state"] == "error":
+                    errors += 1
+                    item = _history_item(
+                        identity,
+                        period_start,
+                        state=str(estimate_job.get("error_kind") or "error"),
+                        message=str(estimate_job.get("error") or "Estimate failed"),
+                    )
+                else:
+                    item = _history_item(
+                        identity, period_start, estimate_job["result"]
+                    )
+                completed += 1
+                self._set_item(job_id, index, item, error_count=errors, progress={
+                    "completed": completed,
+                    "total": total,
+                    "percent": round(100 * completed / total, 1),
+                    "detail": f"Loaded {completed} of {total} rolling windows.",
+                })
+            self._set(
+                job_id,
+                state="complete",
+                elapsed_seconds=round(time.perf_counter() - started, 3),
+                progress={
+                    "completed": completed,
+                    "total": total,
+                    "percent": 100.0,
+                    "detail": "Available rolling-window history finished loading.",
+                },
+                error_count=errors,
+            )
+        except Exception as error:
+            self._set(
+                job_id,
+                state="error",
+                elapsed_seconds=round(time.perf_counter() - started, 3),
+                progress={
+                    "completed": completed,
+                    "total": total,
+                    "percent": round(100 * completed / total, 1),
+                    "detail": "Rolling-window history stopped before it finished.",
+                },
+                error_count=errors + 1,
+                error=str(error),
+            )
+        finally:
+            with self._lock:
+                self._running_by_query.pop(query_key, None)
+
+
+def _parse_location(payload: dict) -> tuple[float, float, str]:
     try:
         latitude = round(float(payload["latitude"]), 6)
         longitude = round(float(payload["longitude"]), 6)
-        period_start = date.fromisoformat(payload["start"])
     except (KeyError, TypeError, ValueError) as error:
-        raise ValueError("Latitude, longitude, and an ISO period start are required") from error
+        raise ValueError("Latitude and longitude are required") from error
     if not math.isfinite(latitude) or not math.isfinite(longitude):
         raise ValueError("Latitude and longitude must be finite")
     if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
         raise ValueError("Latitude or longitude is outside its valid range")
-    _, period_end = aligned_period(period_start)
-    if period_end >= date.today():
-        raise ValueError("Select an eight-day period that has fully completed")
     display_location = str(payload.get("display_location") or "Selected location").strip()
     if not display_location:
         display_location = "Selected location"
-    return latitude, longitude, period_start, display_location[:100]
+    return latitude, longitude, display_location[:100]
 
 
-def create_app(root: Path = ROOT) -> Flask:
+def _parse_estimate_payload(
+    payload: dict,
+    now: datetime,
+) -> tuple[float, float, date, str]:
+    latitude, longitude, display_location = _parse_location(payload)
+    raw_start = payload.get("start")
+    if raw_start:
+        try:
+            period_start = date.fromisoformat(str(raw_start))
+        except ValueError as error:
+            raise ValueError("Historical window start must be an ISO date") from error
+        _, period_end = rolling_period(period_start)
+    else:
+        period_start, period_end = latest_completed_rolling_period(now)
+    if now.astimezone(timezone.utc) < archive_ready_after(period_end):
+        raise ValueError(
+            "This eight-day window is still within the archive publication delay"
+        )
+    return latitude, longitude, period_start, display_location
+
+
+def create_app(
+    root: Path = ROOT,
+    clock: Callable[[], datetime] | None = None,
+) -> Flask:
     app = Flask(__name__, template_folder=str(root / "templates"), static_folder=str(root / "static"))
     app.json = StrictJSONProvider(app)
-    jobs = EstimateJobs(root)
+    clock = clock or (lambda: datetime.now(timezone.utc))
+    observation_memo = ObservationMemo()
+    jobs = EstimateJobs(root, observation_memo)
+    history_jobs = HistoryJobs(root, observation_memo, jobs)
 
     @app.get("/")
     def index():
@@ -470,15 +791,34 @@ def create_app(root: Path = ROOT) -> Flask:
 
     @app.get("/api/status")
     def status():
+        now = clock().astimezone(timezone.utc)
+        latest_start, latest_end = latest_completed_rolling_period(now)
         assets = ReferenceAssets(root / "artifacts/reference").audit()
         dependencies = dependency_status(assets)
         return jsonify({
             **dependencies,
             "result_label": "Research estimate",
-            "available_completed_periods": [
-                {"start": start.isoformat(), "end": end.isoformat()}
-                for start, end in periods_after_cutoff(date.today())
-            ],
+            "experience_label": "An eight-day estimate updated daily.",
+            "latest_window": utc_window_boundaries(latest_start),
+            "archive_publication_delay_hours": (
+                ARCHIVE_PUBLICATION_DELAY.total_seconds() / 3600
+            ),
+            "archive_note": (
+                "LeafView waits two hours after the final 21:00 UTC observation group "
+                "before choosing the newest complete day."
+            ),
+            "historical_date_range": {
+                "minimum_end": (POST_CUTOFF_ANCHOR + timedelta(days=7)).isoformat(),
+                "maximum_end": latest_end.isoformat(),
+            },
+            "history_scope": _history_scope(latest_start),
+            "rolling_window_accuracy": {
+                "status": "separately_unevaluated",
+                "detail": (
+                    "Rolling-window construction and numerical consistency are checked, "
+                    "but rolling-window prediction accuracy has not been evaluated."
+                ),
+            },
         })
 
     @app.get("/api/examples/montgomery-2026-04-07")
@@ -545,49 +885,13 @@ def create_app(root: Path = ROOT) -> Flask:
             "gap_rule": "Periods without a research estimate are rendered as gaps; lines never bridge them.",
         })
 
-    @app.get("/api/trends/selected")
-    def selected_trend():
-        try:
-            latitude, longitude, period_start, display_location = _parse_estimate_payload(
-                request.args
-            )
-            periods = _selected_trend_periods(period_start)
-        except ValueError as error:
-            return jsonify({"error": str(error)}), 400
-        selected_query = normalized_query(latitude, longitude, period_start)
-        selected_identity = cache_identity(latitude, longitude, period_start, root)
-        return jsonify({
-            "label": "Selected-query LAI trend",
-            "demo": False,
-            "introduction": "Leaf area across three eight-day periods at your selected location.",
-            "location": {
-                "latitude": latitude,
-                "longitude": longitude,
-                "name": display_location,
-            },
-            "selected_query": {
-                "location": {"latitude": latitude, "longitude": longitude},
-                "period": {
-                    "start": selected_query["start"],
-                    "end": selected_query["end"],
-                },
-                "key": selected_identity["key"],
-            },
-            "periods": [
-                _trend_period(root, latitude, longitude, start, period_start)
-                for start, _ in periods
-            ],
-            "gap_rule": (
-                "Periods without a provenance-matched estimate are rendered as gaps; "
-                "lines never bridge them."
-            ),
-        })
-
     @app.post("/api/estimate")
     def estimate():
         payload = request.get_json(silent=True) or {}
         try:
-            latitude, longitude, period_start, display_location = _parse_estimate_payload(payload)
+            latitude, longitude, period_start, display_location = _parse_estimate_payload(
+                payload, clock()
+            )
             if not dependency_status(ReferenceAssets(root / "artifacts/reference").audit())[
                 "ready_for_verified_inference"
             ]:
@@ -603,6 +907,38 @@ def create_app(root: Path = ROOT) -> Flask:
         if job is None:
             return jsonify({"error": "Estimate job not found"}), 404
         return jsonify(job)
+
+    @app.post("/api/history")
+    def start_history():
+        payload = request.get_json(silent=True) or {}
+        try:
+            latitude, longitude, display_location = _parse_location(payload)
+            latest_start, _ = latest_completed_rolling_period(clock())
+            if not dependency_status(ReferenceAssets(root / "artifacts/reference").audit())[
+                "ready_for_verified_inference"
+            ]:
+                return jsonify({"error": "Verified preprocessing is not ready"}), 503
+            job = history_jobs.start(
+                latitude, longitude, latest_start, display_location
+            )
+        except ValueError as error:
+            return jsonify({"error": str(error)}), 400
+        return jsonify(job), 200 if job["state"] == "complete" else 202
+
+    @app.get("/api/history/<job_id>")
+    def history_job(job_id: str):
+        job = history_jobs.snapshot(job_id)
+        if job is None:
+            return jsonify({"error": "History job not found"}), 404
+        return jsonify(job)
+
+    @app.get("/api/activity")
+    def activity():
+        return jsonify({
+            "estimate_jobs": jobs.active_count(),
+            "history_jobs": history_jobs.active_count(),
+            "active_jobs": jobs.active_count() + history_jobs.active_count(),
+        })
 
     return app
 

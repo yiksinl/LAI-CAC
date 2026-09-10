@@ -28,9 +28,10 @@ Run the local browser shell at <http://127.0.0.1:8781>:
 .venv/bin/lai-cac-web
 ```
 
-The interface includes a three-period Montgomery County demonstration and runs live
-research estimates when runtime inputs and supplied preprocessing validation both
-pass. Select a completed eight-day period and click the map to choose a location.
+The main flow is location-first: choose a point, see its latest completed eight-day
+estimate, then explore the available daily rolling history for that same point. The
+latest window is selected automatically after a two-hour publication allowance for
+the final 21:00 UTC observation group. Choosing an older window remains optional.
 The app then:
 
 - starts the real inference pipeline in a background job and reports progress as it
@@ -41,6 +42,8 @@ The app then:
   center/index, and all four footprint corners; and
 - reuses a derived result only when its coordinates, period, pipeline version, and
   model/IGBP/solar/navigation checksums match.
+- loads daily rolling history newest-first, sharing observations across overlapping
+  windows while keeping retrieval concurrency bounded at four.
 
 For a first-time observation, LeafView opens the NOAA GOES-19 HDF5 object through
 checksummed HTTP byte ranges and caches only the blocks needed for the sampled pixel.
@@ -49,16 +52,12 @@ falls back to the complete-file download route. See
 [OBSERVATION_RETRIEVAL.md](OBSERVATION_RETRIEVAL.md) for numerical comparisons,
 checksum scope, concurrency behavior, and the cold-cache benchmark.
 
-Changing the map point or period clears the displayed output immediately. A late job
-response is discarded unless it still matches the selected query. Use **Restore
-Montgomery demo** to return to the verified first-period result. Every output is
-labelled **Research estimate**; a period with no usable observations is displayed as
-an explicit gap rather than a model prediction.
-
-The real Montgomery trend contains the consecutive April 7–14, April 15–22, and
-April 23–30 periods, with LAI values `1.2043058872`, `2.2830977440`, and
-`2.6258995533`. See [MVP_VALIDATION.md](MVP_VALIDATION.md) for browser checks,
-observation counts, and cold/warm-cache timings.
+Changing the map point or selected window clears the displayed result and history.
+Late estimate and history responses are discarded unless their coordinates and UTC
+dates still match the selection. Every output is labelled **Research estimate**; a
+window with no usable observations is displayed as an explicit gap rather than a
+model prediction. See [MVP_VALIDATION.md](MVP_VALIDATION.md) for direct numerical
+checks, browser evidence, and separate latest/history timings.
 
 Inspect the real scan selection for the first post-cutoff composite:
 
@@ -109,13 +108,14 @@ The navigation raster remains in Downloads and is read directly through
 `artifacts/reference/navigation-source.json`; LAI-CAC does not create another full
 copy. The configured source must remain at that path for future inference.
 
-`/api/status` generates this state from the live dependency audit. `/api/estimate`
-starts or reuses a query-bound job, `/api/jobs/<id>` reports progress, and
-`/api/trends/selected` serves provenance-matched cached periods for the exact selected
-coordinates and period. The separate `/api/trends/montgomery` endpoint is explicitly
-marked as a fixed demonstration. HTML, JavaScript, CSS, and API responses use
-`Cache-Control: no-store`; scientific result reuse is controlled separately by
-explicit provenance identities.
+`/api/status` generates this state and the latest UTC window from the live clock and
+dependency audit. `/api/estimate` starts or reuses a query-bound latest or historical
+job; `/api/jobs/<id>` reports progress. `/api/history` builds the available past-year
+daily rolling history, and `/api/history/<id>` reports its progressive state. The
+separate `/api/trends/montgomery` endpoint remains explicitly marked as a fixed legacy
+demonstration and is not used by the interface. HTML, JavaScript, CSS, and API
+responses use `Cache-Control: no-store`; scientific result reuse is controlled
+separately by explicit provenance identities.
 
 ## Scientific boundaries
 
@@ -125,6 +125,10 @@ The selected model learned from a quality-screened MODIS/VIIRS consensus and a f
 training split, not all 78,940 cleaned sites. The source observation period was
 2025-04-07 through 2026-04-06; later GOES-19 results test temporal transfer and are
 not forecasts.
+
+Daily rolling-window construction and same-boundary numerical consistency have been
+checked. Prediction accuracy for rolling windows has not been evaluated and is not
+implied by those implementation checks.
 
 ## Attribution
 

@@ -1,6 +1,6 @@
 # Implementation status
 
-Last updated: 2026-09-09
+Last updated: 2026-09-10
 
 ## Plan
 
@@ -10,34 +10,40 @@ Last updated: 2026-09-09
 4. **Completed:** rerun the April 7–14 composite and expose its revised result.
 5. **Completed:** verify and use the notebook's separate GOES navigation grid.
 6. **Completed:** build and browser-test the query-bound LeafView MVP and three-period trend.
+7. **Completed:** add automatic latest-window selection and progressive daily rolling history.
 
 ## LeafView MVP
 
-- **Estimate LAI** now starts the real supplied inference pipeline for the exact map
-  point and completed post-cutoff period. Work runs outside the request thread, and
+- The main flow now starts from the map point and automatically chooses the latest
+  completed eight-day window. LeafView waits until two hours after the final 21:00
+  UTC observation group before including that ending date. Historical selection is
+  optional.
+- **Get latest estimate** starts the real supplied inference pipeline for the exact
+  map point and UTC window. Work runs outside the request thread, and
   the browser polls concrete asset, land-cover, observation, feature, model, and save
   stages while remaining responsive.
-- Derived results are keyed by normalized coordinates, aligned period, pipeline
+- Derived results are keyed by normalized coordinates, exact rolling-window dates, pipeline
   version, filter definition, and the model, IGBP, solar-helper, and navigation
   checksums. Raw observations are still accepted from cache only when their byte size
   matches the selected immutable NOAA object.
-- Changing coordinates or period immediately clears the displayed LAI and footprint;
-  a late response is not rendered unless its query still matches. The result panel
+- Changing coordinates or the optional historical window immediately clears the
+  displayed LAI, footprint, and history; a late estimate or history response is not
+  rendered unless its query still matches. The result panel
   shows usable observations and distinct usable days, 15/18/21 UTC counts,
   fixed-grid row/column, center, and all four footprint corners.
-- The displayed trend now follows the exact selected coordinates and period, accepts
-  only provenance-matched cached results, clears on selection changes, and rejects
-  stale responses. Missing estimates remain gaps. The fixed Montgomery endpoint is
-  retained only as an explicitly marked demonstration and is not used by the chart.
+- The trend covers the available part of the previous year with daily rolling
+  windows, newest first. Every observation remains after the April 6, 2026 training
+  cutoff. The UI distinguishes outside-scope dates, loading windows, insufficient
+  data, retrieval errors, and processing errors. Missing estimates remain gaps.
+- A process-local memo shares scan selections and sampled observations across
+  overlapping windows. Exact estimate jobs are also deduplicated, and observation
+  retrieval remains bounded at four workers.
 - All output is labelled **Research estimate**. Zero-usable-observation runs return
   `insufficient_data` with `lai: null`; the trend renderer leaves these periods as
   gaps and never connects a line across one.
-- The real Montgomery demonstration now includes April 7–14 (`1.2043058872`, counts
-  4/5/6), April 15–22 (`2.2830977440`, counts 2/1/2), and April 23–30
-  (`2.6258995533`, counts 2/3/1).
-- Browser validation covered the existing Montgomery result, a period change, a new
-  supported location, a repeated provenance cache hit, a real zero-usable-observation
-  location, stale-result clearing, progress updates, and desktop/narrow layouts.
+- Browser validation covered the latest Montgomery result, all 149 available daily
+  windows, optional historical selection, stale estimate/history rejection, and
+  desktop/narrow layouts.
   Detailed evidence and timings are in [MVP_VALIDATION.md](MVP_VALIDATION.md).
 
 ## Verified findings
@@ -56,6 +62,12 @@ Last updated: 2026-09-09
   It was read without executing Drive-mount, training, cleanup, or deletion cells.
 - The model checksum matches the supplied value. XGBoost 3.3.0 reports 600 trees
   and the expected 56 named features in notebook Cell 9 order.
+- Rolling windows preserve those 56 features and the 15, 18, and 21 UTC groups.
+  Seasonality uses the notebook formula evaluated from each exact window start.
+- Direct recomputation of April 7–14 produced the same 56 feature names and values,
+  missing-value pattern, retained counts, and LAI `1.2043058872` (maximum feature
+  delta `0.0`; LAI delta `0.0`). Rolling-window prediction accuracy remains
+  separately unevaluated.
 - The original IGBP grid SHA-256 is
   `59ed29f607a989e67c379cb572901aed84a0087b5f35ba5c619e0d777cd4e1c5`.
   Notebook-equivalent geographic indexing assigns class 4, deciduous broadleaf

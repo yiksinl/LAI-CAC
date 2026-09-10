@@ -1,60 +1,37 @@
 {
   "desktop": {
-    "lai": 5.273210525512695,
-    "status": "verified",
-    "displayedLai": "5.27",
+    "latestReadyMs": 281,
+    "historyReadyMs": 597,
+    "headline": "An eight-day estimate updated daily.",
+    "displayedLai": "3.59",
     "units": "m²/m²",
     "unitGapPixels": 9,
-    "supportSummary": "5 of 24 observations usable, covering 2 of 8 days.",
-    "supportBasis": "Eight days × three selected observation times per day.",
-    "hourlyCounts": [
-      "15 UTC2/8",
-      "18 UTC2/8",
-      "21 UTC1/8"
+    "resultDates": "Montgomery County, Maryland · Sep 2, 2026–Sep 9, 2026 UTC · observations selected from these eight dates",
+    "latestBoundary": "Latest complete window: Sep 2, 2026–Sep 9, 2026 UTC. The window runs from 00:00 UTC on Sep 2 to 00:00 UTC on Sep 10, end exclusive. LeafView waits two hours after the final 21:00 UTC observation group before choosing the newest complete day.",
+    "supportSummary": "9 of 24 observations usable, covering 6 of 8 days.",
+    "observationDates": [
+      "Sep 2: 0 usable observations (3 observed)",
+      "Sep 3: 1 usable observation (3 observed)",
+      "Sep 4: 1 usable observation (3 observed)",
+      "Sep 5: 0 usable observations (3 observed)",
+      "Sep 6: 1 usable observation (3 observed)",
+      "Sep 7: 2 usable observations (3 observed)",
+      "Sep 8: 1 usable observation (3 observed)",
+      "Sep 9: 3 usable observations (3 observed)"
     ],
-    "usableDates": [
-      "Jul 4: 3 usable observations",
-      "Jul 5: 2 usable observations"
-    ],
-    "availabilityNote": "These counts describe data availability, not prediction confidence or accuracy.",
-    "calculationSource": "Calculated using cached satellite observations.",
-    "resultSource": "Calculated for this request",
-    "requestTime": "1.788 seconds",
-    "cacheCounters": "0 full-file reuses · 0 full-file downloads · 0 new range reads · 23 partial-cache reuses",
-    "requestedPoint": "39.1655, −77.3259",
-    "pixelCenter": "39.1775, −77.3174",
-    "pixelIndex": "row 796, column 2616",
-    "cornerLabels": [
-      "39.1641, −77.3290",
-      "39.1640, −77.3047",
-      "39.1909, −77.3300",
-      "39.1908, −77.3058"
-    ],
-    "polygonOrderMatches": true,
-    "polygonCrosses": false,
-    "polygonPath": "M222 178L293 179L290 78L219 77z",
-    "requestedPointInsideFootprint": true,
-    "pixelCenterInsideFootprint": true,
-    "trendMeta": "Leaf area across three eight-day periods at your selected location. Selected period: Jul 4, 2026–Jul 11, 2026. Requested point: 39.1655, −77.3259. Missing estimates remain gaps.",
-    "trendDates": [
-      "Jun 18–25",
-      "Jun 26–Jul 3",
-      "Jul 4–11"
-    ],
-    "trendSupport": [
-      "Not calculated",
-      "Not calculated",
-      "5/24 obs",
-      "2/8 days"
-    ],
-    "selectedTrendDate": "Jul 4–11",
-    "trendPoints": 1,
-    "trendGaps": 2,
-    "trendLines": 0,
-    "methods": "Readiness and validation Processing checks passed. LeafView uses the supplied model and reference files.Reproduction of the original training-period results remains unverified because historical feature rows are unavailable. These checks establish preprocessing compatibility, not prediction accuracy. LeafView applies Yixuan Li's selected 600-tree XGBoost model to GOES-19 red, near-infrared, and shortwave-infrared reflectance statistics, viewing and illumination geometry, seasonality, and IGBP land cover. The model preserves separate 15, 18, and 21 UTC composites. LeafView only offers periods after the model's April 6, 2026 training cutoff. Results after that cutoff test how the trained model transfers to later observations; they are not forecasts. The training reference is a quality-screened MODIS/VIIRS satellite consensus, not direct field ground truth. LAI is leaf area per ground area; it is not a direct plant-health score, drought diagnosis, or irrigation recommendation. No differences from the supplied preprocessing were identified for this query. The known solar-angle issue below remains. Model-compatibility concern The original helper calculates solar direction differently from its stated convention. LeafView preserves that calculation to match the model's training inputs. Correcting it would require separate evaluation and potentially retraining.",
+    "pixelArea": "The highlighted satellite pixel represents about 6.2 square kilometers. The estimate is an average for that whole area, not one yard or tree.",
+    "resultLocation": "Montgomery County, Maryland",
+    "historyMeta": "Available daily eight-day windows for Montgomery County, Maryland run from Apr 7, 2026–Apr 14, 2026 through Sep 2, 2026–Sep 9, 2026. Windows ending Sep 10, 2025 through Apr 13, 2026 are outside scope because every input observation must be after Apr 6, 2026.",
+    "historyState": "History loaded in 0.3 seconds. 147 estimates are available; 2 windows had insufficient data.",
+    "historyPoints": 147,
+    "historyGaps": 2,
+    "historyErrors": 0,
+    "historyLines": 144,
+    "historyLocationMatchesResult": true,
+    "methods": "Readiness and validation Processing checks passed. LeafView uses the supplied model and reference files.Reproduction of the original training-period results remains unverified because historical feature rows are unavailable.Rolling-window construction and numerical consistency are checked, but rolling-window prediction accuracy has not been evaluated. These checks establish preprocessing compatibility, not prediction accuracy. LeafView applies Yixuan Li's selected 600-tree XGBoost model to GOES-19 red, near-infrared, and shortwave-infrared reflectance statistics, viewing and illumination geometry, seasonality, and IGBP land cover. The model preserves separate 15, 18, and 21 UTC composites. Each window contains eight UTC calendar dates. Seasonality is calculated from the window's start date with the notebook's formula. LeafView only uses windows whose observations are all after the model's April 6, 2026 training cutoff. Results after that cutoff test how the trained model transfers to later observations; they are not forecasts. Rolling-window construction and numerical consistency are checked separately. Prediction accuracy for daily rolling windows has not been evaluated. The training reference is a quality-screened MODIS/VIIRS satellite consensus, not direct field ground truth. LAI is leaf area per ground area; it is not a direct plant-health score, drought diagnosis, or irrigation recommendation. No differences from the supplied preprocessing were identified for this query. The known solar-angle issue below remains. Model-compatibility concern The original helper calculates solar direction differently from its stated convention. LeafView preserves that calculation to match the model's training inputs. Correcting it would require separate evaluation and potentially retraining.",
     "mapSize": {
       "x": 942,
-      "y": 460
+      "y": 544
     },
     "horizontalOverflow": false
   },
@@ -64,18 +41,14 @@
     "workspaceColumns": "400px",
     "resultColumns": "364px",
     "trendColumns": "364px",
-    "trendDates": [
-      "Jun 18–25",
-      "Jun 26–Jul 3",
-      "Jul 4–11"
-    ],
-    "trendSupport": [
-      "Not calculated",
-      "Not calculated",
-      "5/24 obs",
-      "2/8 days"
-    ],
-    "dateLabelWidths": [
+    "plotWidth": 364,
+    "observationDateWidths": [
+      160,
+      160,
+      160,
+      160,
+      160,
+      160,
       160,
       160
     ],
@@ -84,33 +57,46 @@
       "y": 300
     }
   },
+  "staleEstimate": {
+    "selectedLocation": "Custom location",
+    "displayedLai": "—",
+    "activeRecord": null,
+    "footprintPresent": false,
+    "currentHistory": null
+  },
+  "staleHistory": {
+    "selectedLocation": "Custom location",
+    "historyText": "Waiting for the latest result.",
+    "historyPoints": 0,
+    "currentHistory": null
+  },
   "images": {
     "desktop": {
       "requested": {
         "width": 1440,
-        "height": 2357
+        "height": 2885
       },
       "nativeCapture": {
         "width": 2880,
-        "height": 4714
+        "height": 5770
       },
       "saved": {
         "width": 1440,
-        "height": 2357
+        "height": 2885
       }
     },
     "narrow": {
       "requested": {
         "width": 430,
-        "height": 3850
+        "height": 4728
       },
       "nativeCapture": {
         "width": 860,
-        "height": 7700
+        "height": 9456
       },
       "saved": {
         "width": 430,
-        "height": 3850
+        "height": 4728
       }
     }
   },

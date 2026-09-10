@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from copy import deepcopy
 import json
 import math
@@ -7,14 +7,27 @@ import time
 import pytest
 from flask import jsonify
 
-from lai_cac.composites import aligned_period
+from lai_cac.composites import (
+    aligned_period,
+    archive_ready_after,
+    latest_completed_rolling_period,
+    rolling_period,
+    rolling_periods_through,
+    utc_window_boundaries,
+)
 from pathlib import Path
 
 from lai_cac.assets import ReferenceAssets
 from lai_cac.geometry import solar_angles
-from lai_cac.goes import decode_dqf, passes_notebook_strict_quality
-from lai_cac.inference import IGBP_CATEGORIES
-from lai_cac.web import EstimateJobs, create_app, dependency_status, public_result
+from lai_cac.goes import Scan, decode_dqf, passes_notebook_strict_quality
+from lai_cac.inference import IGBP_CATEGORIES, ObservationMemo, seasonality_features
+from lai_cac.web import (
+    EstimateJobs,
+    HistoryJobs,
+    create_app,
+    dependency_status,
+    public_result,
+)
 
 
 def test_first_post_cutoff_period_is_aligned():
@@ -29,6 +42,81 @@ def test_off_calendar_period_is_rejected():
 def test_training_period_is_rejected():
     with pytest.raises(ValueError, match="not after the model-development cutoff"):
         aligned_period(date(2026, 3, 30))
+
+
+def test_daily_rolling_windows_accept_off_calendar_starts_and_stay_post_training():
+    assert rolling_period(date(2026, 4, 8)) == (
+        date(2026, 4, 8), date(2026, 4, 15)
+    )
+    with pytest.raises(ValueError, match="not after the model-development cutoff"):
+        rolling_period(date(2026, 4, 6))
+    windows = rolling_periods_through(date(2026, 4, 10))
+    assert [start for start, _ in windows] == [
+        date(2026, 4, 7), date(2026, 4, 8), date(2026, 4, 9), date(2026, 4, 10)
+    ]
+
+
+def test_latest_window_waits_for_the_archive_publication_delay_and_has_utc_bounds():
+    before_ready = datetime(2026, 9, 9, 22, 59, tzinfo=timezone.utc)
+    after_ready = datetime(2026, 9, 9, 23, 0, tzinfo=timezone.utc)
+    assert latest_completed_rolling_period(before_ready) == (
+        date(2026, 9, 1), date(2026, 9, 8)
+    )
+    assert latest_completed_rolling_period(after_ready) == (
+        date(2026, 9, 2), date(2026, 9, 9)
+    )
+    assert archive_ready_after(date(2026, 9, 9)) == after_ready
+    assert utc_window_boundaries(date(2026, 9, 2)) == {
+        "start": "2026-09-02",
+        "end": "2026-09-09",
+        "start_utc": "2026-09-02T00:00:00Z",
+        "end_exclusive_utc": "2026-09-10T00:00:00Z",
+        "archive_ready_after_utc": "2026-09-09T23:00:00Z",
+    }
+
+
+def test_rolling_window_seasonality_uses_the_notebook_formula_on_its_start_date():
+    start = date(2026, 7, 3)
+    angle = 2 * math.pi * start.timetuple().tm_yday / 365.25
+    assert seasonality_features(start) == pytest.approx({
+        "dayOfYearSin": math.sin(angle),
+        "dayOfYearCos": math.cos(angle),
+    })
+
+
+def test_observation_memo_restores_serialized_nonfinite_reflectance():
+    scan = Scan(
+        "ABI-L2-BRFF/example.nc",
+        datetime(2026, 8, 10, 21, tzinfo=timezone.utc),
+        123,
+        "etag",
+        "last-modified",
+    )
+    memo = ObservationMemo()
+    memo.seed_result({
+        "provenance": {
+            "requested_location": {"latitude": 39.1547, "longitude": -77.2405},
+            "attempts": [{
+                "scan": scan.key,
+                "scan_time_utc": scan.started_at.isoformat(),
+                "date": "2026-08-10",
+                "target_hour": 21,
+                "brf": {"2": None, "3": 0.2, "5": None},
+                "retrieval": {"remote_object": {
+                    "key": scan.key,
+                    "size_bytes": scan.size,
+                    "etag": scan.etag,
+                    "last_modified": scan.last_modified,
+                }},
+            }],
+        },
+    })
+    sample = memo.get_sample(39.1547, -77.2405, scan)
+    assert sample is not None
+    assert math.isnan(sample["brf"]["2"])
+    assert sample["brf"]["3"] == 0.2
+    assert math.isnan(sample["brf"]["5"])
+    assert memo.get_scan(date(2026, 8, 10), 21) == scan
 
 
 def test_dqf_bits_are_reported_not_hidden():
@@ -57,7 +145,9 @@ def test_missing_reference_assets_are_reported(tmp_path: Path):
 
 
 def test_web_status_names_only_actual_missing_dependencies():
-    response = create_app().test_client().get("/api/status")
+    response = create_app(clock=lambda: datetime(
+        2026, 9, 10, 1, 0, tzinfo=timezone.utc
+    )).test_client().get("/api/status")
     assert response.status_code == 200
     assert response.json["ready_for_estimate_execution"] is True
     assert response.json["ready_for_verified_inference"] is True
@@ -81,6 +171,16 @@ def test_web_status_names_only_actual_missing_dependencies():
         "required_for_runtime": False,
         "status": "unverified",
     }
+    assert response.json["latest_window"]["start"] == "2026-09-02"
+    assert response.json["latest_window"]["end"] == "2026-09-09"
+    assert response.json["historical_date_range"] == {
+        "minimum_end": "2026-04-14", "maximum_end": "2026-09-09",
+    }
+    assert response.json["history_scope"]["available_start"] == "2026-04-07"
+    assert response.json["history_scope"]["available_first_end"] == "2026-04-14"
+    assert response.json["history_scope"]["available_latest_start"] == "2026-09-02"
+    assert response.json["history_scope"]["outside_scope"]["end"] == "2026-04-13"
+    assert response.json["rolling_window_accuracy"]["status"] == "separately_unevaluated"
     assert response.headers["Cache-Control"] == "no-store, max-age=0"
 
 
@@ -102,7 +202,10 @@ def test_cached_example_separates_verified_preprocessing_from_historical_validat
         assert response.json["readiness"]["historical_numerical_reproduction"]["completed"] is False
         assert response.json["display_location"] == "Montgomery County, Maryland"
         assert response.json["label"] == "Research estimate"
-        assert response.json["query"]["period"] == {"start": "2026-04-07", "end": "2026-04-14"}
+        assert response.json["query"]["period"]["start"] == "2026-04-07"
+        assert response.json["query"]["period"]["end"] == "2026-04-14"
+        assert response.json["query"]["period"]["start_utc"] == "2026-04-07T00:00:00Z"
+        assert response.json["query"]["period"]["end_exclusive_utc"] == "2026-04-15T00:00:00Z"
         assert response.json["observation_support"]["passed_by_hour"] == {
             "15": 4, "18": 5, "21": 6,
         }
@@ -189,34 +292,39 @@ def test_checksum_verified_solar_helper_import_skips_demo_and_uses_notebook_conv
     assert azimuth == pytest.approx(49.675236, abs=1e-5)
 
 
-def test_ui_binds_cached_example_from_api_instead_of_hardcoding_value():
+def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_history():
     root = Path(__file__).parents[1]
     source = (root / "static/app.js").read_text(encoding="utf-8")
     template = (root / "templates/index.html").read_text(encoding="utf-8")
-    assert 'record.lai.toFixed(2)' in source
+    assert 'Number(record.lai).toFixed(2)' in source
     assert "1.29" not in source
-    assert 'byId("period").value = period.start' in source
+    assert 'id="period"' not in template
+    assert "latestPeriod.start" in source
+    assert "Latest complete window:" in source
     assert 'byId("methods-concerns")' in source
     assert "preprocessing_discrepancies" in source
     assert 'fetch("/api/estimate"' in source
     assert "queryMatchesRecord" in source
-    assert "resetResultForQuery" in source
+    assert "resetForLocation" in source
     assert "requestGeneration" in source
     assert 'fetch(`/api/jobs/${current.job_id}`' in source
     assert 'byId("observation-dates")' in source
     assert "partial-cache reuses" in source
-    assert "left.lai != null && right.lai != null" in source
+    assert 'left.state === "available" && right.state === "available"' in source
     assert 'detectRetina: true' in source
     assert 'new ResizeObserver(resizeMap)' in source
     assert '"Ready to estimate"' in source
     assert "observations usable, covering" in source
     assert '"LAI (m²/m²)"' in source
     assert "formatTrendPeriod(item.period)" in source
-    assert 'fetch(`/api/trends/selected?${parameters}`' in source
+    assert 'fetch("/api/history"' in source
+    assert 'fetch(`/api/history/${history.job_id}`' in source
     assert 'fetch("/api/trends/montgomery"' not in source
-    assert "trendResponseMatchesQuery" in source
-    assert "generation !== trendGeneration" in source
-    assert "clearTrendForQuery" in source
+    assert "historyResponseMatchesQuery" in source
+    assert "generation !== historyGeneration" in source
+    assert "Available daily eight-day windows" in source
+    assert "scope.available_first_end" in source
+    assert "clearHistory" in source
     assert "Calculated using cached satellite observations." not in source
     assert "No differences from the supplied preprocessing were identified for this query." in source
     assert "The original helper calculates solar direction differently" in source
@@ -229,7 +337,10 @@ def test_ui_binds_cached_example_from_api_instead_of_hardcoding_value():
     assert "April 6, 2026 training cutoff" in template
     assert "preprocessing compatibility, not prediction accuracy" in template
     assert "not a direct plant-health score" in template
-    assert "Selected-query trend" in template
+    assert "An eight-day estimate updated daily." in template
+    assert "View an older eight-day window" in template
+    assert "History at selected location" in template
+    assert "Prediction accuracy for daily rolling windows has not been evaluated." in template
     assert template.count('id="result-badge"') == 1
 
 
@@ -243,10 +354,10 @@ def test_result_support_and_calculation_copy_are_derived_from_metadata():
     }
     result["provenance"]["usable_counts"] = {"15": 2, "18": 2, "21": 1}
     result["provenance"]["attempts"] = [
-        {"strict": True, "date": "2026-07-04", "target_hour": hour}
+        {"strict": True, "date": "2026-07-04", "target_hour": hour, "scan": f"scan-04-{hour}"}
         for hour in (15, 18, 21)
     ] + [
-        {"strict": True, "date": "2026-07-05", "target_hour": hour}
+        {"strict": True, "date": "2026-07-05", "target_hour": hour, "scan": f"scan-05-{hour}"}
         for hour in (15, 18)
     ]
     delivery = {
@@ -268,6 +379,16 @@ def test_result_support_and_calculation_copy_are_derived_from_metadata():
         "usable_dates": [
             {"date": "2026-07-04", "count": 3, "hours_utc": [15, 18, 21]},
             {"date": "2026-07-05", "count": 2, "hours_utc": [15, 18]},
+        ],
+        "observation_dates": [
+            {
+                "date": "2026-07-04", "observations": 3, "usable": 3,
+                "hours_utc": [15, 18, 21], "usable_hours_utc": [15, 18, 21],
+            },
+            {
+                "date": "2026-07-05", "observations": 2, "usable": 2,
+                "hours_utc": [15, 18], "usable_hours_utc": [15, 18],
+            },
         ],
     }
     assert displayed["delivery"]["calculation"] == {
@@ -350,85 +471,88 @@ def test_real_trend_has_three_consecutive_query_bound_periods():
     assert all(item["gap"] is False for item in response.json["periods"])
 
 
-def test_selected_trend_uses_the_requested_location_period_and_provenance_keys(
+def test_history_loads_daily_windows_newest_first_and_keeps_query_provenance(
     tmp_path: Path, monkeypatch
 ):
     import lai_cac.web as web
 
     requested = (39.165474, -77.325871)
-    identities = []
+    calls = []
 
     def fake_identity(latitude, longitude, period_start, root):
         assert (latitude, longitude) == requested
-        identity = {
-            "key": f"{latitude:.6f}:{longitude:.6f}:{period_start.isoformat()}"
-        }
-        identities.append(identity)
-        return identity
+        return {"key": f"{latitude:.6f}:{longitude:.6f}:{period_start.isoformat()}"}
 
-    def fake_cached(root, identity):
-        if not str(identity["key"]).endswith("2026-07-04"):
-            return None
-        attempts = [
-            {"strict": True, "date": "2026-07-04", "target_hour": hour}
-            for hour in (15, 18, 21)
-        ] + [
-            {"strict": True, "date": "2026-07-05", "target_hour": hour}
-            for hour in (15, 18)
-        ]
-        return ({
-            "status": "verified",
-            "lai": 5.273210525512695,
-            "provenance": {
-                "composite": {"start": "2026-07-04", "end": "2026-07-11"},
-                "usable_counts": {"15": 2, "18": 2, "21": 1},
-                "attempts": attempts,
-            },
-        }, tmp_path / "result.json")
+    class FakeEstimateJobs:
+        def start(self, latitude, longitude, period_start, display_location):
+            calls.append(period_start)
+            identity = fake_identity(latitude, longitude, period_start, tmp_path)
+            return {
+                "job_id": period_start.isoformat(),
+                "state": "complete",
+                "result": {
+                    "status": "verified",
+                    "lai": float(period_start.day),
+                    "provenance": {
+                        "composite": {
+                            "start": period_start.isoformat(),
+                            "end": (period_start + timedelta(days=7)).isoformat(),
+                        },
+                        "usable_counts": {"15": 1, "18": 1, "21": 1},
+                        "attempts": [],
+                    },
+                },
+            }
+
+        def snapshot(self, job_id):
+            raise AssertionError("Completed fake jobs must not be polled")
 
     monkeypatch.setattr(web, "cache_identity", fake_identity)
-    monkeypatch.setattr(web, "load_compatible_result", fake_cached)
-    response = create_app(tmp_path).test_client().get(
-        "/api/trends/selected",
-        query_string={
-            "latitude": requested[0],
-            "longitude": requested[1],
-            "start": "2026-07-04",
-            "display_location": "Custom location",
-        },
+    monkeypatch.setattr(web, "load_compatible_result", lambda *args: None)
+    jobs = HistoryJobs(tmp_path, ObservationMemo(), FakeEstimateJobs())
+    history = jobs.start(
+        requested[0], requested[1], date(2026, 4, 8), "Custom location"
     )
-    assert response.status_code == 200
-    assert response.json["demo"] is False
-    assert response.json["selected_query"]["location"] == {
-        "latitude": requested[0], "longitude": requested[1],
-    }
-    assert response.json["selected_query"]["period"] == {
-        "start": "2026-07-04", "end": "2026-07-11",
-    }
-    assert [item["period"]["start"] for item in response.json["periods"]] == [
-        "2026-06-18", "2026-06-26", "2026-07-04",
+    for _ in range(100):
+        history = jobs.snapshot(history["job_id"])
+        if history["state"] == "complete":
+            break
+        time.sleep(0.01)
+    assert history["state"] == "complete"
+    assert history["query"]["location"]["latitude"] == requested[0]
+    assert [item["period"]["start"] for item in history["periods"]] == [
+        "2026-04-07", "2026-04-08",
     ]
-    assert [item["gap"] for item in response.json["periods"]] == [True, True, False]
-    selected = response.json["periods"][-1]
-    assert selected["selected"] is True
-    assert selected["query_key"] == response.json["selected_query"]["key"]
-    assert selected["lai"] == pytest.approx(5.273210525512695)
-    assert selected["usable_total"] == 5
-    assert selected["possible_total"] == 24
-    assert selected["usable_days"] == 2
-    assert selected["possible_days"] == 8
-    assert all("39.165474:-77.325871" in str(identity["key"]) for identity in identities)
+    assert [item["state"] for item in history["periods"]] == [
+        "available", "available",
+    ]
+    assert calls == [date(2026, 4, 8), date(2026, 4, 7)]
+
+
+def test_history_endpoint_uses_the_latest_query_and_existing_cached_result():
+    clock = lambda: datetime(2026, 4, 14, 23, 0, tzinfo=timezone.utc)
+    response = create_app(clock=clock).test_client().post("/api/history", json={
+        "latitude": 39.1547,
+        "longitude": -77.2405,
+        "display_location": "Montgomery County, Maryland",
+    })
+    assert response.status_code == 200
+    assert response.json["state"] == "complete"
+    assert response.json["query"]["latest_period"]["start"] == "2026-04-07"
+    assert len(response.json["periods"]) == 1
+    assert response.json["periods"][0]["state"] == "available"
+    assert response.json["periods"][0]["lai"] == pytest.approx(1.20430588722229)
 
 
 def test_incomplete_period_is_rejected():
-    latest_start = date.today() - timedelta(days=(date.today() - date(2026, 4, 7)).days % 8)
-    response = create_app().test_client().post("/api/estimate", json={
+    clock = lambda: datetime(2026, 9, 9, 22, 59, tzinfo=timezone.utc)
+    response = create_app(clock=clock).test_client().post("/api/estimate", json={
         "latitude": 39.1547,
         "longitude": -77.2405,
-        "start": latest_start.isoformat(),
+        "start": "2026-09-02",
     })
     assert response.status_code == 400
-    assert "fully completed" in response.json["error"]
+    assert "archive publication delay" in response.json["error"]
 
 
 def test_insufficient_data_returns_a_gap_without_calling_model(tmp_path: Path, monkeypatch):

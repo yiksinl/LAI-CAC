@@ -39,8 +39,9 @@ h3 { margin: 0 0 12px; font-size: 17px; }
 
 .query-panel { padding: 26px; display: flex; flex-direction: column; align-items: stretch; gap: 9px; }
 .location-name { font: 600 25px/1.15 Newsreader, serif; margin-bottom: 8px; }
+.window-copy { margin: 0 0 5px; padding: 10px 11px; border-radius: 8px; background: var(--leaf-soft); color: var(--leaf-dark); font-size: 12px; line-height: 1.5; }
 label { margin-top: 3px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
-select, button { width: 100%; min-height: 44px; padding: 11px 12px; border-radius: 8px; border: 1px solid var(--line); font: inherit; background: white; color: var(--ink); }
+select, input, button { width: 100%; min-height: 44px; padding: 11px 12px; border-radius: 8px; border: 1px solid var(--line); font: inherit; background: white; color: var(--ink); }
 button { border: 0; background: var(--leaf); color: white; font-weight: 700; cursor: pointer; }
 button:hover:not(:disabled) { background: var(--leaf-dark); }
 button:disabled { cursor: not-allowed; opacity: .48; }
@@ -101,14 +102,30 @@ dt { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spa
 dd { margin: 3px 0 0; color: var(--ink); font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .footprint-corners { margin: 7px 0 2px; padding-left: 21px; color: var(--muted); font-size: 11px; line-height: 1.6; font-variant-numeric: tabular-nums; }
 
-.trend-card { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 24px; align-items: center; }
+.trend-card { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 24px; align-items: start; }
+.trend-heading { position: sticky; top: 18px; }
+.trend-lead { color: var(--muted); font-size: 12px; line-height: 1.55; }
+.history-content { min-width: 0; }
 .trend-meta { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
-.trend-plot { min-height: 270px; border: 1px solid var(--line); border-radius: 10px; background: #fbfcf8; overflow: hidden; }
-.trend-plot svg { display: block; width: 100%; height: 270px; }
+.history-state { margin: 8px 0; padding: 9px 11px; border-radius: 8px; background: #eef1ed; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.history-state.complete { background: var(--leaf-soft); color: var(--leaf-dark); }
+.history-state.error { background: var(--warn-bg); color: var(--warn); }
+.history-legend { display: flex; flex-wrap: wrap; gap: 8px 15px; margin: 10px 0; color: var(--muted); font-size: 10px; }
+.history-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.history-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.legend-available { background: var(--leaf); }
+.legend-loading { background: #b9c2bc; }
+.legend-insufficient { background: #bd7a43; }
+.legend-error { background: #a63d32; }
+.trend-plot { min-height: 300px; border: 1px solid var(--line); border-radius: 10px; background: #fbfcf8; overflow: hidden; }
+.trend-plot svg { display: block; width: 100%; height: 300px; }
 .trend-axis { stroke: #93a199; stroke-width: 1; }
 .trend-grid { stroke: #dfe5df; stroke-width: 1; }
 .trend-line { stroke: var(--leaf); stroke-width: 3; }
 .trend-point { fill: var(--card); stroke: var(--leaf); stroke-width: 3; }
+.trend-loading { fill: #b9c2bc; }
+.trend-insufficient { fill: #bd7a43; }
+.trend-error { fill: #a63d32; }
 .trend-gap { stroke: #aa6c3a; stroke-width: 2; stroke-dasharray: 5 5; }
 .trend-value { fill: var(--ink); font: 700 13px "DM Sans", sans-serif; text-anchor: middle; }
 .trend-date { fill: var(--ink); font: 600 12px "DM Sans", sans-serif; text-anchor: middle; }
@@ -117,6 +134,18 @@ dd { margin: 3px 0 0; color: var(--ink); font-weight: 600; font-size: 12px; font
 .trend-tick { fill: var(--muted); font: 500 10px "DM Sans", sans-serif; text-anchor: end; }
 .trend-axis-label { fill: var(--muted); font: 600 11px "DM Sans", sans-serif; text-anchor: middle; }
 .trend-gap-label { fill: var(--warn); font: 700 11px "DM Sans", sans-serif; text-anchor: middle; }
+.history-picker, .history-results { margin-top: 12px; border-top: 1px solid var(--line); }
+.history-picker > summary, .history-results > summary { padding: 12px 0 4px; cursor: pointer; color: var(--leaf-dark); font-size: 12px; font-weight: 700; }
+.history-picker-row { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(145px, .7fr) auto auto; gap: 9px; align-items: end; padding: 9px 0 3px; }
+.history-picker-row label { grid-column: 1; }
+.history-picker-row input { grid-column: 2; }
+.history-picker-row button.secondary { min-height: 42px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; text-decoration: none; }
+.history-list { max-height: 340px; overflow: auto; display: grid; gap: 6px; margin-top: 9px; padding-right: 4px; }
+.history-row { display: grid; grid-template-columns: minmax(145px, 1.2fr) minmax(115px, .9fr) minmax(120px, 1fr); gap: 10px; padding: 8px 10px; border-radius: 7px; background: #f2f4f0; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.history-row strong { color: var(--ink); }
+.history-row.insufficient_data { background: var(--warn-bg); }
+.history-row.retrieval_error, .history-row.processing_error, .history-row.error { background: #f7dedb; color: #842e25; }
+.history-row.loading { opacity: .62; }
 
 .methods { padding: 0; overflow: hidden; }
 .methods > summary { cursor: pointer; padding: 18px 23px; color: var(--ink); font: 600 20px Newsreader, serif; }
@@ -153,7 +182,12 @@ dd { margin: 3px 0 0; color: var(--ink); font-weight: 600; font-size: 12px; font
   .support-summary { font-size: 17px; }
   .spatial-card { grid-column: auto; }
   .trend-card { gap: 13px; }
-  .trend-plot, .trend-plot svg { min-height: 280px; height: 280px; }
+  .trend-heading { position: static; }
+  .trend-plot, .trend-plot svg { min-height: 300px; height: 300px; }
+  .history-picker-row { grid-template-columns: 1fr 1fr; }
+  .history-picker-row label, .history-picker-row input { grid-column: auto; }
+  .history-picker-row button.secondary { width: 100%; }
+  .history-row { grid-template-columns: 1fr; gap: 3px; }
   .methods > summary { padding: 16px 18px; }
   .methods-content { padding: 0 18px 17px; }
 }

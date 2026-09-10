@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import math
+import threading
 import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from copy import deepcopy
 from datetime import date, datetime, timedelta
 from multiprocessing import get_context
 from pathlib import Path
@@ -13,7 +15,7 @@ import h5py
 import numpy as np
 
 from .assets import ReferenceAssets
-from .composites import TARGET_HOURS_UTC, aligned_period
+from .composites import TARGET_HOURS_UTC, rolling_period
 from .geometry import angle_difference, solar_angles, view_geometry
 from .goes import (
     ObservationRetrievalError,
@@ -37,6 +39,90 @@ ProgressCallback = Callable[[dict[str, object]], None]
 MAX_OBSERVATION_WORKERS = 4
 
 
+class ObservationMemo:
+    """Process-local reuse for overlapping rolling windows at one selected point."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._scans: dict[tuple[date, int], Scan] = {}
+        self._samples: dict[tuple[float, float, str, int, str | None], dict] = {}
+
+    @staticmethod
+    def _sample_key(
+        latitude: float, longitude: float, scan: Scan
+    ) -> tuple[float, float, str, int, str | None]:
+        return (
+            round(float(latitude), 6),
+            round(float(longitude), 6),
+            scan.key,
+            scan.size,
+            scan.etag,
+        )
+
+    def get_scan(self, day: date, hour: int) -> Scan | None:
+        with self._lock:
+            return self._scans.get((day, hour))
+
+    def put_scan(self, day: date, hour: int, scan: Scan | None) -> None:
+        if scan is None:
+            return
+        with self._lock:
+            self._scans[(day, hour)] = scan
+
+    def get_sample(
+        self, latitude: float, longitude: float, scan: Scan
+    ) -> dict | None:
+        with self._lock:
+            sample = self._samples.get(self._sample_key(latitude, longitude, scan))
+            return deepcopy(sample) if sample is not None else None
+
+    def put_sample(
+        self, latitude: float, longitude: float, scan: Scan, sample: dict
+    ) -> None:
+        with self._lock:
+            self._samples[self._sample_key(latitude, longitude, scan)] = deepcopy(sample)
+
+    def seed_result(self, result: dict) -> None:
+        """Seed sampled observations from a provenance-matched cached result."""
+        provenance = result.get("provenance", {})
+        location = provenance.get("requested_location", {})
+        try:
+            latitude = float(location["latitude"])
+            longitude = float(location["longitude"])
+        except (KeyError, TypeError, ValueError):
+            return
+        for attempt in provenance.get("attempts", []):
+            retrieval = attempt.get("retrieval", {})
+            remote = retrieval.get("remote_object", {})
+            key = remote.get("key") or attempt.get("scan")
+            size = remote.get("size_bytes")
+            if not key or size is None:
+                continue
+            scan = Scan(
+                str(key),
+                datetime.fromisoformat(str(attempt["scan_time_utc"])),
+                int(size),
+                remote.get("etag"),
+                remote.get("last_modified"),
+            )
+            try:
+                self.put_scan(
+                    date.fromisoformat(str(attempt["date"])),
+                    int(attempt["target_hour"]),
+                    scan,
+                )
+            except (KeyError, TypeError, ValueError):
+                pass
+            sample = deepcopy(attempt)
+            # Strict JSON records a non-finite BRF sample as null. Restore the
+            # in-memory representation expected by the unchanged quality check
+            # before reusing that observation in an overlapping window.
+            for band, value in sample.get("brf", {}).items():
+                if value is None:
+                    sample["brf"][band] = float("nan")
+            self.put_sample(latitude, longitude, scan, sample)
+
+
 def _report(
     callback: ProgressCallback | None,
     percent: int,
@@ -50,6 +136,15 @@ def _report(
 
 def _sample_std(values: list[float]) -> float | None:
     return float(np.std(values, ddof=1)) if len(values) >= 2 else None
+
+
+def seasonality_features(start: date) -> dict[str, float]:
+    """Notebook formula, evaluated from the exact rolling-window start date."""
+    angle = 2 * math.pi * start.timetuple().tm_yday / 365.25
+    return {
+        "dayOfYearSin": math.sin(angle),
+        "dayOfYearCos": math.cos(angle),
+    }
 
 
 def read_igbp_class(path: Path, latitude: float, longitude: float) -> int:
@@ -176,8 +271,9 @@ def prepare_composite(
     retrieval_policy: str = "auto",
     partial_cache_root: Path | None = None,
     max_observation_workers: int = MAX_OBSERVATION_WORKERS,
+    observation_memo: ObservationMemo | None = None,
 ) -> tuple[dict[str, float | None], dict]:
-    start, end = aligned_period(start)
+    start, end = rolling_period(start)
     assets = ReferenceAssets(root / "artifacts/reference")
     _report(progress, 2, "validating", "Verifying the supplied preprocessing assets")
     solar_geometry_path = assets.require_solar_geometry()
@@ -201,6 +297,8 @@ def prepare_composite(
     partial_range_requests = 0
     partial_downloaded_bytes = 0
     partial_cache_hit_bytes = 0
+    memory_observation_reuses = 0
+    scan_listing_reuses = 0
     observation_total = len(TARGET_HOURS_UTC) * 8
     partial_cache_root = partial_cache_root or root / "data/partial-cache"
     workers = max(1, min(int(max_observation_workers), MAX_OBSERVATION_WORKERS))
@@ -221,15 +319,27 @@ def prepare_composite(
         total=observation_total,
     )
     selected_scans: dict[int, Scan | None] = {}
+    slots_to_list: list[tuple[int, date, int]] = []
+    for ordinal, day, hour in slots:
+        cached_scan = observation_memo.get_scan(day, hour) if observation_memo else None
+        if cached_scan is None:
+            slots_to_list.append((ordinal, day, hour))
+        else:
+            selected_scans[ordinal] = cached_scan
+            scan_listing_reuses += 1
     with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="goes-list") as executor:
         futures = {
             executor.submit(nearest_scan, day, hour, transfer_metrics): ordinal
-            for ordinal, day, hour in slots
+            for ordinal, day, hour in slots_to_list
         }
-        selected_count = 0
+        selected_count = scan_listing_reuses
         for future in as_completed(futures):
             ordinal = futures[future]
-            selected_scans[ordinal] = future.result()
+            scan = future.result()
+            selected_scans[ordinal] = scan
+            _, day, hour = slots[ordinal]
+            if observation_memo:
+                observation_memo.put_scan(day, hour, scan)
             selected_count += 1
             _report(
                 progress,
@@ -241,10 +351,27 @@ def prepare_composite(
             )
     samples: dict[int, dict[str, object]] = {}
     available_slots = [slot for slot in slots if selected_scans[slot[0]] is not None]
-    retrieved_count = 0
-    remaining_slots = available_slots
-    if available_slots:
-        first_ordinal = available_slots[0][0]
+    memoized_ordinals: set[int] = set()
+    if observation_memo:
+        for ordinal, _, _ in available_slots:
+            scan = selected_scans[ordinal]
+            assert scan is not None
+            sample = observation_memo.get_sample(latitude, longitude, scan)
+            if sample is None:
+                continue
+            original_retrieval = sample.get("retrieval", {})
+            sample["retrieval"] = {
+                "route": "observation_memory_cache",
+                "remote_object": original_retrieval.get("remote_object"),
+                "source_route": original_retrieval.get("route"),
+                "deduplicated": True,
+            }
+            samples[ordinal] = sample
+            memoized_ordinals.add(ordinal)
+    retrieved_count = len(memoized_ordinals)
+    remaining_slots = [slot for slot in available_slots if slot[0] not in memoized_ordinals]
+    if remaining_slots:
+        first_ordinal = remaining_slots[0][0]
         first_scan = selected_scans[first_ordinal]
         assert first_scan is not None
         first_destination = root / "data/cache" / Path(first_scan.key).name
@@ -257,8 +384,12 @@ def prepare_composite(
             retrieval_policy,
             transfer_metrics,
         )
-        retrieved_count = 1
-        remaining_slots = available_slots[1:]
+        if observation_memo:
+            observation_memo.put_sample(
+                latitude, longitude, first_scan, samples[first_ordinal]
+            )
+        retrieved_count += 1
+        remaining_slots = remaining_slots[1:]
         _report(
             progress,
             16 + int(56 * retrieved_count / len(available_slots)),
@@ -310,6 +441,10 @@ def prepare_composite(
             ordinal = futures[future]
             sample, worker_metrics = future.result()
             samples[ordinal] = sample
+            if observation_memo:
+                scan = selected_scans[ordinal]
+                assert scan is not None
+                observation_memo.put_sample(latitude, longitude, scan, sample)
             transfer_metrics.merge(worker_metrics)
             retrieved_count += 1
             _report(
@@ -349,6 +484,8 @@ def prepare_composite(
             partial_range_requests += request_count
             partial_downloaded_bytes += int(partial["downloaded_bytes"])
             partial_cache_hit_bytes += int(partial["cache_hit_bytes"])
+        elif route == "observation_memory_cache":
+            memory_observation_reuses += 1
         if sampled_center is None:
             if navigation_path:
                 navigation = read_navigation_pixel(
@@ -459,8 +596,7 @@ def prepare_composite(
     row: dict[str, float | None] = {name: None for name in LaiModel(assets.require_model()).features}
     row.update({"viewZenithDeg": view_zenith, "viewAzimuthSin": math.sin(math.radians(view_azimuth)),
                 "viewAzimuthCos": math.cos(math.radians(view_azimuth)),
-                "dayOfYearSin": math.sin(2*math.pi*start.timetuple().tm_yday/365.25),
-                "dayOfYearCos": math.cos(2*math.pi*start.timetuple().tm_yday/365.25)})
+                **seasonality_features(start)})
     for hour in TARGET_HOURS_UTC:
         records = grouped[hour]
         for band, stem in (("2", "brfBand2Red"), ("3", "brfBand3Nir"), ("5", "brfBand5Swir")):
@@ -508,11 +644,13 @@ def prepare_composite(
                       "downloaded": observation_downloads,
                       "partial_remote": partial_remote_reads,
                       "partial_reused": partial_cache_reads,
+                      "memory_reused": memory_observation_reuses,
                       "total_selected": (
                           observation_cache_hits
                           + observation_downloads
                           + partial_remote_reads
                           + partial_cache_reads
+                          + memory_observation_reuses
                       ),
                   },
                   "observation_retrieval": {
@@ -525,6 +663,8 @@ def prepare_composite(
                           if observation_executor == "processes" else
                           "shared bounded urllib3.PoolManager"
                       ),
+                      "scan_listing_reuses": scan_listing_reuses,
+                      "deduplicated_observations": memory_observation_reuses,
                       **transfer,
                       "range_request_count": partial_range_requests,
                       "range_downloaded_bytes": partial_downloaded_bytes,
@@ -558,7 +698,8 @@ def run_estimate(latitude: float, longitude: float, start: date, igbp_class: int
                  identity: dict[str, object] | None = None, *,
                  retrieval_policy: str = "auto",
                  partial_cache_root: Path | None = None,
-                 max_observation_workers: int = MAX_OBSERVATION_WORKERS) -> dict:
+                 max_observation_workers: int = MAX_OBSERVATION_WORKERS,
+                 observation_memo: ObservationMemo | None = None) -> dict:
     started = time.perf_counter()
     identity = identity or cache_identity(
         latitude, longitude, start, root, igbp_override=igbp_class
@@ -573,6 +714,7 @@ def run_estimate(latitude: float, longitude: float, start: date, igbp_class: int
         retrieval_policy=retrieval_policy,
         partial_cache_root=partial_cache_root,
         max_observation_workers=max_observation_workers,
+        observation_memo=observation_memo,
     )
     if location_name:
         provenance["location_name"] = location_name

@@ -6,14 +6,14 @@ from datetime import date
 from pathlib import Path
 
 from .assets import ReferenceAssets
-from .composites import COMPOSITE_DAYS, TARGET_HOURS_UTC, aligned_period
+from .composites import COMPOSITE_DAYS, TARGET_HOURS_UTC, rolling_period
 
 PIPELINE_VERSION = "leafview-notebook-compatible-v1"
 WEB_COORDINATE_PRECISION = 6
 
 
 def normalized_query(latitude: float, longitude: float, start: date) -> dict[str, object]:
-    period_start, period_end = aligned_period(start)
+    period_start, period_end = rolling_period(start)
     return {
         "latitude": round(float(latitude), WEB_COORDINATE_PRECISION),
         "longitude": round(float(longitude), WEB_COORDINATE_PRECISION),

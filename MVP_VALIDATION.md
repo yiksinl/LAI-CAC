@@ -1,8 +1,41 @@
 # LeafView MVP validation
 
-Validated through 2026-09-09 against the supplied 600-tree model, exact IGBP grid,
+Validated through 2026-09-10 against the supplied 600-tree model, exact IGBP grid,
 checksum-matched solar helper, and the navigation raster read directly from
 `/Users/jianzhulee/Downloads/GOES_Navigation_2kmFD-GOES-East.nc`.
+
+## Latest result and daily rolling history
+
+At 2026-09-10 04:03 UTC, the latest completed Montgomery County window was
+September 2–9, 2026. Its explicit boundaries are `2026-09-02T00:00:00Z` through
+`2026-09-10T00:00:00Z` (end exclusive); the final archive allowance ended at
+`2026-09-09T23:00:00Z`.
+
+- The latest result is LAI `3.5869650841 m²/m²`, with 5/1/3 usable observations at
+  15/18/21 UTC: 9 of 24 observations across 6 of 8 days.
+- The first latest-result request took 15.406 s backend and 15.975 s client wall.
+  It used 24 ranged observation reads at concurrency 4, downloaded 36,830,588 HTTP
+  bytes including listings, and made no full-file download or fallback. A repeated
+  provenance-matched result took 0.003 s backend and 0.021 s client wall.
+- The available history contains 149 daily rolling windows from April 7–14 through
+  September 2–9. A complete pass with an empty derived-result cache and the existing
+  observation caches took 119.499 s backend and 120.013 s client wall. It produced
+  147 estimates and 2 explicit insufficient-data gaps, with no retrieval or
+  processing errors.
+- That pass reused 3,059 sampled observations in memory across overlapping windows,
+  used 356 partial-cache and 105 full-file cache observations, downloaded no new
+  observation bytes, made no full-file fallback, and kept every window at the
+  four-worker bound. The normal fully populated history takes 0.263 s backend and
+  0.278 s client wall to load.
+- The first history population exposed a reuse bug for a cached invalid reflectance:
+  strict JSON had stored its non-finite value as `null`. Restoring that value to its
+  in-memory non-finite representation before reuse removed all seven affected-window
+  errors without changing valid reflectances or filtering rules. A focused regression
+  covers this case.
+- Directly recomputing April 7–14 with the rolling implementation reproduced all 56
+  feature names and values, the missing-value pattern, retained counts, and LAI
+  `1.2043058872` exactly (maximum feature delta `0.0`, LAI delta `0.0`). This checks
+  construction and same-boundary consistency, not rolling-window prediction accuracy.
 
 ## Real Montgomery trend
 
@@ -37,25 +70,31 @@ client wall time.
   `5.2732105255 m²/m²`, with 5 of 24 usable observations on 2 of 8 distinct days.
   A fresh result calculation reused 23 partial-cache ranges and displayed the
   metadata-derived cached-observation explanation.
-- The custom-location trend used the selected point and period, not the fixed
-  Montgomery demonstration. It displayed June 18–25 and June 26–July 3 as
-  uncalculated gaps and July 4–11 with 5/24 observations across 2/8 days.
+- The selected-location trend is no longer a three-period view. It now follows the
+  exact selected point across the available daily rolling windows and reports each
+  window's UTC dates and observation support. The fixed Montgomery demonstration is
+  not used by the chart.
 - The displayed source corner order is southwest, southeast, northwest, northeast.
   The renderer's perimeter order is southwest, southeast, northeast, northwest; the
   browser polygon did not cross and contained both the requested point and sampled
   center. No footprint-coordinate or feature-construction change was required.
 
 The automated browser record is in `screenshots/layout-validation.json`; the desktop
-and narrow captures are in the same directory. The OpenClaw-managed browser profile
-could not start because this Mac has no supported Chrome/Brave/Edge/Chromium install,
-so browser automation used the already-installed isolated Electron Chromium runtime.
-No GreenOrbit source, configuration, cache, or result was changed.
+and 430-pixel captures are in the same directory. Both layouts had no horizontal
+overflow. The browser rendered 147 estimates and two insufficient-data gaps, bound
+the result and history to the same point, and rejected delayed estimate and history
+responses after a location change. The OpenClaw-managed browser profile could not
+start because this Mac has no supported Chrome/Brave/Edge/Chromium install, so the
+checks used the already-installed isolated Electron Chromium runtime. No GreenOrbit
+source, configuration, cache, or result was changed.
 
 ## Validation state and remaining limits
 
 - Estimate execution: ready.
 - Supplied-pipeline preprocessing: verified.
 - Historical numerical reproduction: unverified and non-blocking for runtime use.
+- Daily rolling-window prediction accuracy: separately unevaluated. Construction and
+  same-boundary checks do not establish accuracy.
 - The supplied solar-azimuth calculation is intentionally unchanged for model
   compatibility; its convention concern remains documented in `SCIENTIFIC_NOTES.md`.
 - Uncached periods require network access to NOAA's GOES-19 object store. The local

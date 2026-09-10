@@ -1,4 +1,9 @@
 const initialPoint = [39.1547, -77.2405];
+const montgomery = {
+  latitude: initialPoint[0],
+  longitude: initialPoint[1],
+  displayLocation: "Montgomery County, Maryland"
+};
 const map = L.map("map").setView(initialPoint, 9);
 const tileMessage = document.getElementById("map-tile-message");
 let tileCycleSucceeded = false;
@@ -38,18 +43,16 @@ const pointMarker = L.circleMarker(initialPoint, {
   radius: 7, color: "#17332a", weight: 3, fillColor: "#fffefa", fillOpacity: 1
 }).addTo(map);
 let footprintLayer = null;
-let demoRecord = null;
 let activeRecord = null;
+let currentHistory = null;
+let renderedTrendWidth = 0;
 let dependenciesReady = false;
+let latestPeriod = null;
+let selectedWindowStart = null;
 let requestGeneration = 0;
-let trendGeneration = 0;
-let trendController = null;
-let selectedQuery = {
-  latitude: initialPoint[0],
-  longitude: initialPoint[1],
-  periodStart: null,
-  displayLocation: "Montgomery County, Maryland"
-};
+let historyGeneration = 0;
+let automaticEstimateTimer = null;
+let selectedQuery = { ...montgomery };
 
 const byId = (id) => document.getElementById(id);
 const delay = (milliseconds) => new Promise(resolve => window.setTimeout(resolve, milliseconds));
@@ -61,14 +64,22 @@ const formatDate = (value) => new Intl.DateTimeFormat("en-US", {
 const formatShortDate = (value) => new Intl.DateTimeFormat("en-US", {
   month: "short", day: "numeric", timeZone: "UTC"
 }).format(new Date(`${value}T00:00:00Z`));
+const formatAxisDate = (value) => new Intl.DateTimeFormat("en-US", {
+  month: "short", day: "numeric", timeZone: "UTC"
+}).format(new Date(`${value}T00:00:00Z`));
 const solarAngleExplanation = "The original helper calculates solar direction differently from its stated convention. LeafView preserves that calculation to match the model's training inputs. Correcting it would require separate evaluation and potentially retraining.";
 
-function queryMatchesRecord(record) {
-  if (!record || !selectedQuery.periodStart) return false;
-  const location = record.query.location;
-  return Math.abs(selectedQuery.latitude - location.latitude) < 0.0000005 &&
-    Math.abs(selectedQuery.longitude - location.longitude) < 0.0000005 &&
-    selectedQuery.periodStart === record.query.period.start;
+function sameLocation(left, right) {
+  return Math.abs(left.latitude - right.latitude) < 0.0000005
+    && Math.abs(left.longitude - right.longitude) < 0.0000005;
+}
+
+function queryMatchesRecord(record, expected) {
+  return Boolean(record && expected)
+    && sameLocation(record.query.location, expected)
+    && sameLocation(selectedQuery, expected)
+    && record.query.period.start === expected.periodStart
+    && selectedWindowStart === expected.periodStart;
 }
 
 function clearFootprint() {
@@ -78,19 +89,17 @@ function clearFootprint() {
   }
 }
 
-function resetResultForQuery() {
-  requestGeneration += 1;
+function resetResultPanel(message = "Loading the latest complete window for this location…") {
   activeRecord = null;
   clearFootprint();
   byId("processing").hidden = true;
-  const section = byId("result-section");
-  section.classList.add("awaiting");
-  byId("example-meta").textContent = "No result is attached to this selection yet. Run Estimate LAI.";
+  byId("result-section").classList.add("awaiting");
+  byId("example-meta").textContent = message;
   byId("example-lai").textContent = "—";
   byId("lai-units").hidden = true;
   byId("result-badge").textContent = "Research estimate";
-  byId("lai-explanation").textContent = "LeafView will only display a result whose coordinates and period match the selected query.";
-  byId("calculation-source").textContent = "Calculation information will appear with the selected result.";
+  byId("lai-explanation").textContent = "Leaf area is the one-sided area of leaves above each square meter of ground.";
+  byId("calculation-source").textContent = "Calculation information will appear with the result.";
   byId("provisional-note").textContent = "";
   byId("result-source").textContent = "—";
   byId("result-time").textContent = "—";
@@ -99,6 +108,7 @@ function resetResultForQuery() {
   byId("requested-point").textContent = formatCoordinates(selectedQuery);
   byId("pixel-center").textContent = "—";
   byId("pixel-index").textContent = "—";
+  byId("pixel-area-copy").textContent = "The highlighted box will show the area represented by one satellite pixel.";
   byId("support-bars").replaceChildren();
   byId("support-summary").textContent = "";
   byId("observation-dates").replaceChildren();
@@ -106,20 +116,57 @@ function resetResultForQuery() {
   byId("processing-diagnostics").open = false;
   byId("observation-details").open = false;
   byId("pixel-details").open = false;
-  byId("estimate").disabled = !dependenciesReady;
-  refreshSelectedTrend();
+  byId("methods-limitations").replaceChildren();
+  byId("methods-concerns").replaceChildren();
 }
 
-function markCustomSelection(latitude, longitude) {
+function clearHistory(message = "History will start after the latest estimate.") {
+  historyGeneration += 1;
+  currentHistory = null;
+  renderedTrendWidth = 0;
+  byId("trend-plot").replaceChildren();
+  byId("history-list").replaceChildren();
+  byId("trend-meta").textContent = message;
+  byId("history-state").className = "history-state";
+  byId("history-state").textContent = "Waiting for the latest result.";
+}
+
+function scheduleLatestEstimate() {
+  window.clearTimeout(automaticEstimateTimer);
+  automaticEstimateTimer = window.setTimeout(() => {
+    if (dependenciesReady && latestPeriod) runEstimate();
+  }, 450);
+}
+
+function resetForLocation() {
+  requestGeneration += 1;
+  selectedWindowStart = latestPeriod?.start || null;
+  resetResultPanel();
+  clearHistory();
+  byId("result-context").textContent = "Latest at selected location";
+  byId("estimate").disabled = !dependenciesReady;
+  byId("view-latest").disabled = !dependenciesReady;
+}
+
+function selectLocation(location, fit = false) {
   selectedQuery = {
-    ...selectedQuery,
-    latitude: Number(latitude.toFixed(6)),
-    longitude: Number(longitude.toFixed(6)),
-    displayLocation: "Custom location"
+    latitude: Number(location.latitude.toFixed(6)),
+    longitude: Number(location.longitude.toFixed(6)),
+    displayLocation: location.displayLocation
   };
   pointMarker.setLatLng([selectedQuery.latitude, selectedQuery.longitude]);
   byId("selected-name").textContent = selectedQuery.displayLocation;
-  resetResultForQuery();
+  if (fit) map.setView([selectedQuery.latitude, selectedQuery.longitude], 10);
+  resetForLocation();
+  scheduleLatestEstimate();
+}
+
+function markCustomSelection(latitude, longitude) {
+  selectLocation({
+    latitude,
+    longitude,
+    displayLocation: "Custom location"
+  });
 }
 
 map.on("click", ({ latlng }) => markCustomSelection(latlng.lat, latlng.lng));
@@ -134,31 +181,27 @@ function drawFootprint(record) {
   }).addTo(map);
 }
 
-function loadDemoIntoQuery() {
-  if (!demoRecord) return;
-  requestGeneration += 1;
-  const { location, period } = demoRecord.query;
-  selectedQuery = {
-    latitude: location.latitude,
-    longitude: location.longitude,
-    periodStart: period.start,
-    displayLocation: demoRecord.display_location
-  };
-  pointMarker.setLatLng([location.latitude, location.longitude]);
-  byId("selected-name").textContent = demoRecord.display_location;
-  byId("period").value = period.start;
-  byId("processing").hidden = true;
-  renderResult(demoRecord);
-  const bounds = footprintLayer
-    ? footprintLayer.getBounds().extend(pointMarker.getLatLng())
-    : L.latLngBounds([location.latitude, location.longitude]);
-  map.fitBounds(bounds.pad(0.65), { maxZoom: 12 });
-  resizeMap();
-  refreshSelectedTrend();
+function footprintAreaSquareKilometers(corners) {
+  if (!corners || corners.length !== 4) return null;
+  const ordered = [corners[0], corners[1], corners[3], corners[2]];
+  const meanLatitude = ordered.reduce((sum, point) => sum + point.latitude, 0) / ordered.length;
+  const radius = 6371;
+  const points = ordered.map(point => ({
+    x: radius * Math.PI * point.longitude / 180 * Math.cos(Math.PI * meanLatitude / 180),
+    y: radius * Math.PI * point.latitude / 180
+  }));
+  let doubledArea = 0;
+  points.forEach((point, index) => {
+    const next = points[(index + 1) % points.length];
+    doubledArea += point.x * next.y - next.x * point.y;
+  });
+  return Math.abs(doubledArea) / 2;
 }
 
 function renderStatus(data) {
   dependenciesReady = data.ready_for_verified_inference;
+  latestPeriod = data.latest_window;
+  if (!selectedWindowStart) selectedWindowStart = latestPeriod.start;
   const status = byId("status");
   status.className = `status ${dependenciesReady ? "ready" : "blocked"}`;
   const title = document.createElement("strong");
@@ -174,37 +217,26 @@ function renderStatus(data) {
     discrepancy.textContent = `Unresolved preprocessing: ${data.preprocessing_discrepancies.map(item => item.name).join("; ")}.`;
     status.append(discrepancy);
   }
+  byId("latest-window-copy").textContent = `Latest complete window: ${formatDate(latestPeriod.start)}–${formatDate(latestPeriod.end)} UTC. The window runs from 00:00 UTC on ${formatShortDate(latestPeriod.start)} to 00:00 UTC on ${formatShortDate(latestPeriod.end_exclusive_utc.slice(0, 10))}, end exclusive. ${data.archive_note}`;
+  const historyDate = byId("history-date");
+  historyDate.min = data.historical_date_range.minimum_end;
+  historyDate.max = data.historical_date_range.maximum_end;
+  historyDate.value = data.historical_date_range.maximum_end;
+  byId("view-history-date").disabled = !dependenciesReady;
+  byId("view-latest").disabled = !dependenciesReady;
   const readiness = byId("methods-readiness");
   readiness.replaceChildren();
-  const readinessItems = [
+  [
     data.preprocessing_validation.detail,
-    data.historical_numerical_reproduction.detail
-  ];
-  readinessItems.forEach(text => {
+    data.historical_numerical_reproduction.detail,
+    data.rolling_window_accuracy.detail
+  ].forEach(text => {
     const item = document.createElement("li");
     item.textContent = text;
     readiness.append(item);
   });
   byId("estimate").disabled = !dependenciesReady;
-}
-
-function renderPeriods(data, selectedStart) {
-  const select = byId("period");
-  select.replaceChildren();
-  data.available_completed_periods.slice().reverse().forEach(period => {
-    const option = document.createElement("option");
-    option.value = period.start;
-    option.textContent = `${formatDate(period.start)} – ${formatDate(period.end)}`;
-    select.append(option);
-  });
-  if (selectedStart && [...select.options].some(option => option.value === selectedStart)) {
-    select.value = selectedStart;
-  }
-  selectedQuery.periodStart = select.value;
-  select.addEventListener("change", () => {
-    selectedQuery.periodStart = select.value;
-    resetResultForQuery();
-  });
+  byId("load-example").disabled = !dependenciesReady;
 }
 
 function renderProgress(progress) {
@@ -216,7 +248,7 @@ function renderProgress(progress) {
     .replace(/^./, character => character.toUpperCase());
   byId("processing-percent").textContent = `${Math.round(percent)}%`;
   byId("processing-bar").value = percent;
-  byId("processing-detail").textContent = progress.detail || "Processing the selected query…";
+  byId("processing-detail").textContent = progress.detail || "Processing the selected location…";
 }
 
 function renderSupport(record) {
@@ -240,22 +272,19 @@ function renderSupport(record) {
     row.append(hourLabel, track, count);
     container.append(row);
   });
-  const possibleTotal = Number(record.observation_support.possible_total ?? possible * 3);
-  const usableDays = Number(record.observation_support.usable_days ?? record.observation_support.usable_dates.length);
-  const possibleDays = Number(record.observation_support.possible_days ?? possible);
-  byId("support-summary").textContent = `${record.observation_support.passed_total} of ${possibleTotal} observations usable, covering ${usableDays} of ${possibleDays} days.`;
+  const support = record.observation_support;
+  byId("support-summary").textContent = `${support.passed_total} of ${support.possible_total} observations usable, covering ${support.usable_days} of ${support.possible_days} days.`;
   const dates = byId("observation-dates");
   dates.replaceChildren();
-  record.observation_support.usable_dates.forEach(item => {
+  support.observation_dates.forEach(item => {
     const label = document.createElement("span");
     label.className = "observation-date";
-    label.textContent = `${formatShortDate(item.date)}: ${item.count} usable observation${item.count === 1 ? "" : "s"}`;
-    label.title = `Selected times: ${item.hours_utc.join(", ")} UTC`;
+    const usable = item.usable === 1 ? "1 usable observation" : `${item.usable} usable observations`;
+    label.textContent = `${formatShortDate(item.date)}: ${usable} (${item.observations} observed)`;
+    label.title = `Observed at ${item.hours_utc.join(", ")} UTC; usable at ${item.usable_hours_utc.join(", ") || "none"} UTC`;
     dates.append(label);
   });
-  if (!record.observation_support.usable_dates.length) {
-    dates.textContent = "No usable dates.";
-  }
+  if (!support.observation_dates.length) dates.textContent = "No satellite observations were available.";
 }
 
 function renderFootprint(record) {
@@ -269,9 +298,14 @@ function renderFootprint(record) {
   byId("pixel-index").textContent = row == null || column == null
     ? "Unavailable"
     : `row ${row}, column ${column}`;
+  const corners = record.sampled_pixel.footprint || [];
+  const area = footprintAreaSquareKilometers(corners);
+  byId("pixel-area-copy").textContent = area == null
+    ? "The estimate represents one satellite pixel, not an individual yard or tree."
+    : `The highlighted satellite pixel represents about ${area.toFixed(1)} square kilometers. The estimate is an average for that whole area, not one yard or tree.`;
   const list = byId("footprint-corners");
   list.replaceChildren();
-  (record.sampled_pixel.footprint || []).forEach(corner => {
+  corners.forEach(corner => {
     const item = document.createElement("li");
     item.textContent = formatCoordinates(corner);
     list.append(item);
@@ -292,10 +326,10 @@ function renderDiagnostics(record) {
   const downloaded = Number(observationCache.downloaded || 0);
   const partialRemote = Number(observationCache.partial_remote || 0);
   const partialReused = Number(observationCache.partial_reused || 0);
+  const memoryReused = Number(observationCache.memory_reused || 0);
   const parts = [`${reused} full-file reuses`, `${downloaded} full-file downloads`];
-  if (partialRemote || partialReused) {
-    parts.push(`${partialRemote} new range reads`, `${partialReused} partial-cache reuses`);
-  }
+  parts.push(`${partialRemote} new range reads`, `${partialReused} partial-cache reuses`);
+  if (memoryReused) parts.push(`${memoryReused} overlapping-observation reuses`);
   byId("observation-cache").textContent = parts.join(" · ");
 }
 
@@ -324,22 +358,26 @@ function renderMethods(record) {
   });
 }
 
-function renderResult(record) {
-  if (!queryMatchesRecord(record)) return false;
+function renderResult(record, expected) {
+  if (!queryMatchesRecord(record, expected)) return false;
   activeRecord = record;
   byId("result-section").classList.remove("awaiting");
-  byId("example-meta").textContent = `${record.display_location} · ${formatDate(record.query.period.start)}–${formatDate(record.query.period.end)}`;
+  const period = record.query.period;
+  byId("example-title").textContent = record.experience_label;
+  byId("result-context").textContent = period.start === latestPeriod.start
+    ? "Latest at selected location"
+    : "Historical window at selected location";
+  byId("example-meta").textContent = `${record.display_location} · ${formatDate(period.start)}–${formatDate(period.end)} UTC · observations selected from these eight dates`;
   if (record.lai == null) {
     byId("example-lai").textContent = "—";
     byId("lai-units").hidden = true;
     byId("result-badge").textContent = "Insufficient data";
-    byId("lai-explanation").textContent = record.data_message || "No research estimate is available for this period.";
+    byId("lai-explanation").textContent = record.data_message || "Not enough observations passed the existing checks for this window.";
   } else {
-    const displayed = Number(record.lai.toFixed(2));
-    byId("example-lai").textContent = displayed.toFixed(2);
+    byId("example-lai").textContent = Number(record.lai).toFixed(2);
     byId("lai-units").hidden = false;
     byId("result-badge").textContent = "Research estimate";
-    byId("lai-explanation").textContent = `About ${Number(record.lai).toFixed(1)} square meters of leaf area per square meter of ground, averaged across this satellite pixel.`;
+    byId("lai-explanation").textContent = `An LAI of ${Number(record.lai).toFixed(1)} means about ${Number(record.lai).toFixed(1)} square meters of one-sided leaf area above each square meter of ground, averaged across this satellite pixel.`;
   }
   byId("provisional-note").textContent = record.status.startsWith("provisional")
     ? "This output has an unresolved preprocessing limitation; see Methods."
@@ -351,176 +389,7 @@ function renderResult(record) {
   return true;
 }
 
-function svgElement(name, attributes, text) {
-  const node = document.createElementNS("http://www.w3.org/2000/svg", name);
-  Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
-  if (text != null) node.textContent = text;
-  return node;
-}
-
-let currentTrend = null;
-let renderedTrendWidth = 0;
-
-function formatTrendPeriod(period) {
-  const start = new Date(`${period.start}T00:00:00Z`);
-  const end = new Date(`${period.end}T00:00:00Z`);
-  const startMonth = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(start);
-  const endMonth = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(end);
-  return startMonth === endMonth
-    ? `${startMonth} ${start.getUTCDate()}–${end.getUTCDate()}`
-    : `${startMonth} ${start.getUTCDate()}–${endMonth} ${end.getUTCDate()}`;
-}
-
-function renderTrend(data) {
-  currentTrend = data;
-  const periods = data.periods;
-  const values = periods.filter(item => item.lai != null).map(item => Number(item.lai));
-  const maximum = Math.max(3, values.length ? Math.ceil(Math.max(...values) * 2) / 2 : 3);
-  const plot = byId("trend-plot");
-  const width = Math.max(360, Math.round(plot.clientWidth || 760));
-  renderedTrendWidth = width;
-  const height = 270;
-  const margin = { top: 26, right: 20, bottom: 82, left: 56 };
-  const plotWidth = width - margin.left - margin.right;
-  const plotHeight = height - margin.top - margin.bottom;
-  const yFor = value => margin.top + plotHeight - (Number(value) / maximum) * plotHeight;
-  const xPositions = periods.map((_, index) => margin.left + (plotWidth * (index + 0.5)) / periods.length);
-  const svg = svgElement("svg", {
-    viewBox: `0 0 ${width} ${height}`,
-    role: "img",
-    "aria-label": "Leaf area across three eight-day periods at the selected location"
-  });
-  svg.append(svgElement("title", {}, "Selected-location leaf area trend"));
-  [0, maximum / 3, (maximum * 2) / 3, maximum].forEach(value => {
-    const y = yFor(value);
-    svg.append(svgElement("line", {
-      x1: margin.left, y1: y, x2: width - margin.right, y2: y, class: "trend-grid"
-    }));
-    svg.append(svgElement("text", {
-      x: margin.left - 9, y: y + 4, class: "trend-tick"
-    }, value.toFixed(1)));
-  });
-  svg.append(svgElement("line", {
-    x1: margin.left, y1: margin.top, x2: margin.left, y2: margin.top + plotHeight, class: "trend-axis"
-  }));
-  svg.append(svgElement("text", {
-    x: 16,
-    y: margin.top + plotHeight / 2,
-    transform: `rotate(-90 16 ${margin.top + plotHeight / 2})`,
-    class: "trend-axis-label"
-  }, "LAI (m²/m²)"));
-  for (let index = 0; index < periods.length - 1; index += 1) {
-    const left = periods[index];
-    const right = periods[index + 1];
-    if (left.lai != null && right.lai != null) {
-      svg.append(svgElement("line", {
-        x1: xPositions[index], y1: yFor(Number(left.lai)),
-        x2: xPositions[index + 1], y2: yFor(Number(right.lai)),
-        class: "trend-line"
-      }));
-    }
-  }
-  periods.forEach((item, index) => {
-    const x = xPositions[index];
-    if (item.lai == null) {
-      svg.append(svgElement("line", {
-        x1: x, y1: margin.top + 25, x2: x, y2: margin.top + plotHeight - 10, class: "trend-gap"
-      }));
-      svg.append(svgElement("text", {
-        x, y: margin.top + plotHeight / 2 + 4, class: "trend-gap-label"
-      }, "Gap"));
-    } else {
-      const y = yFor(Number(item.lai));
-      svg.append(svgElement("circle", { cx: x, cy: y, r: 7, class: "trend-point" }));
-      svg.append(svgElement("text", { x, y: y - 14, class: "trend-value" }, Number(item.lai).toFixed(2)));
-    }
-    svg.append(svgElement("text", {
-      x,
-      y: height - 51,
-      class: item.selected ? "trend-date trend-selected-date" : "trend-date"
-    }, formatTrendPeriod(item.period)));
-    const observationSupport = item.usable_total == null
-      ? "Not calculated"
-      : `${item.usable_total}/${item.possible_total} obs`;
-    const daySupport = item.usable_days == null
-      ? ""
-      : `${item.usable_days}/${item.possible_days} days`;
-    svg.append(svgElement("text", { x, y: height - 32, class: "trend-support" }, observationSupport));
-    if (daySupport) {
-      svg.append(svgElement("text", { x, y: height - 16, class: "trend-support" }, daySupport));
-    }
-  });
-  plot.replaceChildren(svg);
-  byId("trend-meta").textContent = `${data.introduction} Selected period: ${formatDate(data.selected_query.period.start)}–${formatDate(data.selected_query.period.end)}. Requested point: ${formatCoordinates(data.selected_query.location)}. Missing estimates remain gaps.`;
-}
-
-function trendResponseMatchesQuery(data, query) {
-  const returned = data?.selected_query;
-  const selectedPeriod = data?.periods?.find(item => item.selected);
-  if (!returned || !selectedPeriod || data.demo !== false) return false;
-  return Math.abs(query.latitude - returned.location.latitude) < 0.0000005
-    && Math.abs(query.longitude - returned.location.longitude) < 0.0000005
-    && query.periodStart === returned.period.start
-    && selectedPeriod.period.start === returned.period.start
-    && selectedPeriod.query_key === returned.key;
-}
-
-function queryStillSelected(query) {
-  return Math.abs(query.latitude - selectedQuery.latitude) < 0.0000005
-    && Math.abs(query.longitude - selectedQuery.longitude) < 0.0000005
-    && query.periodStart === selectedQuery.periodStart;
-}
-
-function clearTrendForQuery() {
-  currentTrend = null;
-  renderedTrendWidth = 0;
-  byId("trend-plot").replaceChildren();
-  byId("trend-meta").textContent = "Loading the trend for your selected location…";
-}
-
-async function refreshSelectedTrend() {
-  const generation = ++trendGeneration;
-  if (trendController) trendController.abort();
-  trendController = null;
-  clearTrendForQuery();
-  if (!selectedQuery.periodStart) return;
-  const query = { ...selectedQuery };
-  const controller = new AbortController();
-  trendController = controller;
-  const parameters = new URLSearchParams({
-    latitude: String(query.latitude),
-    longitude: String(query.longitude),
-    start: query.periodStart,
-    display_location: query.displayLocation
-  });
-  try {
-    const response = await fetch(`/api/trends/selected?${parameters}`, {
-      cache: "no-store",
-      signal: controller.signal
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Trend could not be loaded");
-    if (generation !== trendGeneration || !queryStillSelected(query)) return;
-    if (!trendResponseMatchesQuery(data, query)) {
-      throw new Error("Trend response did not match the selected query");
-    }
-    renderTrend(data);
-  } catch (error) {
-    if (error.name === "AbortError" || generation !== trendGeneration) return;
-    currentTrend = null;
-    byId("trend-plot").replaceChildren();
-    byId("trend-meta").textContent = `Trend unavailable for this selection: ${error.message}`;
-  } finally {
-    if (generation === trendGeneration) trendController = null;
-  }
-}
-
-new ResizeObserver(entries => {
-  const width = Math.round(entries[0]?.contentRect.width || 0);
-  if (currentTrend && width && Math.abs(width - renderedTrendWidth) > 1) renderTrend(currentTrend);
-}).observe(byId("trend-plot"));
-
-async function pollJob(job, generation) {
+async function pollEstimate(job, generation) {
   let current = job;
   while (current.state === "running") {
     if (generation !== requestGeneration) return null;
@@ -533,61 +402,275 @@ async function pollJob(job, generation) {
   return current;
 }
 
-byId("load-example").addEventListener("click", loadDemoIntoQuery);
-byId("estimate").addEventListener("click", async () => {
+async function runEstimate(periodStart = null) {
   const generation = ++requestGeneration;
+  const start = periodStart || latestPeriod?.start;
+  if (!start) return;
+  selectedWindowStart = start;
+  const expected = {
+    ...selectedQuery,
+    periodStart: start
+  };
+  resetResultPanel(periodStart
+    ? "Loading this historical eight-day window…"
+    : "Loading the latest complete eight-day window…");
+  if (currentHistory) renderHistory(currentHistory);
   const button = byId("estimate");
   button.disabled = true;
-  button.textContent = "Estimating…";
-  renderProgress({ percent: 0, stage: "starting", detail: "Binding this result to the selected coordinates and period" });
-  const requestQuery = {
-    latitude: selectedQuery.latitude,
-    longitude: selectedQuery.longitude,
-    start: selectedQuery.periodStart,
-    display_location: selectedQuery.displayLocation
+  button.textContent = periodStart ? "Loading older window…" : "Loading latest…";
+  renderProgress({ percent: 0, stage: "starting", detail: "Binding this result to the selected location and UTC dates" });
+  const payload = {
+    latitude: expected.latitude,
+    longitude: expected.longitude,
+    display_location: expected.displayLocation
   };
+  if (periodStart) payload.start = periodStart;
   try {
     const response = await fetch("/api/estimate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestQuery)
+      body: JSON.stringify(payload)
     });
     let job = await response.json();
     if (!response.ok) throw new Error(job.error || "Estimate failed");
-    job = await pollJob(job, generation);
-    if (!job || generation !== requestGeneration) return;
+    job = await pollEstimate(job, generation);
+    if (!job || generation !== requestGeneration || !sameLocation(selectedQuery, expected)) return;
     renderProgress(job.progress);
     if (job.state === "error") throw new Error(job.error || "Estimate failed");
-    if (!renderResult(job.result)) {
-      throw new Error("The completed result did not match the current selected query and was not displayed");
+    if (!renderResult(job.result, expected)) {
+      throw new Error("The completed result did not match the selected location and dates");
     }
-    refreshSelectedTrend();
+    if (!periodStart) startHistory();
   } catch (error) {
     if (generation !== requestGeneration) return;
     renderProgress({ percent: 100, stage: "error", detail: error.message });
   } finally {
     if (generation === requestGeneration) {
       button.disabled = !dependenciesReady;
-      button.textContent = "Estimate LAI";
+      button.textContent = "Get latest estimate";
     }
   }
+}
+
+function svgElement(name, attributes, text) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+  Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
+  if (text != null) node.textContent = text;
+  return node;
+}
+
+function formatTrendPeriod(period) {
+  return `${formatShortDate(period.start)}–${formatShortDate(period.end)}`;
+}
+
+function historyResponseMatchesQuery(data, query) {
+  return Boolean(data?.query?.location && data?.query?.latest_period)
+    && sameLocation(data.query.location, query)
+    && sameLocation(selectedQuery, query)
+    && data.query.latest_period.start === latestPeriod.start;
+}
+
+function historyItemText(item) {
+  if (item.state === "available") return `${Number(item.lai).toFixed(2)} m²/m²`;
+  if (item.state === "insufficient_data") return "Insufficient data";
+  if (item.state === "retrieval_error") return "Retrieval error";
+  if (item.state === "error" || item.state === "processing_error") return "Processing error";
+  return "Still loading";
+}
+
+function historyItemSupport(item) {
+  if (item.usable_total == null) return item.state === "loading" ? "Waiting" : "No support count";
+  return `${item.usable_total}/${item.possible_total} observations · ${item.usable_days}/${item.possible_days} days`;
+}
+
+function renderHistoryList(data) {
+  const list = byId("history-list");
+  list.replaceChildren();
+  data.periods.slice().reverse().forEach(item => {
+    const row = document.createElement("div");
+    row.className = `history-row ${item.state}`;
+    const dates = document.createElement("strong");
+    dates.textContent = `${formatDate(item.period.start)}–${formatDate(item.period.end)}`;
+    const outcome = document.createElement("span");
+    outcome.textContent = historyItemText(item);
+    const support = document.createElement("span");
+    support.textContent = historyItemSupport(item);
+    row.append(dates, outcome, support);
+    list.append(row);
+  });
+}
+
+function renderHistory(data) {
+  currentHistory = data;
+  const periods = data.periods;
+  const available = periods.filter(item => item.state === "available");
+  const insufficient = periods.filter(item => item.state === "insufficient_data").length;
+  const retrievalErrors = periods.filter(item => item.state === "retrieval_error").length;
+  const processingErrors = periods.filter(item => item.state === "processing_error" || item.state === "error").length;
+  const values = available.map(item => Number(item.lai));
+  const maximum = Math.max(3, values.length ? Math.ceil(Math.max(...values) * 2) / 2 : 3);
+  const plot = byId("trend-plot");
+  const width = Math.max(520, Math.round(plot.clientWidth || 900));
+  renderedTrendWidth = width;
+  const height = 300;
+  const margin = { top: 24, right: 18, bottom: 48, left: 54 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const yFor = value => margin.top + plotHeight - Number(value) / maximum * plotHeight;
+  const xFor = index => margin.left + (periods.length === 1 ? plotWidth / 2 : plotWidth * index / (periods.length - 1));
+  const svg = svgElement("svg", {
+    viewBox: `0 0 ${width} ${height}`,
+    role: "img",
+    "aria-label": "Daily rolling eight-day leaf-area history for the selected location"
+  });
+  svg.append(svgElement("title", {}, "Available daily rolling leaf-area history"));
+  [0, maximum / 3, maximum * 2 / 3, maximum].forEach(value => {
+    const y = yFor(value);
+    svg.append(svgElement("line", {
+      x1: margin.left, y1: y, x2: width - margin.right, y2: y, class: "trend-grid"
+    }));
+    svg.append(svgElement("text", {
+      x: margin.left - 8, y: y + 4, class: "trend-tick"
+    }, value.toFixed(1)));
+  });
+  svg.append(svgElement("text", {
+    x: 15,
+    y: margin.top + plotHeight / 2,
+    transform: `rotate(-90 15 ${margin.top + plotHeight / 2})`,
+    class: "trend-axis-label"
+  }, "LAI (m²/m²)"));
+  for (let index = 0; index < periods.length - 1; index += 1) {
+    const left = periods[index];
+    const right = periods[index + 1];
+    if (left.state === "available" && right.state === "available") {
+      svg.append(svgElement("line", {
+        x1: xFor(index), y1: yFor(left.lai),
+        x2: xFor(index + 1), y2: yFor(right.lai),
+        class: "trend-line"
+      }));
+    }
+  }
+  periods.forEach((item, index) => {
+    const x = xFor(index);
+    let y = margin.top + plotHeight;
+    let className = "trend-loading";
+    if (item.state === "available") {
+      y = yFor(item.lai);
+      className = "trend-point";
+    } else if (item.state === "insufficient_data") {
+      className = "trend-insufficient";
+    } else if (item.state === "retrieval_error" || item.state === "error" || item.state === "processing_error") {
+      className = "trend-error";
+    }
+    const point = svgElement("circle", {
+      cx: x,
+      cy: y,
+      r: item.period.start === selectedWindowStart ? 5 : 2.5,
+      class: className
+    });
+    point.append(svgElement("title", {}, `${formatTrendPeriod(item.period)} · ${historyItemText(item)} · ${historyItemSupport(item)}`));
+    svg.append(point);
+  });
+  const tickIndexes = new Set([0, periods.length - 1]);
+  for (let step = 1; step < 4; step += 1) {
+    tickIndexes.add(Math.round((periods.length - 1) * step / 4));
+  }
+  [...tickIndexes].sort((a, b) => a - b).forEach(index => {
+    svg.append(svgElement("text", {
+      x: xFor(index), y: height - 15, class: "trend-date"
+    }, formatAxisDate(periods[index].period.end)));
+  });
+  plot.replaceChildren(svg);
+
+  const scope = data.scope;
+  const firstRange = `${formatDate(scope.available_start)}–${formatDate(scope.available_first_end)}`;
+  const latestRange = `${formatDate(scope.available_latest_start)}–${formatDate(scope.available_end)}`;
+  const outside = scope.outside_scope
+    ? ` Windows ending ${formatDate(scope.outside_scope.start)} through ${formatDate(scope.outside_scope.end)} are outside scope because every input observation must be after ${formatDate(scope.training_cutoff)}.`
+    : "";
+  byId("trend-meta").textContent = `Available daily eight-day windows for ${data.query.location.name} run from ${firstRange} through ${latestRange}.${outside}`;
+  const state = byId("history-state");
+  if (data.state === "running") {
+    state.className = "history-state";
+    state.textContent = `History still loading: ${data.progress.completed} of ${data.progress.total} windows checked, newest first.`;
+  } else if (retrievalErrors || processingErrors) {
+    state.className = "history-state error";
+    const errors = [];
+    if (retrievalErrors) errors.push(`${retrievalErrors} retrieval error${retrievalErrors === 1 ? "" : "s"}`);
+    if (processingErrors) errors.push(`${processingErrors} processing error${processingErrors === 1 ? "" : "s"}`);
+    state.textContent = `History loaded in ${Number(data.elapsed_seconds).toFixed(1)} seconds with ${errors.join(" and ")}. ${available.length} estimates are available; ${insufficient} windows had insufficient data.`;
+  } else {
+    state.className = "history-state complete";
+    state.textContent = `History loaded in ${Number(data.elapsed_seconds).toFixed(1)} seconds. ${available.length} estimates are available; ${insufficient} windows had insufficient data.`;
+  }
+  renderHistoryList(data);
+}
+
+async function startHistory() {
+  const generation = ++historyGeneration;
+  const query = { ...selectedQuery };
+  byId("history-state").className = "history-state";
+  byId("history-state").textContent = "History still loading: checking the newest windows first.";
+  try {
+    const response = await fetch("/api/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        latitude: query.latitude,
+        longitude: query.longitude,
+        display_location: query.displayLocation
+      })
+    });
+    let history = await response.json();
+    if (!response.ok) throw new Error(history.error || "History could not be started");
+    while (history.state === "running") {
+      if (generation !== historyGeneration || !sameLocation(selectedQuery, query)) return;
+      if (!historyResponseMatchesQuery(history, query)) throw new Error("History response did not match the selected location");
+      renderHistory(history);
+      await delay(700);
+      const poll = await fetch(`/api/history/${history.job_id}`, { cache: "no-store" });
+      history = await poll.json();
+      if (!poll.ok) throw new Error(history.error || "History progress could not be read");
+    }
+    if (generation !== historyGeneration || !sameLocation(selectedQuery, query)) return;
+    if (!historyResponseMatchesQuery(history, query)) throw new Error("History response did not match the selected location");
+    renderHistory(history);
+  } catch (error) {
+    if (generation !== historyGeneration) return;
+    currentHistory = null;
+    byId("trend-plot").replaceChildren();
+    byId("history-state").className = "history-state error";
+    byId("history-state").textContent = `History could not load: ${error.message}`;
+  }
+}
+
+new ResizeObserver(entries => {
+  const width = Math.round(entries[0]?.contentRect.width || 0);
+  if (currentHistory && width && Math.abs(width - renderedTrendWidth) > 1) renderHistory(currentHistory);
+}).observe(byId("trend-plot"));
+
+byId("load-example").addEventListener("click", () => selectLocation(montgomery, true));
+byId("estimate").addEventListener("click", () => runEstimate());
+byId("view-latest").addEventListener("click", () => runEstimate());
+byId("view-history-date").addEventListener("click", () => {
+  const endValue = byId("history-date").value;
+  if (!endValue) return;
+  const start = new Date(`${endValue}T00:00:00Z`);
+  start.setUTCDate(start.getUTCDate() - 7);
+  runEstimate(start.toISOString().slice(0, 10));
 });
 
-Promise.all([
-  fetch("/api/status", { cache: "no-store" }).then(response => response.json()),
-  fetch("/api/examples/montgomery-2026-04-07", { cache: "no-store" }).then(async response => {
-    const body = await response.json();
-    if (!response.ok) throw new Error(body.error || "Verified Montgomery record unavailable");
-    return body;
+fetch("/api/status", { cache: "no-store" })
+  .then(async response => {
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Scientific status unavailable");
+    renderStatus(data);
+    byId("selected-name").textContent = selectedQuery.displayLocation;
+    resetForLocation();
+    if (dependenciesReady) runEstimate();
   })
-]).then(([status, example]) => {
-  renderStatus(status);
-  demoRecord = example;
-  byId("load-example").disabled = false;
-  renderPeriods(status, example.query.period.start);
-  loadDemoIntoQuery();
-}).catch(error => {
-  const status = byId("status");
-  status.className = "status blocked";
-  status.textContent = `The local scientific service is unavailable: ${error.message}`;
-});
+  .catch(error => {
+    const status = byId("status");
+    status.className = "status blocked";
+    status.textContent = `The local scientific service is unavailable: ${error.message}`;
+  });
