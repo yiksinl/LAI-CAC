@@ -275,7 +275,6 @@ function renderStatus(data) {
     readiness.append(item);
   });
   byId("estimate").disabled = !dependenciesReady;
-  byId("load-example").disabled = !dependenciesReady;
 }
 
 function renderProgress(progress) {
@@ -714,7 +713,6 @@ new ResizeObserver(entries => {
   if (currentHistory && width && Math.abs(width - renderedTrendWidth) > 1) renderHistory(currentHistory);
 }).observe(byId("trend-plot"));
 
-byId("load-example").addEventListener("click", () => selectLocation(montgomery, true));
 byId("estimate").addEventListener("click", () => runEstimate());
 byId("view-latest").addEventListener("click", () => runEstimate());
 byId("view-history-date").addEventListener("click", () => {

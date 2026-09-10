@@ -1,7 +1,7 @@
 {
   "desktop": {
-    "latestReadyMs": 648,
-    "historyReadyMs": 704,
+    "latestReadyMs": 680,
+    "historyReadyMs": 680,
     "headline": "An eight-day estimate updated daily.",
     "displayedLai": "3.59",
     "units": "m²/m²",
@@ -82,7 +82,7 @@
       160,
       160
     ],
-    "actionGap": 24,
+    "exampleLinkPresent": false,
     "mapSize": {
       "x": 400,
       "y": 300
@@ -123,15 +123,15 @@
     "narrow": {
       "requested": {
         "width": 430,
-        "height": 5746
+        "height": 5713
       },
       "nativeCapture": {
         "width": 860,
-        "height": 11492
+        "height": 11426
       },
       "saved": {
         "width": 430,
-        "height": 5746
+        "height": 5713
       }
     }
   },

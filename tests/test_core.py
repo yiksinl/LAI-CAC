@@ -320,6 +320,9 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert 'Number(record.lai).toFixed(2)' in source
     assert "1.29" not in source
     assert 'id="period"' not in template
+    assert 'id="load-example"' not in template
+    assert "Use Montgomery example" not in template
+    assert 'byId("load-example")' not in source
     assert "latestPeriod.start" in source
     assert "Latest observation period:" in source
     assert "formatObservationPeriod" in source
