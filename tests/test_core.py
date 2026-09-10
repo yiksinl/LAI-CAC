@@ -399,6 +399,59 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert template.count('id="result-badge"') == 1
 
 
+def test_ui_has_source_labeled_beginner_landscape_reference_guide():
+    root = Path(__file__).parents[1]
+    source = (root / "static/app.js").read_text(encoding="utf-8")
+    styles = (root / "static/app.css").read_text(encoding="utf-8")
+    template = (root / "templates/index.html").read_text(encoding="utf-8")
+
+    assert 'id="landscape-guide"' in template
+    assert "Leaf area across different landscapes" in template
+    assert (
+        "Different landscapes contain different amounts of leaf area. For example, LAI 3 "
+        "means about three square meters of leaves for every square meter of ground. "
+        "Leaves can overlap in layers."
+    ) in template
+    for landscape in (
+        "Sparse vegetation and deserts",
+        "Grasslands and savannas",
+        "Agricultural crops",
+        "Temperate deciduous forests when in leaf",
+        "Temperate conifer forests",
+        "Tropical rainforests",
+    ):
+        assert landscape in template
+
+    for labeled_value in (
+        "1.3 average",
+        "1.7 average",
+        "2.0 dry / 3.0 wet averages",
+        "3.6 average",
+        "5.1 average",
+        "7.1 peak",
+        "5.5 average",
+        "4.8 average",
+    ):
+        assert labeled_value in template
+
+    assert "They are not “normal” limits for a LeafView result." in template
+    assert (
+        "These examples provide general context. Leaf area varies with season, vegetation "
+        "type, and growing conditions. Your satellite area may contain a mixture of land "
+        "covers. Higher LAI means more leaf area—not necessarily healthier vegetation."
+    ) in template
+    assert "https://doi.org/10.1046/j.1466-822X.2003.00026.x" in template
+    assert "https://doi.org/10.3390/rs11070829" in template
+    assert "https://doi.org/10.1093/forestscience/50.3.387" in template
+
+    assert 'id="compare-landscapes" href="#landscape-guide"' in template
+    assert 'byId("compare-landscapes").addEventListener("click"' in source
+    assert "guide.open = true" in source
+    assert 'guide.querySelector("summary").focus' in source
+    assert "@media (max-width: 680px)" in styles
+    assert ".landscape-table tbody tr" in styles
+
+
 def test_result_support_and_calculation_copy_are_derived_from_metadata():
     root = Path(__file__).parents[1]
     result = deepcopy(json.loads(

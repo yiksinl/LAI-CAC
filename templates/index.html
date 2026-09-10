@@ -49,6 +49,60 @@
       <p class="intro-begin"><strong>Choose a location on the map. Your latest estimate and available history will load automatically.</strong></p>
     </section>
 
+    <details id="landscape-guide" class="landscape-guide">
+      <summary>Leaf area across different landscapes</summary>
+      <div class="landscape-guide-content">
+        <p class="landscape-guide-intro">Different landscapes contain different amounts of leaf area. For example, LAI 3 means about three square meters of leaves for every square meter of ground. Leaves can overlap in layers.</p>
+        <p class="landscape-guide-basis">Most figures below are biome averages from the global field-observation synthesis by Asner and colleagues after statistical outliers were removed. The savanna and Maryland forest figures are labeled examples from individual studies. They are not “normal” limits for a LeafView result.</p>
+        <div class="landscape-table-wrap" role="region" aria-label="Landscape leaf area reference table" tabindex="0">
+          <table class="landscape-table">
+            <caption>Published LAI averages and site examples by landscape</caption>
+            <thead>
+              <tr>
+                <th scope="col">Landscape type</th>
+                <th scope="col">Approximate LAI</th>
+                <th scope="col">Seasonal and vegetation differences</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Sparse vegetation and deserts</th>
+                <td data-label="Approximate LAI"><strong>1.3 average</strong><span>Desert synthesis</span></td>
+                <td data-label="What changes it">The desert average came from six records, so it is broad context rather than a universal value. Rainfall and the amount of plant cover can change LAI.</td>
+              </tr>
+              <tr>
+                <th scope="row">Grasslands and savannas</th>
+                <td data-label="Approximate LAI"><strong>1.7 average</strong><span>Grassland synthesis</span><strong>2.0 dry / 3.0 wet averages</strong><span>One tropical savanna study</span></td>
+                <td data-label="What changes it">Grassland LAI varies widely. In the savanna study, average LAI was higher in the wet season than in the dry season; rainfall and the mixture of grasses and trees matter.</td>
+              </tr>
+              <tr>
+                <th scope="row">Agricultural crops</th>
+                <td data-label="Approximate LAI"><strong>3.6 average</strong><span>Cross-crop synthesis</span></td>
+                <td data-label="What changes it">This is an average across crops. Crop species, planting density, and growth stage produce large seasonal differences; the value is not tied to a single point before harvest.</td>
+              </tr>
+              <tr>
+                <th scope="row">Temperate deciduous forests when in leaf</th>
+                <td data-label="Approximate LAI"><strong>5.1 average</strong><span>Forest synthesis</span><strong>7.1 peak</strong><span>One Maryland forest study</span></td>
+                <td data-label="What changes it">Leaves emerge in spring and drop in autumn. In the Maryland study, a tulip-poplar forest’s LAI rose rapidly in spring, peaked at 7.1, then declined.</td>
+              </tr>
+              <tr>
+                <th scope="row">Temperate conifer forests</th>
+                <td data-label="Approximate LAI"><strong>5.5 average</strong><span>Evergreen needleleaf synthesis</span></td>
+                <td data-label="What changes it">Many conifers retain foliage year-round, but canopy density, needle clumping, and measurement method can affect reported LAI.</td>
+              </tr>
+              <tr>
+                <th scope="row">Tropical rainforests</th>
+                <td data-label="Approximate LAI"><strong>4.8 average</strong><span>Tropical evergreen broadleaf synthesis</span></td>
+                <td data-label="What changes it">Evergreen forests retain leaves year-round but still vary among forests and seasons. The synthesis did not find tropical forests universally highest among natural vegetation.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="landscape-guide-note">These examples provide general context. Leaf area varies with season, vegetation type, and growing conditions. Your satellite area may contain a mixture of land covers. Higher LAI means more leaf area—not necessarily healthier vegetation.</p>
+        <p class="landscape-sources"><strong>Primary sources:</strong> <a href="https://doi.org/10.1046/j.1466-822X.2003.00026.x">Asner, Scurlock, and Hicke (2003), global LAI synthesis</a>; <a href="https://doi.org/10.3390/rs11070829">Sibanda and colleagues (2019), wet- and dry-season tropical savanna measurements</a>; <a href="https://doi.org/10.1093/forestscience/50.3.387">Parker and Tibbs (2004), Maryland deciduous forest phenology</a>.</p>
+      </div>
+    </details>
+
     <section class="workspace" aria-label="Selected query">
       <div class="map-wrap">
         <div id="map"></div>
@@ -82,7 +136,7 @@
       <div id="example-meta" class="example-meta">Choose a location to load its latest complete window.</div>
       <div class="example-grid">
         <article class="result-card">
-          <div class="result-label"><span id="result-badge" class="badge">Research estimate</span></div>
+          <div class="result-label"><span id="result-badge" class="badge">Research estimate</span><a id="compare-landscapes" href="#landscape-guide">Compare with landscape examples</a></div>
           <div class="lai-measure"><span id="example-lai" class="lai-value">—</span><span id="lai-units" class="lai-units" hidden>m²/m²</span></div>
           <p id="lai-explanation" class="lead-explanation">Loading the cached result…</p>
           <p id="calculation-source" class="calculation-source">Checking how this result was calculated…</p>

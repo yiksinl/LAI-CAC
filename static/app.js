@@ -690,6 +690,16 @@ new ResizeObserver(entries => {
   if (currentHistory && width && Math.abs(width - renderedTrendWidth) > 1) renderHistory(currentHistory);
 }).observe(byId("trend-plot"));
 
+byId("compare-landscapes").addEventListener("click", event => {
+  event.preventDefault();
+  const guide = byId("landscape-guide");
+  guide.open = true;
+  guide.scrollIntoView({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    block: "start"
+  });
+  guide.querySelector("summary").focus({ preventScroll: true });
+});
 byId("retry-estimate").addEventListener("click", () => {
   const retry = estimateRetryAction;
   if (retry) retry();
