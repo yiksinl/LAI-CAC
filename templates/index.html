@@ -164,18 +164,39 @@
     </section>
 
     <details class="methods">
-      <summary>Methods and limitations</summary>
+      <summary>How LeafView works</summary>
       <div class="methods-content">
-        <p><strong>Readiness and validation</strong></p>
-        <ul id="methods-readiness"><li>Checking installed assets and validation status…</li></ul>
-        <p>These checks establish preprocessing compatibility, not prediction accuracy.</p>
-        <p>LeafView applies Yixuan Li's selected 600-tree XGBoost model to GOES-19 red, near-infrared, and shortwave-infrared reflectance statistics, viewing and illumination geometry, seasonality, and IGBP land cover. The model preserves separate 15, 18, and 21 UTC composites.</p>
-        <p>Each window contains eight UTC calendar dates. Seasonality is calculated from the window's start date with the notebook's formula. LeafView only uses windows whose observations are all after the model's April 6, 2026 training cutoff. Results after that cutoff test how the trained model transfers to later observations; they are not forecasts.</p>
-        <p>Rolling-window construction and numerical consistency are checked separately. Prediction accuracy for rolling eight-day windows has not been evaluated.</p>
-        <p>The training reference is a quality-screened MODIS/VIIRS satellite consensus, not direct field ground truth. LAI is leaf area per ground area; it is not a direct plant-health score, drought diagnosis, or irrigation recommendation.</p>
-        <ul id="methods-limitations"></ul>
-        <p><strong>Model-compatibility concern</strong></p>
-        <ul id="methods-concerns"></ul>
+        <section>
+          <h3>How LeafView estimates leaf area</h3>
+          <p>LeafView uses a machine-learning model developed by Yixuan Li during his CISESS research. It estimates leaf area from GOES-19 satellite observations, using reflected light, viewing and illumination angles, season, and land cover.</p>
+          <p>The model was trained against quality-screened MODIS and VIIRS satellite LAI estimates. These are satellite-based reference values, rather than direct field measurements.</p>
+        </section>
+
+        <section>
+          <h3>Observation periods and history</h3>
+          <p>Each estimate combines observations from eight consecutive UTC dates. The latest estimate uses a rolling window that advances daily. It represents the entire eight-day period, rather than conditions on one day.</p>
+          <p>The history chart shows monthly snapshots, each based on an eight-day observation window—not a monthly average. Exact dates are available for each point, and periods without sufficient observations remain gaps.</p>
+          <p>LeafView uses only observations after April 6, 2026, the model’s training cutoff. It estimates leaf area from observations collected after training; it does not forecast future conditions.</p>
+        </section>
+
+        <section>
+          <h3>Processing checks and validation</h3>
+          <p>Processing checks have confirmed compatibility with the supplied model and preprocessing, rolling-window construction, and numerical consistency.</p>
+          <p>These checks establish implementation consistency, not prediction accuracy. Accuracy for rolling eight-day estimates has not yet been evaluated.</p>
+          <p>The original training-period results remain unreproduced because the historical feature rows are unavailable.</p>
+        </section>
+
+        <section>
+          <h3>Interpreting the results</h3>
+          <p>LAI describes leaf area per unit of ground area across the sampled satellite footprint. That footprint may contain a mixture of trees, fields, roads, buildings, and other land cover.</p>
+          <p>The number of usable observations indicates how much data contributed to an estimate. It is not a confidence or accuracy score.</p>
+          <p>Results can help users explore estimated leaf area and changes over time. LAI alone cannot diagnose plant health or drought, explain the cause of a change, or determine watering needs.</p>
+        </section>
+
+        <section>
+          <h3>Technical details</h3>
+          <p>LeafView uses the selected 600-tree XGBoost model with the original feature definitions and preprocessing. It preserves separate composites for observations around 15, 18, and 21 UTC. Seasonality is calculated from each window’s start date using the original notebook formula.</p>
+        </section>
       </div>
     </details>
   </main>

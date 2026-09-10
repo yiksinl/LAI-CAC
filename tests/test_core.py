@@ -326,7 +326,6 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "latestPeriod.start" in source
     assert "Latest observation period:" in source
     assert "formatObservationPeriod" in source
-    assert 'byId("methods-concerns")' in source
     assert "preprocessing_discrepancies" in source
     assert 'fetch("/api/estimate"' in source
     assert "queryMatchesRecord" in source
@@ -352,8 +351,6 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "historyObservationDates" in source
     assert "clearHistory" in source
     assert "Calculated using cached satellite observations." not in source
-    assert "No differences from the supplied preprocessing were identified for this query." in source
-    assert "The original helper calculates solar direction differently" in source
     assert "const ordered = [corners[0], corners[1], corners[3], corners[2]]" in source
     assert 'id="map-tile-message"' in template
     assert 'id="calculation-source"' in template
@@ -362,9 +359,16 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert 'id="processing-diagnostics"' in template
     assert 'id="observation-details"' in template
     assert 'id="pixel-details"' in template
-    assert "April 6, 2026 training cutoff" in template
-    assert "preprocessing compatibility, not prediction accuracy" in template
-    assert "not a direct plant-health score" in template
+    assert "April 6, 2026, the model’s training cutoff" in template
+    assert "How LeafView works" in template
+    assert "How LeafView estimates leaf area" in template
+    assert "Observation periods and history" in template
+    assert "Processing checks and validation" in template
+    assert "Interpreting the results" in template
+    assert "Technical details" in template
+    assert "implementation consistency, not prediction accuracy" in template
+    assert "LAI alone cannot diagnose plant health or drought" in template
+    assert "Methods and limitations" not in template
     assert "An eight-day estimate updated daily." in template
     assert "Explore the leaves in your landscape" in template
     assert "What is leaf area index?" in template
@@ -381,7 +385,6 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "Each point summarizes eight days of satellite observations." in template
     assert "Network or retrieval error" in template
     assert "Network or retrieval error" in source
-    assert "Prediction accuracy for rolling eight-day windows has not been evaluated." in template
     assert "Calculation time unavailable." in source
     assert 'showEstimateState("Estimate ready")' in source
     assert "Binding this result to the selected location and UTC dates" not in source

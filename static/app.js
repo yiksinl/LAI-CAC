@@ -93,8 +93,6 @@ const formatCalculationTimestamp = (value) => {
     timeZone: "UTC", timeZoneName: "short"
   }).format(timestamp);
 };
-const solarAngleExplanation = "The original helper calculates solar direction differently from its stated convention. LeafView preserves that calculation to match the model's training inputs. Correcting it would require separate evaluation and potentially retraining.";
-
 function sameLocation(left, right) {
   return Math.abs(left.latitude - right.latitude) < 0.0000005
     && Math.abs(left.longitude - right.longitude) < 0.0000005;
@@ -145,8 +143,6 @@ function resetResultPanel(message = "Loading the latest complete window for this
   byId("processing-diagnostics").open = false;
   byId("observation-details").open = false;
   byId("pixel-details").open = false;
-  byId("methods-limitations").replaceChildren();
-  byId("methods-concerns").replaceChildren();
 }
 
 function showEstimateState(label, state = "ready") {
@@ -263,17 +259,6 @@ function renderStatus(data) {
   historyDate.value = data.historical_date_range.maximum_end;
   byId("view-history-date").disabled = !dependenciesReady;
   byId("view-latest").disabled = !dependenciesReady;
-  const readiness = byId("methods-readiness");
-  readiness.replaceChildren();
-  [
-    data.preprocessing_validation.detail,
-    data.historical_numerical_reproduction.detail,
-    data.rolling_window_accuracy.detail
-  ].forEach(text => {
-    const item = document.createElement("li");
-    item.textContent = text;
-    readiness.append(item);
-  });
   byId("estimate").disabled = !dependenciesReady;
 }
 
@@ -378,31 +363,6 @@ function renderDiagnostics(record) {
   byId("observation-cache").textContent = parts.join(" · ");
 }
 
-function renderMethods(record) {
-  const limitations = byId("methods-limitations");
-  limitations.replaceChildren();
-  if (!record.limitations.length) {
-    const item = document.createElement("li");
-    item.textContent = "No differences from the supplied preprocessing were identified for this query. The known solar-angle issue below remains.";
-    limitations.append(item);
-  } else {
-    record.limitations.forEach(text => {
-      const item = document.createElement("li");
-      item.textContent = text;
-      limitations.append(item);
-    });
-  }
-  const concerns = byId("methods-concerns");
-  concerns.replaceChildren();
-  (record.scientific_concerns || []).forEach(text => {
-    const item = document.createElement("li");
-    item.textContent = text.toLowerCase().includes("solar azimuth")
-      ? solarAngleExplanation
-      : text;
-    concerns.append(item);
-  });
-}
-
 function renderResult(record, expected) {
   if (!queryMatchesRecord(record, expected)) return false;
   activeRecord = record;
@@ -425,12 +385,11 @@ function renderResult(record, expected) {
     byId("lai-explanation").textContent = `An LAI of ${Number(record.lai).toFixed(1)} means about ${Number(record.lai).toFixed(1)} square meters of one-sided leaf area above each square meter of ground, averaged across this satellite pixel.`;
   }
   byId("provisional-note").textContent = record.status.startsWith("provisional")
-    ? "This output has an unresolved preprocessing limitation; see Methods."
+    ? "This output has an unresolved preprocessing limitation."
     : "";
   renderSupport(record);
   renderFootprint(record);
   renderDiagnostics(record);
-  renderMethods(record);
   return true;
 }
 

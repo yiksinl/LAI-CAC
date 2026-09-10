@@ -168,7 +168,10 @@ dd { margin: 3px 0 0; color: var(--ink); font-weight: 600; font-size: 12px; font
 .methods { padding: 0; overflow: hidden; }
 .methods > summary { cursor: pointer; padding: 18px 23px; color: var(--ink); font: 600 20px Newsreader, serif; }
 .methods-content { padding: 0 23px 20px; color: var(--muted); line-height: 1.6; font-size: 13px; max-width: 1000px; }
-.methods-content ul { padding-left: 20px; }
+.methods-content section + section { margin-top: 22px; }
+.methods-content h3 { margin: 0 0 8px; color: var(--ink); font: 600 21px Newsreader, serif; }
+.methods-content p { margin: 0 0 10px; }
+.methods-content p:last-child { margin-bottom: 0; }
 
 @media (max-width: 920px) {
   main { padding-inline: 20px; }
