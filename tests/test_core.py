@@ -363,6 +363,15 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "preprocessing compatibility, not prediction accuracy" in template
     assert "not a direct plant-health score" in template
     assert "An eight-day estimate updated daily." in template
+    assert "Explore the leaves in your landscape" in template
+    assert "What is leaf area index?" in template
+    assert "3 square meters of leaves for every square meter of ground" in template
+    assert "Choose a landscape to explore" in template
+    assert "Latest estimated leaf area" in template
+    assert "Observation availability" in template
+    assert "LeafView selects the observation period automatically." in template
+    assert "Research estimates: prediction accuracy for the rolling eight-day windows has not yet been evaluated." in template
+    assert "Choose a location below to begin." in template
     assert "View an older eight-day window" in template
     assert "History at selected location" in template
     assert "Monthly snapshots" in template

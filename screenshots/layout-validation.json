@@ -1,7 +1,7 @@
 {
   "desktop": {
-    "latestReadyMs": 714,
-    "historyReadyMs": 768,
+    "latestReadyMs": 648,
+    "historyReadyMs": 704,
     "headline": "An eight-day estimate updated daily.",
     "displayedLai": "3.59",
     "units": "m²/m²",
@@ -109,29 +109,29 @@
     "desktop": {
       "requested": {
         "width": 1440,
-        "height": 3023
+        "height": 3314
       },
       "nativeCapture": {
         "width": 2880,
-        "height": 6046
+        "height": 6628
       },
       "saved": {
         "width": 1440,
-        "height": 3023
+        "height": 3314
       }
     },
     "narrow": {
       "requested": {
         "width": 430,
-        "height": 4984
+        "height": 5746
       },
       "nativeCapture": {
         "width": 860,
-        "height": 9968
+        "height": 11492
       },
       "saved": {
         "width": 430,
-        "height": 4984
+        "height": 5746
       }
     }
   },

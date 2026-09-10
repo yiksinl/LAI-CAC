@@ -19,13 +19,24 @@ header { min-height: 64px; padding: 0 max(24px, 5vw); display: flex; align-items
 .brand span, .research { font: 600 12px "DM Sans", sans-serif; color: var(--muted); margin-left: 10px; }
 .research { text-transform: uppercase; letter-spacing: .08em; }
 main { width: min(1380px, 100%); margin: auto; padding: 36px 32px 56px; }
-.intro { max-width: 850px; margin-bottom: 24px; }
+.intro { margin-bottom: 24px; }
 .eyebrow { margin: 0 0 7px; text-transform: uppercase; letter-spacing: .13em; font-weight: 700; font-size: 11px; color: var(--leaf); }
 h1, h2 { font-family: Newsreader, serif; letter-spacing: -.018em; }
 h1 { font-size: clamp(40px, 5vw, 64px); line-height: .98; margin: 8px 0 14px; }
 h2 { font-size: 30px; margin: 0; }
 h3 { margin: 0 0 12px; font-size: 17px; }
-.intro > p:last-child { max-width: 760px; margin: 0; font-size: 17px; line-height: 1.55; color: var(--muted); }
+.intro-lead { max-width: 760px; margin: 0; color: var(--muted); font-size: 17px; line-height: 1.55; }
+.intro-guide { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 24px 0 16px; }
+.intro-guide article { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.intro-guide h2 { margin-bottom: 12px; font-size: 24px; line-height: 1.08; }
+.intro-guide p, .intro-guide li { color: var(--muted); font-size: 13px; line-height: 1.55; }
+.intro-guide p { margin: 0 0 11px; }
+.intro-guide p:last-child { margin-bottom: 0; }
+.intro-guide ul { margin: 0 0 12px; padding-left: 20px; }
+.intro-guide li + li { margin-top: 7px; }
+.intro-guide strong { color: var(--ink); }
+.intro-caveat { max-width: 900px; margin: 0 0 8px; color: var(--warn); font-size: 13px; line-height: 1.55; }
+.intro-begin { margin: 0; color: var(--ink); font-size: 14px; }
 
 .workspace { display: grid; grid-template-columns: minmax(0, 2.15fr) minmax(310px, .85fr); align-items: stretch; background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: 0 18px 50px #17332a12; }
 .map-wrap { position: relative; min-width: 0; min-height: 460px; overflow: hidden; background: #dfe8dc; }
@@ -162,6 +173,8 @@ dd { margin: 3px 0 0; color: var(--ink); font-weight: 600; font-size: 12px; font
 
 @media (max-width: 920px) {
   main { padding-inline: 20px; }
+  .intro-guide { grid-template-columns: 1fr 1fr; }
+  .intro-guide article:last-child { grid-column: 1 / -1; }
   .workspace { grid-template-columns: 1.35fr 1fr; }
   .example-grid { grid-template-columns: 1fr 1fr; }
   .spatial-card { grid-column: 1 / -1; }
@@ -174,7 +187,11 @@ dd { margin: 3px 0 0; color: var(--ink); font-weight: 600; font-size: 12px; font
   .intro { margin-bottom: 20px; }
   h1 { font-size: 40px; }
   h2 { font-size: 27px; }
-  .intro > p:last-child { font-size: 16px; line-height: 1.5; }
+  .intro-lead { font-size: 16px; line-height: 1.5; }
+  .intro-guide { grid-template-columns: 1fr; margin-top: 20px; }
+  .intro-guide article { padding: 17px; }
+  .intro-guide article:last-child { grid-column: auto; }
+  .intro-guide h2 { font-size: 23px; }
   .workspace, .example-grid, .trend-card { grid-template-columns: 1fr; }
   .map-wrap { height: 300px; min-height: 300px; }
   .map-legend { right: 10px; bottom: 27px; left: 10px; justify-content: center; flex-wrap: wrap; }
