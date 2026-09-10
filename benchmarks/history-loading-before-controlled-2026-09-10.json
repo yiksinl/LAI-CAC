@@ -1,0 +1,156 @@
+{
+  "mode": "before-controlled",
+  "location": {
+    "latitude": 39.345678,
+    "longitude": -77.210987
+  },
+  "latest_start": "2026-09-03",
+  "required_windows": [
+    "2026-04-23",
+    "2026-05-24",
+    "2026-06-23",
+    "2026-07-24",
+    "2026-08-24",
+    "2026-09-03"
+  ],
+  "scheduled_windows": [
+    "2026-09-03",
+    "2026-08-24",
+    "2026-07-24",
+    "2026-06-23",
+    "2026-05-24",
+    "2026-04-23"
+  ],
+  "history_scheduled_windows": [
+    "2026-08-24",
+    "2026-07-24",
+    "2026-06-23",
+    "2026-05-24",
+    "2026-04-23"
+  ],
+  "scheduled_window_count": 6,
+  "daily_history_windows_scheduled": 0,
+  "latest_reused_by_history": true,
+  "duplicate_history_request_shared_job": true,
+  "measurement_notes": "The legacy queue_wait_seconds field is request-to-first-progress latency. For historical windows it was 0.001 seconds per window; the latest window also included synchronous identity and dependency setup before its first progress event.",
+  "timings": {
+    "latest_estimate_seconds": 2.196,
+    "first_historical_point_seconds_after_latest": 1.063,
+    "complete_monthly_history_seconds_after_latest": 4.914,
+    "reopen_cached_location_seconds": 0.016,
+    "stage_totals": {
+      "queue_wait_seconds": 0.429,
+      "find_observations_seconds": 1.518,
+      "retrieve_observations_seconds": 3.35,
+      "process_and_build_features_seconds": 0.939,
+      "prediction_seconds": 0.694,
+      "save_seconds": 0.013,
+      "total_seconds": 6.95
+    },
+    "by_window": [
+      {
+        "period_start": "2026-09-03",
+        "queue_wait_seconds": 0.424,
+        "find_observations_seconds": 0.332,
+        "retrieve_observations_seconds": 0.966,
+        "process_and_build_features_seconds": 0.333,
+        "prediction_seconds": 0.121,
+        "save_seconds": 0.003,
+        "total_seconds": 2.18
+      },
+      {
+        "period_start": "2026-08-24",
+        "queue_wait_seconds": 0.001,
+        "find_observations_seconds": 0.245,
+        "retrieve_observations_seconds": 0.552,
+        "process_and_build_features_seconds": 0.124,
+        "prediction_seconds": 0.114,
+        "save_seconds": 0.002,
+        "total_seconds": 1.039
+      },
+      {
+        "period_start": "2026-07-24",
+        "queue_wait_seconds": 0.001,
+        "find_observations_seconds": 0.211,
+        "retrieve_observations_seconds": 0.545,
+        "process_and_build_features_seconds": 0.122,
+        "prediction_seconds": 0.116,
+        "save_seconds": 0.002,
+        "total_seconds": 0.998
+      },
+      {
+        "period_start": "2026-06-23",
+        "queue_wait_seconds": 0.001,
+        "find_observations_seconds": 0.276,
+        "retrieve_observations_seconds": 0.563,
+        "process_and_build_features_seconds": 0.123,
+        "prediction_seconds": 0.114,
+        "save_seconds": 0.002,
+        "total_seconds": 1.081
+      },
+      {
+        "period_start": "2026-05-24",
+        "queue_wait_seconds": 0.001,
+        "find_observations_seconds": 0.234,
+        "retrieve_observations_seconds": 0.563,
+        "process_and_build_features_seconds": 0.121,
+        "prediction_seconds": 0.114,
+        "save_seconds": 0.002,
+        "total_seconds": 1.037
+      },
+      {
+        "period_start": "2026-04-23",
+        "queue_wait_seconds": 0.001,
+        "find_observations_seconds": 0.22,
+        "retrieve_observations_seconds": 0.161,
+        "process_and_build_features_seconds": 0.116,
+        "prediction_seconds": 0.115,
+        "save_seconds": 0.002,
+        "total_seconds": 0.615
+      }
+    ]
+  },
+  "reopen": {
+    "latest_state": "complete",
+    "latest_cache_hit": true,
+    "history_state": "complete"
+  },
+  "periods": [
+    {
+      "start": "2026-04-23",
+      "end": "2026-04-30",
+      "state": "available",
+      "lai": 1.7037181854248047
+    },
+    {
+      "start": "2026-05-24",
+      "end": "2026-05-31",
+      "state": "available",
+      "lai": 1.7637897729873657
+    },
+    {
+      "start": "2026-06-23",
+      "end": "2026-06-30",
+      "state": "available",
+      "lai": 2.7217843532562256
+    },
+    {
+      "start": "2026-07-24",
+      "end": "2026-07-31",
+      "state": "available",
+      "lai": 3.023135185241699
+    },
+    {
+      "start": "2026-08-24",
+      "end": "2026-08-31",
+      "state": "available",
+      "lai": 2.8682749271392822
+    },
+    {
+      "start": "2026-09-03",
+      "end": "2026-09-10",
+      "state": "available",
+      "lai": 2.3094286918640137
+    }
+  ]
+}

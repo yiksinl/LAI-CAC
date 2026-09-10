@@ -320,7 +320,7 @@ def prepare_composite(
     _report(
         progress,
         8,
-        "observations",
+        "finding_observations",
         f"Finding {observation_total} NOAA observations",
         completed=0,
         total=observation_total,
@@ -351,7 +351,7 @@ def prepare_composite(
             _report(
                 progress,
                 8 + int(8 * selected_count / observation_total),
-                "observations",
+                "finding_observations",
                 f"Selected observation {selected_count} of {observation_total}",
                 completed=selected_count,
                 total=observation_total,
@@ -400,7 +400,7 @@ def prepare_composite(
         _report(
             progress,
             16 + int(56 * retrieved_count / len(available_slots)),
-            "observations",
+            "retrieving_observations",
             f"Retrieved observation {retrieved_count} of {len(available_slots)}",
             completed=retrieved_count,
             total=len(available_slots),
@@ -457,7 +457,7 @@ def prepare_composite(
             _report(
                 progress,
                 16 + int(56 * retrieved_count / max(len(available_slots), 1)),
-                "observations",
+                "retrieving_observations",
                 f"Retrieved observation {retrieved_count} of {len(available_slots)}",
                 completed=retrieved_count,
                 total=len(available_slots),
@@ -591,7 +591,7 @@ def prepare_composite(
         _report(
             progress,
             72 + int(8 * completed / observation_total),
-            "observations",
+            "processing_observations",
             f"Processed observation {completed} of {observation_total}",
             completed=completed,
             total=observation_total,

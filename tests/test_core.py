@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta, timezone
 from copy import deepcopy
 import json
 import math
+import threading
 import time
 
 import pytest
@@ -502,6 +503,12 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "formatTrendPeriod(item.period)" in source
     assert 'fetch("/api/history"' in source
     assert 'fetch(`/api/history/${history.job_id}`' in source
+    assert 'fetch(`/api/history/${jobId}/cancel`' in source
+    assert "latest_query_key: activeRecord?.query?.key" in source
+    assert "renderHistoryFrame(message)" in source
+    assert "Loading history: ${data.progress.monthly_completed} of ${data.progress.monthly_total} monthly snapshots ready." in source
+    assert "plot.dataset.renderMilliseconds" in source
+    assert "await delay(250)" in source
     assert 'fetch("/api/trends/montgomery"' not in source
     assert "historyResponseMatchesQuery" in source
     assert "generation !== historyGeneration" in source
@@ -563,57 +570,44 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert template.count('id="result-badge"') == 1
 
 
-def test_ui_has_source_labeled_beginner_landscape_reference_guide():
+def test_ui_has_compact_always_visible_lai_reference_strip():
     root = Path(__file__).parents[1]
     source = (root / "static/app.js").read_text(encoding="utf-8")
     styles = (root / "static/app.css").read_text(encoding="utf-8")
     template = (root / "templates/index.html").read_text(encoding="utf-8")
 
-    assert 'id="landscape-guide"' in template
-    assert "Leaf area across different landscapes" in template
-    assert (
-        "Different landscapes contain different amounts of leaf area. For example, LAI 3 "
-        "means about three square meters of leaves for every square meter of ground. "
-        "Leaves can overlap in layers."
-    ) in template
-    for landscape in (
-        "Sparse vegetation and deserts",
-        "Grasslands and savannas",
-        "Agricultural crops",
-        "Temperate deciduous forests when in leaf",
-        "Temperate conifer forests",
-        "Tropical rainforests",
+    assert '<section id="landscape-guide" class="lai-reference"' in template
+    assert '<h2 id="lai-reference-title" tabindex="-1">LAI reference</h2>' in template
+    assert template.index('id="landscape-guide"') < template.index('class="workspace"')
+    for landscape, average in (
+        ("Deserts", "1.3"),
+        ("Grasslands", "1.7"),
+        ("Crops", "3.6"),
+        ("Tropical rainforests", "4.8"),
+        ("Temperate deciduous forests", "5.1"),
+        ("Temperate conifer forests", "5.5"),
     ):
-        assert landscape in template
+        assert f"<strong>{average}</strong><span>{landscape}</span>" in template
 
-    for labeled_value in (
-        "1.3 average",
-        "1.7 average",
-        "2.0 dry / 3.0 wet averages",
-        "3.6 average",
-        "5.1 average",
-        "7.1 peak",
-        "5.5 average",
-        "4.8 average",
-    ):
-        assert labeled_value in template
-
-    assert "They are not “normal” limits for a LeafView result." in template
-    assert (
-        "These examples provide general context. Leaf area varies with season, vegetation "
-        "type, and growing conditions. Your satellite area may contain a mixture of land "
-        "covers. Higher LAI means more leaf area—not necessarily healthier vegetation."
-    ) in template
+    assert "Published averages for context. Values vary with season and location." in template
+    assert '<details id="lai-reference-sources" class="lai-reference-sources">' in template
+    assert "reference examples—not category boundaries, health ratings" in template
+    assert "Leaf area across different landscapes" not in template
+    assert "2.0 dry / 3.0 wet averages" not in template
+    assert "7.1 peak" not in template
+    assert "landscape-table" not in template
     assert "https://doi.org/10.1046/j.1466-822X.2003.00026.x" in template
     assert "https://doi.org/10.3390/rs11070829" in template
     assert "https://doi.org/10.1093/forestscience/50.3.387" in template
 
     assert 'id="compare-landscapes" href="#landscape-guide"' in template
     assert 'byId("compare-landscapes").addEventListener("click"' in source
-    assert "guide.open = true" in source
-    assert 'guide.querySelector("summary").focus' in source
+    assert "guide.open = true" not in source
+    assert 'byId("lai-reference-title").focus' in source
+    assert "grid-template-columns: repeat(6, minmax(0, 1fr))" in styles
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr))" in styles
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
     assert "@media (max-width: 680px)" in styles
-    assert ".landscape-table tbody tr" in styles
 
 
 def test_result_support_and_calculation_copy_are_derived_from_metadata():
@@ -769,24 +763,34 @@ def test_history_schedules_only_month_end_snapshots_and_latest_newest_first(
         return {"key": f"{latitude:.6f}:{longitude:.6f}:{period_start.isoformat()}"}
 
     class FakeEstimateJobs:
+        def compatible_result(self, identity):
+            period_start = date.fromisoformat(str(identity["key"]).rsplit(":", 1)[-1])
+            if period_start != date(2026, 9, 2):
+                return None
+            return self._result(period_start), tmp_path / "latest.json"
+
+        @staticmethod
+        def _result(period_start):
+            return {
+                "status": "verified",
+                "lai": float(period_start.day),
+                "provenance": {
+                    "composite": {
+                        "start": period_start.isoformat(),
+                        "end": (period_start + timedelta(days=7)).isoformat(),
+                    },
+                    "usable_counts": {"15": 1, "18": 1, "21": 1},
+                    "attempts": [],
+                },
+            }
+
         def start(self, latitude, longitude, period_start, display_location):
             calls.append(period_start)
-            identity = fake_identity(latitude, longitude, period_start, tmp_path)
+            fake_identity(latitude, longitude, period_start, tmp_path)
             return {
                 "job_id": period_start.isoformat(),
                 "state": "complete",
-                "result": {
-                    "status": "verified",
-                    "lai": float(period_start.day),
-                    "provenance": {
-                        "composite": {
-                            "start": period_start.isoformat(),
-                            "end": (period_start + timedelta(days=7)).isoformat(),
-                        },
-                        "usable_counts": {"15": 1, "18": 1, "21": 1},
-                        "attempts": [],
-                    },
-                },
+                "result": self._result(period_start),
             }
 
         def snapshot(self, job_id):
@@ -818,9 +822,100 @@ def test_history_schedules_only_month_end_snapshots_and_latest_newest_first(
         "July 2026", "August 2026", "September 2026 · latest",
     ]
     assert calls == [
-        date(2026, 9, 2), date(2026, 8, 24), date(2026, 7, 24),
+        date(2026, 8, 24), date(2026, 7, 24),
         date(2026, 6, 23), date(2026, 5, 24), date(2026, 4, 23),
     ]
+    assert history["latest_reused"] is True
+    assert history["progress"]["monthly_total"] == 5
+    assert history["progress"]["monthly_completed"] == 5
+    reopened = jobs.start(
+        requested[0], requested[1], date(2026, 9, 2), "Custom location"
+    )
+    assert reopened["job_id"] == history["job_id"]
+    assert len(calls) == 5
+
+
+def test_history_bounds_concurrency_and_cancellation_stops_new_scheduling(
+    tmp_path: Path, monkeypatch
+):
+    import lai_cac.web as web
+
+    requested = (39.265474, -77.225871)
+    calls = []
+    lock = threading.Lock()
+
+    def fake_identity(latitude, longitude, period_start, root):
+        return {"key": f"{latitude:.6f}:{longitude:.6f}:{period_start.isoformat()}"}
+
+    class WaitingEstimateJobs:
+        def compatible_result(self, identity):
+            period_start = date.fromisoformat(str(identity["key"]).rsplit(":", 1)[-1])
+            if period_start != date(2026, 9, 2):
+                return None
+            return {
+                "status": "verified", "lai": 2.0,
+                "provenance": {
+                    "composite": {"start": "2026-09-02", "end": "2026-09-09"},
+                    "usable_counts": {"15": 1, "18": 1, "21": 1},
+                    "attempts": [],
+                },
+            }, tmp_path / "latest.json"
+
+        def start(self, latitude, longitude, period_start, display_location):
+            with lock:
+                calls.append(period_start)
+            return {
+                "job_id": period_start.isoformat(),
+                "state": "running",
+                "progress": {"percent": 25, "stage": "retrieving_observations"},
+            }
+
+        def snapshot(self, job_id):
+            if job_id == "2026-08-24":
+                period_start = date.fromisoformat(job_id)
+                return {
+                    "job_id": job_id,
+                    "state": "complete",
+                    "result": {
+                        "status": "verified", "lai": 2.0,
+                        "provenance": {
+                            "composite": {
+                                "start": job_id,
+                                "end": (period_start + timedelta(days=7)).isoformat(),
+                            },
+                            "usable_counts": {"15": 1, "18": 1, "21": 1},
+                            "attempts": [],
+                        },
+                    },
+                }
+            return {
+                "job_id": job_id,
+                "state": "running",
+                "progress": {"percent": 25, "stage": "retrieving_observations"},
+            }
+
+    monkeypatch.setattr(web, "cache_identity", fake_identity)
+    jobs = HistoryJobs(tmp_path, ObservationMemo(), WaitingEstimateJobs())
+    history = jobs.start(
+        requested[0], requested[1], date(2026, 9, 2), "Cancellation test"
+    )
+    for _ in range(100):
+        with lock:
+            if len(calls) == 3:
+                break
+        time.sleep(0.01)
+    assert calls == [
+        date(2026, 8, 24), date(2026, 7, 24), date(2026, 6, 23)
+    ]
+    assert history["max_concurrent_windows"] == 2
+    jobs.cancel(history["job_id"])
+    for _ in range(100):
+        cancelled = jobs.snapshot(history["job_id"])
+        if cancelled["state"] == "cancelled":
+            break
+        time.sleep(0.01)
+    assert cancelled["state"] == "cancelled"
+    assert len(calls) == 3
 
 
 def test_history_endpoint_uses_the_latest_query_and_existing_cached_result():
@@ -836,6 +931,20 @@ def test_history_endpoint_uses_the_latest_query_and_existing_cached_result():
     assert len(response.json["periods"]) == 1
     assert response.json["periods"][0]["state"] == "available"
     assert response.json["periods"][0]["lai"] == pytest.approx(1.20430588722229)
+
+
+def test_history_endpoint_rejects_a_mismatched_latest_result_key():
+    clock = lambda: datetime(2026, 4, 14, 23, 0, tzinfo=timezone.utc)
+    response = create_app(clock=clock).test_client().post("/api/history", json={
+        "latitude": 39.1547,
+        "longitude": -77.2405,
+        "display_location": "Montgomery County, Maryland",
+        "latest_query_key": "a-result-from-another-query",
+    })
+    assert response.status_code == 400
+    assert response.json["error"] == (
+        "The latest estimate does not match the requested history"
+    )
 
 
 def test_incomplete_period_is_rejected():
@@ -966,3 +1075,7 @@ def test_background_jobs_publish_progress_and_complete(tmp_path: Path, monkeypat
     assert completed["state"] == "complete"
     assert completed["progress"]["percent"] == 100
     assert completed["result"]["delivery"]["cache_hit"] is False
+    timing = completed["result"]["delivery"]["timing"]
+    assert timing["queue_wait_seconds"] >= 0
+    assert timing["phase_seconds"]["observations"] >= 0
+    assert timing["total_seconds"] >= timing["queue_wait_seconds"]

@@ -1,0 +1,248 @@
+{
+  "mode": "after",
+  "location": {
+    "latitude": 39.345678,
+    "longitude": -77.210987
+  },
+  "latest_start": "2026-09-03",
+  "required_windows": [
+    "2026-04-23",
+    "2026-05-24",
+    "2026-06-23",
+    "2026-07-24",
+    "2026-08-24",
+    "2026-09-03"
+  ],
+  "scheduled_windows": [
+    "2026-09-03",
+    "2026-08-24",
+    "2026-07-24",
+    "2026-06-23",
+    "2026-05-24",
+    "2026-04-23"
+  ],
+  "history_scheduled_windows": [
+    "2026-08-24",
+    "2026-07-24",
+    "2026-06-23",
+    "2026-05-24",
+    "2026-04-23"
+  ],
+  "scheduled_window_count": 6,
+  "daily_history_windows_scheduled": 0,
+  "latest_reused_by_history": true,
+  "duplicate_history_request_shared_job": true,
+  "measurement_notes": "recorded_backend_timing contains the new direct worker measurements. The stage_totals and by_window queue_wait_seconds fields retain the older request-to-first-progress measurement for before/after comparability.",
+  "timings": {
+    "latest_estimate_seconds": 2.045,
+    "first_historical_point_seconds_after_latest": 1.15,
+    "complete_monthly_history_seconds_after_latest": 3.688,
+    "reopen_cached_location_seconds": 0.009,
+    "stage_totals": {
+      "queue_wait_seconds": 0.407,
+      "find_observations_seconds": 1.782,
+      "retrieve_observations_seconds": 3.795,
+      "process_and_build_features_seconds": 1.013,
+      "prediction_seconds": 0.744,
+      "save_seconds": 0.012,
+      "total_seconds": 7.761
+    },
+    "by_window": [
+      {
+        "period_start": "2026-09-03",
+        "queue_wait_seconds": 0.4,
+        "find_observations_seconds": 0.369,
+        "retrieve_observations_seconds": 0.822,
+        "process_and_build_features_seconds": 0.316,
+        "prediction_seconds": 0.122,
+        "save_seconds": 0.002,
+        "total_seconds": 2.034
+      },
+      {
+        "period_start": "2026-08-24",
+        "queue_wait_seconds": 0.001,
+        "find_observations_seconds": 0.283,
+        "retrieve_observations_seconds": 0.568,
+        "process_and_build_features_seconds": 0.127,
+        "prediction_seconds": 0.118,
+        "save_seconds": 0.002,
+        "total_seconds": 1.101
+      },
+      {
+        "period_start": "2026-07-24",
+        "queue_wait_seconds": 0.001,
+        "find_observations_seconds": 0.216,
+        "retrieve_observations_seconds": 0.761,
+        "process_and_build_features_seconds": 0.162,
+        "prediction_seconds": 0.134,
+        "save_seconds": 0.002,
+        "total_seconds": 1.277
+      },
+      {
+        "period_start": "2026-06-23",
+        "queue_wait_seconds": 0.003,
+        "find_observations_seconds": 0.366,
+        "retrieve_observations_seconds": 0.763,
+        "process_and_build_features_seconds": 0.138,
+        "prediction_seconds": 0.122,
+        "save_seconds": 0.002,
+        "total_seconds": 1.395
+      },
+      {
+        "period_start": "2026-05-24",
+        "queue_wait_seconds": 0.001,
+        "find_observations_seconds": 0.263,
+        "retrieve_observations_seconds": 0.626,
+        "process_and_build_features_seconds": 0.122,
+        "prediction_seconds": 0.118,
+        "save_seconds": 0.002,
+        "total_seconds": 1.132
+      },
+      {
+        "period_start": "2026-04-23",
+        "queue_wait_seconds": 0.001,
+        "find_observations_seconds": 0.285,
+        "retrieve_observations_seconds": 0.255,
+        "process_and_build_features_seconds": 0.148,
+        "prediction_seconds": 0.13,
+        "save_seconds": 0.002,
+        "total_seconds": 0.822
+      }
+    ],
+    "recorded_backend_timing": {
+      "2026-09-03": {
+        "queue_wait_seconds": 0.0,
+        "phase_seconds": {
+          "validating": 0.0,
+          "land_cover": 0.001,
+          "finding_observations": 0.369,
+          "retrieving_observations": 0.822,
+          "processing_observations": 0.002,
+          "features": 0.315,
+          "model": 0.122,
+          "saving": 0.002,
+          "complete": 0.0
+        },
+        "total_seconds": 2.034
+      },
+      "2026-08-24": {
+        "queue_wait_seconds": 0.0,
+        "phase_seconds": {
+          "validating": 0.001,
+          "land_cover": 0.001,
+          "finding_observations": 0.283,
+          "retrieving_observations": 0.568,
+          "processing_observations": 0.002,
+          "features": 0.125,
+          "model": 0.118,
+          "saving": 0.002,
+          "complete": 0.0
+        },
+        "total_seconds": 1.101
+      },
+      "2026-07-24": {
+        "queue_wait_seconds": 0.0,
+        "phase_seconds": {
+          "validating": 0.001,
+          "land_cover": 0.001,
+          "finding_observations": 0.216,
+          "retrieving_observations": 0.761,
+          "processing_observations": 0.003,
+          "features": 0.159,
+          "model": 0.134,
+          "saving": 0.002,
+          "complete": 0.0
+        },
+        "total_seconds": 1.277
+      },
+      "2026-06-23": {
+        "queue_wait_seconds": 0.0,
+        "phase_seconds": {
+          "validating": 0.0,
+          "land_cover": 0.0,
+          "finding_observations": 0.366,
+          "retrieving_observations": 0.763,
+          "processing_observations": 0.002,
+          "features": 0.136,
+          "model": 0.122,
+          "saving": 0.002,
+          "complete": 0.0
+        },
+        "total_seconds": 1.395
+      },
+      "2026-05-24": {
+        "queue_wait_seconds": 0.0,
+        "phase_seconds": {
+          "validating": 0.0,
+          "land_cover": 0.001,
+          "finding_observations": 0.263,
+          "retrieving_observations": 0.626,
+          "processing_observations": 0.002,
+          "features": 0.12,
+          "model": 0.118,
+          "saving": 0.002,
+          "complete": 0.0
+        },
+        "total_seconds": 1.132
+      },
+      "2026-04-23": {
+        "queue_wait_seconds": 0.0,
+        "phase_seconds": {
+          "validating": 0.0,
+          "land_cover": 0.001,
+          "finding_observations": 0.285,
+          "retrieving_observations": 0.255,
+          "processing_observations": 0.002,
+          "features": 0.146,
+          "model": 0.13,
+          "saving": 0.002,
+          "complete": 0.0
+        },
+        "total_seconds": 0.822
+      }
+    }
+  },
+  "reopen": {
+    "latest_state": "complete",
+    "latest_cache_hit": true,
+    "history_state": "complete"
+  },
+  "periods": [
+    {
+      "start": "2026-04-23",
+      "end": "2026-04-30",
+      "state": "available",
+      "lai": 1.7037181854248047
+    },
+    {
+      "start": "2026-05-24",
+      "end": "2026-05-31",
+      "state": "available",
+      "lai": 1.7637897729873657
+    },
+    {
+      "start": "2026-06-23",
+      "end": "2026-06-30",
+      "state": "available",
+      "lai": 2.7217843532562256
+    },
+    {
+      "start": "2026-07-24",
+      "end": "2026-07-31",
+      "state": "available",
+      "lai": 3.023135185241699
+    },
+    {
+      "start": "2026-08-24",
+      "end": "2026-08-31",
+      "state": "available",
+      "lai": 2.8682749271392822
+    },
+    {
+      "start": "2026-09-03",
+      "end": "2026-09-10",
+      "state": "available",
+      "lai": 2.3094286918640137
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "mode": "after",
+  "periods": 6,
+  "median_render_milliseconds": 4.9,
+  "maximum_render_milliseconds": 6.5,
+  "minimum_render_milliseconds": 4.7,
+  "body_horizontal_overflow": false,
+  "console_errors": []
+}

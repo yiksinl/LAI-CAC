@@ -1,0 +1,84 @@
+{
+  "location": {
+    "latitude": 39.321234,
+    "longitude": -77.177777
+  },
+  "immediate": {
+    "chartFrameVisible": true,
+    "displayedLaiCleared": true,
+    "selectedCoordinates": "Selected coordinates: 39.3212, −77.1778 · Finding place name…",
+    "historyStatus": "Waiting for the latest result."
+  },
+  "latestReadySeconds": 1.893,
+  "completeSeconds": 5.423,
+  "events": [
+    {
+      "seconds": 0.001,
+      "status": "Waiting for the latest result.",
+      "available": 0,
+      "loading": 0,
+      "insufficient": 0,
+      "errors": 0
+    },
+    {
+      "seconds": 1.869,
+      "status": "Loading history: checking monthly snapshots.",
+      "available": 0,
+      "loading": 0,
+      "insufficient": 0,
+      "errors": 0
+    },
+    {
+      "seconds": 1.909,
+      "status": "Loading history: 0 of 5 monthly snapshots ready.",
+      "available": 1,
+      "loading": 5,
+      "insufficient": 0,
+      "errors": 0
+    },
+    {
+      "seconds": 2.985,
+      "status": "Loading history: 1 of 5 monthly snapshots ready.",
+      "available": 2,
+      "loading": 4,
+      "insufficient": 0,
+      "errors": 0
+    },
+    {
+      "seconds": 4.329,
+      "status": "Loading history: 3 of 5 monthly snapshots ready.",
+      "available": 4,
+      "loading": 2,
+      "insufficient": 0,
+      "errors": 0
+    },
+    {
+      "seconds": 5.132,
+      "status": "Loading history: 4 of 5 monthly snapshots ready.",
+      "available": 5,
+      "loading": 1,
+      "insufficient": 0,
+      "errors": 0
+    },
+    {
+      "seconds": 5.409,
+      "status": "Monthly snapshots loaded in 3.3 seconds. 6 estimates are available; 0 snapshots had insufficient data.",
+      "available": 6,
+      "loading": 0,
+      "insufficient": 0,
+      "errors": 0
+    }
+  ],
+  "finalStatus": "Monthly snapshots loaded in 3.3 seconds. 6 estimates are available; 0 snapshots had insufficient data.",
+  "availablePoints": 6,
+  "loadingPoints": 0,
+  "insufficientPoints": 0,
+  "errorPoints": 0,
+  "renderMilliseconds": 7.7,
+  "selectedLocation": "Damascus, Maryland",
+  "selectedDetails": "County: Montgomery County · Selected coordinates: 39.3212, −77.1778",
+  "bodyHorizontalOverflow": false,
+  "historyPostRequests": 1,
+  "historyCancelRequests": 0,
+  "consoleErrors": []
+}

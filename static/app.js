@@ -54,6 +54,7 @@ let latestPeriod = null;
 let selectedWindowStart = null;
 let requestGeneration = 0;
 let historyGeneration = 0;
+let activeHistoryJobId = null;
 let automaticEstimateTimer = null;
 let estimateRetryAction = null;
 let placeNameGeneration = 0;
@@ -196,15 +197,30 @@ function showEstimateState(label, state = "ready", retryAction = null) {
 }
 
 function clearHistory(message = "History will start after the latest estimate.") {
+  cancelActiveHistory();
   historyGeneration += 1;
   currentHistory = null;
   renderedTrendWidth = 0;
-  byId("trend-plot").replaceChildren();
+  renderHistoryFrame(message);
   byId("history-list").replaceChildren();
   byId("trend-meta").textContent = message;
   byId("history-state").className = "history-state";
   byId("history-state").textContent = "Waiting for the latest result.";
   byId("retry-history").hidden = true;
+}
+
+function cancelActiveHistory() {
+  const jobId = activeHistoryJobId;
+  activeHistoryJobId = null;
+  requestHistoryCancellation(jobId);
+}
+
+function requestHistoryCancellation(jobId) {
+  if (!jobId) return;
+  fetch(`/api/history/${jobId}/cancel`, {
+    method: "POST",
+    keepalive: true
+  }).catch(() => {});
 }
 
 function scheduleLatestEstimate() {
@@ -624,6 +640,42 @@ function svgElement(name, attributes, text) {
   return node;
 }
 
+function renderHistoryFrame(message = "Monthly snapshots will appear here.") {
+  const plot = byId("trend-plot");
+  const width = Math.max(520, Math.round(plot.clientWidth || 900));
+  renderedTrendWidth = width;
+  const height = 300;
+  const margin = { top: 24, right: 18, bottom: 48, left: 54 };
+  const plotHeight = height - margin.top - margin.bottom;
+  const svg = svgElement("svg", {
+    viewBox: `0 0 ${width} ${height}`,
+    role: "img",
+    "aria-label": "Monthly eight-day leaf-area snapshot chart"
+  });
+  svg.append(svgElement("title", {}, "Monthly leaf-area snapshots"));
+  [0, 1, 2, 3].forEach(value => {
+    const y = margin.top + plotHeight - value / 3 * plotHeight;
+    svg.append(svgElement("line", {
+      x1: margin.left, y1: y, x2: width - margin.right, y2: y, class: "trend-grid"
+    }));
+    svg.append(svgElement("text", {
+      x: margin.left - 8, y: y + 4, class: "trend-tick"
+    }, value.toFixed(1)));
+  });
+  svg.append(svgElement("text", {
+    x: 15,
+    y: margin.top + plotHeight / 2,
+    transform: `rotate(-90 15 ${margin.top + plotHeight / 2})`,
+    class: "trend-axis-label"
+  }, "LAI (m²/m²)"));
+  svg.append(svgElement("text", {
+    x: width / 2,
+    y: margin.top + plotHeight / 2,
+    class: "trend-placeholder"
+  }, message));
+  plot.replaceChildren(svg);
+}
+
 function formatTrendPeriod(period) {
   return `${formatShortDate(period.start)}–${formatShortDate(period.end)}`;
 }
@@ -685,12 +737,15 @@ function renderHistoryList(data) {
 }
 
 function renderHistory(data) {
+  const renderStarted = performance.now();
   currentHistory = data;
   const periods = data.periods;
   const available = periods.filter(item => item.state === "available");
   const insufficient = periods.filter(item => item.state === "insufficient_data").length;
+  const pending = periods.filter(item => item.state === "loading").length;
   const retrievalErrors = periods.filter(item => item.state === "retrieval_error").length;
   const processingErrors = periods.filter(item => item.state === "processing_error" || item.state === "error").length;
+  const historyFailed = data.state === "error";
   const values = available.map(item => Number(item.lai));
   const maximum = Math.max(3, values.length ? Math.ceil(Math.max(...values) * 2) / 2 : 3);
   const plot = byId("trend-plot");
@@ -762,6 +817,7 @@ function renderHistory(data) {
     }, `${formatMonthLabel(item.period.end)}${suffix}`));
   });
   plot.replaceChildren(svg);
+  plot.dataset.renderMilliseconds = (performance.now() - renderStarted).toFixed(1);
 
   const scope = data.scope;
   const firstRange = `${formatDate(periods[0].period.start)}–${formatDate(periods[0].period.end)}`;
@@ -779,28 +835,31 @@ function renderHistory(data) {
   const state = byId("history-state");
   if (data.state === "running") {
     state.className = "history-state";
-    state.textContent = `Monthly snapshots pending: ${data.progress.completed} of ${data.progress.total} loaded, newest first.`;
-  } else if (retrievalErrors || processingErrors) {
+    state.textContent = `Loading history: ${data.progress.monthly_completed} of ${data.progress.monthly_total} monthly snapshots ready.`;
+  } else if (historyFailed || retrievalErrors || processingErrors) {
     state.className = "history-state error";
     const errors = [];
+    if (historyFailed) errors.push("history processing stopped");
     if (retrievalErrors) errors.push(`${retrievalErrors} network or retrieval error${retrievalErrors === 1 ? "" : "s"}`);
     if (processingErrors) errors.push(`${processingErrors} processing error${processingErrors === 1 ? "" : "s"}`);
-    state.textContent = `Monthly snapshots loaded in ${Number(data.elapsed_seconds).toFixed(1)} seconds with ${errors.join(" and ")}. ${available.length} estimates are available; ${insufficient} snapshots had insufficient data.`;
+    state.textContent = `Monthly snapshots loaded in ${Number(data.elapsed_seconds).toFixed(1)} seconds with ${errors.join(" and ")}. ${available.length} estimates are available; ${insufficient} snapshots had insufficient data; ${pending} are still pending.`;
   } else {
     state.className = "history-state complete";
     state.textContent = `Monthly snapshots loaded in ${Number(data.elapsed_seconds).toFixed(1)} seconds. ${available.length} estimates are available; ${insufficient} snapshots had insufficient data.`;
   }
   byId("retry-history").hidden = data.state === "running"
-    || !(retrievalErrors || processingErrors);
+    || !(historyFailed || retrievalErrors || processingErrors);
   renderHistoryList(data);
 }
 
 async function startHistory() {
   const generation = ++historyGeneration;
   const query = { ...selectedQuery };
+  let historyJobId = null;
+  activeHistoryJobId = null;
   byId("retry-history").hidden = true;
   byId("history-state").className = "history-state";
-  byId("history-state").textContent = "Monthly snapshots pending: checking the newest point first.";
+  byId("history-state").textContent = "Loading history: checking monthly snapshots.";
   try {
     const response = await fetch("/api/history", {
       method: "POST",
@@ -808,27 +867,45 @@ async function startHistory() {
       body: JSON.stringify({
         latitude: query.latitude,
         longitude: query.longitude,
-        display_location: query.displayLocation
+        display_location: query.displayLocation,
+        latest_query_key: activeRecord?.query?.key
       })
     });
     let history = await response.json();
     if (!response.ok) throw new Error(history.error || "History could not be started");
+    historyJobId = history.job_id;
+    if (generation !== historyGeneration || !sameLocation(selectedQuery, query)) {
+      requestHistoryCancellation(history.job_id);
+      return;
+    }
+    activeHistoryJobId = history.job_id;
     while (history.state === "running") {
-      if (generation !== historyGeneration || !sameLocation(selectedQuery, query)) return;
+      if (generation !== historyGeneration || !sameLocation(selectedQuery, query)) {
+        requestHistoryCancellation(history.job_id);
+        if (activeHistoryJobId === history.job_id) activeHistoryJobId = null;
+        return;
+      }
       if (!historyResponseMatchesQuery(history, query)) throw new Error("History response did not match the selected location");
       renderHistory(history);
-      await delay(700);
+      await delay(250);
       const poll = await fetch(`/api/history/${history.job_id}`, { cache: "no-store" });
       history = await poll.json();
       if (!poll.ok) throw new Error(history.error || "History progress could not be read");
     }
-    if (generation !== historyGeneration || !sameLocation(selectedQuery, query)) return;
+    if (generation !== historyGeneration || !sameLocation(selectedQuery, query)) {
+      requestHistoryCancellation(history.job_id);
+      if (activeHistoryJobId === history.job_id) activeHistoryJobId = null;
+      return;
+    }
     if (!historyResponseMatchesQuery(history, query)) throw new Error("History response did not match the selected location");
     renderHistory(history);
+    if (activeHistoryJobId === history.job_id) activeHistoryJobId = null;
   } catch (error) {
+    requestHistoryCancellation(historyJobId);
     if (generation !== historyGeneration) return;
+    if (activeHistoryJobId === historyJobId) activeHistoryJobId = null;
     currentHistory = null;
-    byId("trend-plot").replaceChildren();
+    renderHistoryFrame("Monthly snapshots could not be loaded.");
     byId("history-state").className = "history-state error";
     byId("history-state").textContent = `History could not load: ${error.message}`;
     byId("retry-history").hidden = false;
@@ -843,12 +920,11 @@ new ResizeObserver(entries => {
 byId("compare-landscapes").addEventListener("click", event => {
   event.preventDefault();
   const guide = byId("landscape-guide");
-  guide.open = true;
   guide.scrollIntoView({
     behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
     block: "start"
   });
-  guide.querySelector("summary").focus({ preventScroll: true });
+  byId("lai-reference-title").focus({ preventScroll: true });
 });
 byId("retry-estimate").addEventListener("click", () => {
   const retry = estimateRetryAction;
@@ -883,4 +959,5 @@ async function loadStatus() {
   }
 }
 
+renderHistoryFrame("History will start after the latest estimate.");
 loadStatus();

@@ -31,6 +31,31 @@ September 2–9, 2026. Its explicit boundaries are `2026-09-02T00:00:00Z` throug
   the latest card (583 ms versus 528 ms from navigation). The former fully populated
   daily history took 0.263 s backend and 0.278 s client wall, so the comparable warm
   loader is about 29 times faster.
+- A separate first-time-result benchmark at `39.345678, -77.210987` used identical
+  copies of the normal observation cache and an empty, isolated derived-result cache;
+  the normal cache was not cleared. The latest window improved from 2.196 s to
+  2.045 s, the first historical point was available after 1.150 s versus 1.063 s,
+  complete monthly history improved from 4.914 s to 3.688 s, and reopening the same
+  cached location improved from 0.016 s to 0.009 s. History scheduled exactly the
+  five missing month-end windows; it reused the already completed latest result and
+  scheduled no daily windows. Duplicate history requests shared one job.
+- Before optimization, summed work across the latest and five historical windows was
+  1.518 s finding observations, 3.350 s retrieving them, 0.939 s processing/building
+  features, 0.694 s predicting, and 0.013 s saving. The matching after run recorded
+  1.782 s finding, 3.795 s retrieving, 1.013 s processing/building features, 0.744 s
+  predicting, and 0.012 s saving. These are summed worker times, so they overlap once
+  history runs concurrently; retrieval remains the dominant delay. Instrumented
+  worker queue wait rounded to 0.000 s per window. The earlier request-to-first-stage
+  proxy was about 0.001 s per historical window; the latest request also had about
+  0.4 s of synchronous identity/dependency setup before its first progress event.
+- The chart frame now renders before data arrives, and the completed latest result
+  appears in it before any monthly calculation finishes. An uncached browser run
+  showed progressive states from 0 through 4 of 5 monthly snapshots ready before
+  completion. Rendering six points remained negligible: 4.9 ms median before and
+  after (6.5 ms after-run maximum). The controlled before/after records are in
+  `benchmarks/history-loading-before-controlled-2026-09-10.json` and
+  `benchmarks/history-loading-after-2026-09-10.json`; browser timing is in the
+  matching chart files and `benchmarks/history-progressive-ui-2026-09-10.json`.
 - The earlier full daily pass remains a useful baseline: 149 windows with an empty
   derived-result cache and existing observation caches took 119.499 s backend and
   120.013 s client wall, producing 147 estimates and 2 insufficient-data gaps. That

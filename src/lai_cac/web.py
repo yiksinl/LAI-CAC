@@ -46,6 +46,7 @@ MONTGOMERY = {
     "name": "Montgomery County, Maryland",
 }
 TREND_STARTS = (date(2026, 4, 7), date(2026, 4, 15), date(2026, 4, 23))
+HISTORY_MAX_CONCURRENT_WINDOWS = 2
 NOMINATIM_REVERSE_URL = os.environ.get(
     "LEAFVIEW_PLACE_LOOKUP_URL",
     "https://nominatim.openstreetmap.org/reverse",
@@ -514,13 +515,51 @@ class EstimateJobs:
         self._lock = threading.Lock()
         self._jobs: dict[str, dict] = {}
         self._running_by_query: dict[str, str] = {}
+        self._completed_by_query: dict[str, tuple[dict, Path]] = {}
+        self._timing: dict[str, dict[str, object]] = {}
 
     def _set(self, job_id: str, **changes: object) -> None:
         with self._lock:
             self._jobs[job_id].update(changes)
 
     def _progress(self, job_id: str, update: dict[str, object]) -> None:
-        self._set(job_id, progress=update)
+        now = time.perf_counter()
+        stage = str(update.get("stage") or "unknown")
+        with self._lock:
+            timing = self._timing.get(job_id)
+            if timing is not None:
+                current_stage = timing.get("current_stage")
+                stage_started = float(timing.get("stage_started", now))
+                if current_stage and current_stage != stage:
+                    phase_seconds = timing["phase_seconds"]
+                    assert isinstance(phase_seconds, dict)
+                    phase_seconds[current_stage] = float(phase_seconds.get(current_stage, 0)) + (
+                        now - stage_started
+                    )
+                    timing["stage_started"] = now
+                timing["current_stage"] = stage
+            self._jobs[job_id].update(progress=update)
+
+    def _finish_timing(self, job_id: str, started: float) -> dict[str, object]:
+        now = time.perf_counter()
+        with self._lock:
+            timing = self._timing.pop(job_id, {})
+            current_stage = timing.get("current_stage")
+            if current_stage:
+                phase_seconds = timing["phase_seconds"]
+                assert isinstance(phase_seconds, dict)
+                phase_seconds[str(current_stage)] = float(
+                    phase_seconds.get(str(current_stage), 0)
+                ) + now - float(timing.get("stage_started", now))
+            phases = {
+                str(name): round(float(seconds), 3)
+                for name, seconds in dict(timing.get("phase_seconds", {})).items()
+            }
+            return {
+                "queue_wait_seconds": round(float(timing.get("queue_wait_seconds", 0)), 3),
+                "phase_seconds": phases,
+                "total_seconds": round(now - started, 3),
+            }
 
     def snapshot(self, job_id: str) -> dict | None:
         with self._lock:
@@ -531,13 +570,33 @@ class EstimateJobs:
         with self._lock:
             return len(self._running_by_query)
 
+    def compatible_result(
+        self, identity: dict[str, object]
+    ) -> tuple[dict, Path] | None:
+        """Return a provenance-compatible result without recalculating it."""
+
+        key = str(identity["key"])
+        with self._lock:
+            completed = self._completed_by_query.get(key)
+            if completed is not None:
+                result, source = completed
+                return deepcopy(result), source
+        cached = load_compatible_result(self.root, identity)
+        if cached is None:
+            return None
+        result, source = cached
+        self.observation_memo.seed_result(result)
+        with self._lock:
+            self._completed_by_query[key] = (deepcopy(result), source)
+        return result, source
+
     def start(
         self, latitude: float, longitude: float, period_start: date, display_location: str
     ) -> dict:
         request_started = time.perf_counter()
         identity = cache_identity(latitude, longitude, period_start, self.root)
         key = str(identity["key"])
-        cached = load_compatible_result(self.root, identity)
+        cached = self.compatible_result(identity)
         if cached:
             result, source = cached
             self.observation_memo.seed_result(result)
@@ -548,6 +607,11 @@ class EstimateJobs:
                 "source": str(source.relative_to(self.root)),
                 "original_processing_seconds": result.get("provenance", {}).get("processing", {}).get("duration_seconds"),
                 "observation_cache": result.get("provenance", {}).get("observation_cache", {}),
+                "timing": {
+                    "queue_wait_seconds": 0.0,
+                    "phase_seconds": {"cache_lookup": round(time.perf_counter() - request_started, 3)},
+                    "total_seconds": round(time.perf_counter() - request_started, 3),
+                },
             }
             job = {
                 "job_id": job_id,
@@ -581,9 +645,20 @@ class EstimateJobs:
             }
             self._jobs[job_id] = job
             self._running_by_query[key] = job_id
+            queued_at = time.perf_counter()
+            self._timing[job_id] = {
+                "queued_at": queued_at,
+                "queue_wait_seconds": 0.0,
+                "phase_seconds": {},
+                "current_stage": None,
+                "stage_started": queued_at,
+            }
         worker = threading.Thread(
             target=self._run,
-            args=(job_id, key, identity, latitude, longitude, period_start, display_location),
+            args=(
+                job_id, key, identity, latitude, longitude, period_start,
+                display_location, request_started,
+            ),
             daemon=True,
             name=f"leafview-{job_id[:8]}",
         )
@@ -599,8 +674,13 @@ class EstimateJobs:
         longitude: float,
         period_start: date,
         display_location: str,
+        request_started: float,
     ) -> None:
         started = time.perf_counter()
+        with self._lock:
+            timing = self._timing[job_id]
+            timing["queue_wait_seconds"] = started - float(timing["queued_at"])
+            timing["stage_started"] = started
         try:
             output = runtime_cache_path(self.root, key)
             result = run_estimate(
@@ -617,10 +697,13 @@ class EstimateJobs:
             )
             delivery = {
                 "cache_hit": False,
-                "request_seconds": round(time.perf_counter() - started, 3),
+                "request_seconds": round(time.perf_counter() - request_started, 3),
                 "source": str(output.relative_to(self.root)),
                 "observation_cache": result.get("provenance", {}).get("observation_cache", {}),
             }
+            delivery["timing"] = self._finish_timing(job_id, request_started)
+            with self._lock:
+                self._completed_by_query[key] = (deepcopy(result), output)
             self._set(
                 job_id,
                 state="complete",
@@ -636,6 +719,7 @@ class EstimateJobs:
                 result=public_result(result, key[:16], display_location, delivery),
             )
         except Exception as error:
+            timing = self._finish_timing(job_id, request_started)
             self._set(
                 job_id,
                 state="error",
@@ -646,6 +730,7 @@ class EstimateJobs:
                     if isinstance(error, ObservationRetrievalError)
                     else "processing_error"
                 ),
+                timing=timing,
             )
         finally:
             with self._lock:
@@ -665,6 +750,7 @@ class HistoryJobs:
         self._lock = threading.Lock()
         self._jobs: dict[str, dict] = {}
         self._running_by_query: dict[str, str] = {}
+        self._jobs_by_query: dict[str, str] = {}
 
     def snapshot(self, job_id: str) -> dict | None:
         with self._lock:
@@ -685,12 +771,48 @@ class HistoryJobs:
             job["periods"][index] = item
             job.update(changes)
 
+    @staticmethod
+    def _progress(
+        periods: list[dict],
+        *,
+        detail: str,
+        window_progress: dict | None = None,
+    ) -> dict[str, object]:
+        completed = sum(item["state"] != "loading" for item in periods)
+        monthly = [item for item in periods if item["snapshot"]["is_month_end"]]
+        monthly_completed = sum(
+            item["state"] in {"available", "insufficient_data"} for item in monthly
+        )
+        progress: dict[str, object] = {
+            "completed": completed,
+            "total": len(periods),
+            "monthly_completed": monthly_completed,
+            "monthly_finished": sum(item["state"] != "loading" for item in monthly),
+            "monthly_total": len(monthly),
+            "percent": round(100 * completed / len(periods), 1),
+            "detail": detail,
+        }
+        if window_progress:
+            progress["active_windows"] = window_progress
+        return progress
+
+    def cancel(self, job_id: str) -> dict | None:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job is None:
+                return None
+            if job["state"] == "running":
+                job["cancel_requested"] = True
+                job["progress"]["detail"] = "Stopping history work for the previous location."
+            return deepcopy(job)
+
     def start(
         self,
         latitude: float,
         longitude: float,
         latest_start: date,
         display_location: str,
+        expected_latest_key: str | None = None,
     ) -> dict:
         started = time.perf_counter()
         windows = monthly_snapshot_periods(latest_start)
@@ -708,15 +830,27 @@ class HistoryJobs:
         query_key = hashlib.sha256(
             json.dumps(query_document, sort_keys=True, separators=(",", ":")).encode("utf-8")
         ).hexdigest()
+        if expected_latest_key and str(identities[-1]["key"]) != expected_latest_key:
+            raise ValueError("The latest estimate does not match the requested history")
         with self._lock:
             running_id = self._running_by_query.get(query_key)
             if running_id:
                 return deepcopy(self._jobs[running_id])
+            previous_id = self._jobs_by_query.get(query_key)
+            if previous_id:
+                previous = self._jobs[previous_id]
+                if previous["state"] == "complete" and not previous.get("error_count"):
+                    return deepcopy(previous)
 
         items = []
         completed = 0
         for (period_start, _), identity in zip(windows, identities, strict=True):
-            cached = load_compatible_result(self.root, identity)
+            compatible_result = getattr(self.estimate_jobs, "compatible_result", None)
+            cached = (
+                compatible_result(identity)
+                if compatible_result is not None
+                else load_compatible_result(self.root, identity)
+            )
             if cached:
                 result, _ = cached
                 self.observation_memo.seed_result(result)
@@ -750,21 +884,31 @@ class HistoryJobs:
             },
             "scope": _history_scope(latest_start),
             "periods": items,
-            "progress": {
-                "completed": completed,
-                "total": len(items),
-                "percent": round(100 * completed / len(items), 1),
-                "detail": (
+            "progress": self._progress(
+                items,
+                detail=(
                     "Monthly snapshots loaded from saved estimates."
                     if state == "complete" else
                     "Loading the newest monthly snapshots first."
                 ),
-            },
+            ),
             "elapsed_seconds": round(time.perf_counter() - started, 3) if state == "complete" else None,
             "error_count": 0,
+            "latest_reused": items[-1]["state"] != "loading",
+            "max_concurrent_windows": HISTORY_MAX_CONCURRENT_WINDOWS,
+            "cancel_requested": False,
         }
         with self._lock:
+            running_id = self._running_by_query.get(query_key)
+            if running_id:
+                return deepcopy(self._jobs[running_id])
+            previous_id = self._jobs_by_query.get(query_key)
+            if previous_id:
+                previous = self._jobs[previous_id]
+                if previous["state"] == "complete" and not previous.get("error_count"):
+                    return deepcopy(previous)
             self._jobs[job_id] = job
+            self._jobs_by_query[query_key] = job_id
             if state == "running":
                 self._running_by_query[query_key] = job_id
         if state == "running":
@@ -779,7 +923,6 @@ class HistoryJobs:
                     latitude,
                     longitude,
                     display_location,
-                    completed,
                     started,
                 ),
                 daemon=True,
@@ -798,97 +941,114 @@ class HistoryJobs:
         latitude: float,
         longitude: float,
         display_location: str,
-        completed: int,
         started: float,
     ) -> None:
         errors = 0
         total = len(windows)
+        pending: list[int] = []
+        active: dict[int, dict] = {}
+        prioritize_newest = True
         try:
-            for index in range(total - 1, -1, -1):
+            with self._lock:
+                pending = [
+                    index for index in range(total - 1, -1, -1)
+                    if self._jobs[job_id]["periods"][index]["state"] == "loading"
+                ]
+            while pending or active:
                 with self._lock:
-                    if self._jobs[job_id]["periods"][index]["state"] != "loading":
-                        continue
-                period_start = windows[index][0]
-                identity = identities[index]
+                    if self._jobs[job_id].get("cancel_requested"):
+                        self._jobs[job_id].update(
+                            state="cancelled",
+                            elapsed_seconds=round(time.perf_counter() - started, 3),
+                        )
+                        return
 
-                estimate_job = self.estimate_jobs.start(
-                    latitude,
-                    longitude,
-                    period_start,
-                    display_location,
-                )
-                while estimate_job["state"] == "running":
-                    update = estimate_job.get("progress", {})
-                    overall = 100 * (
-                        completed + float(update.get("percent", 0)) / 100
-                    ) / total
-                    self._set(job_id, progress={
-                        "completed": completed,
-                        "total": total,
-                        "percent": round(overall, 1),
-                        "current_period": utc_window_boundaries(period_start),
-                        "window_progress": update,
-                        "detail": f"Loading the {period_start.isoformat()} snapshot window.",
-                    })
-                    time.sleep(0.1)
-                    estimate_job = self.estimate_jobs.snapshot(estimate_job["job_id"])
+                concurrency_limit = 1 if prioritize_newest else HISTORY_MAX_CONCURRENT_WINDOWS
+                while pending and len(active) < concurrency_limit:
+                    index = pending.pop(0)
+                    period_start = windows[index][0]
+                    estimate_job = self.estimate_jobs.start(
+                        latitude, longitude, period_start, display_location
+                    )
+                    active[index] = estimate_job
+
+                active_progress: dict[str, object] = {}
+                finished: list[int] = []
+                for index, estimate_job in list(active.items()):
+                    if estimate_job["state"] == "running":
+                        estimate_job = self.estimate_jobs.snapshot(
+                            str(estimate_job["job_id"])
+                        )
+                        if estimate_job is not None:
+                            active[index] = estimate_job
                     if estimate_job is None:
-                        break
-                if estimate_job is None:
-                    errors += 1
-                    item = _history_item(
-                        identity,
-                        period_start,
-                        latest_start=latest_start,
-                        state="error",
-                        message="The shared estimate job disappeared before completion.",
-                    )
-                elif estimate_job["state"] == "error":
-                    errors += 1
-                    item = _history_item(
-                        identity,
-                        period_start,
-                        latest_start=latest_start,
-                        state=str(estimate_job.get("error_kind") or "error"),
-                        message=str(estimate_job.get("error") or "Estimate failed"),
-                    )
-                else:
-                    item = _history_item(
-                        identity,
-                        period_start,
-                        estimate_job["result"],
-                        latest_start=latest_start,
-                    )
-                completed += 1
-                self._set_item(job_id, index, item, error_count=errors, progress={
-                    "completed": completed,
-                    "total": total,
-                    "percent": round(100 * completed / total, 1),
-                    "detail": f"Loaded {completed} of {total} monthly snapshots.",
-                })
+                        errors += 1
+                        item = _history_item(
+                            identities[index], windows[index][0], latest_start=latest_start,
+                            state="error",
+                            message="The shared estimate job disappeared before completion.",
+                        )
+                    elif estimate_job["state"] == "running":
+                        active_progress[windows[index][0].isoformat()] = estimate_job.get(
+                            "progress", {}
+                        )
+                        continue
+                    elif estimate_job["state"] == "error":
+                        errors += 1
+                        item = _history_item(
+                            identities[index], windows[index][0], latest_start=latest_start,
+                            state=str(estimate_job.get("error_kind") or "error"),
+                            message=str(estimate_job.get("error") or "Estimate failed"),
+                        )
+                    else:
+                        item = _history_item(
+                            identities[index], windows[index][0], estimate_job["result"],
+                            latest_start=latest_start,
+                        )
+                    finished.append(index)
+                    with self._lock:
+                        periods = self._jobs[job_id]["periods"]
+                        periods[index] = item
+                        self._jobs[job_id]["error_count"] = errors
+                        self._jobs[job_id]["progress"] = self._progress(
+                            periods,
+                            detail="Loading the remaining monthly snapshots.",
+                            window_progress=active_progress,
+                        )
+                for index in finished:
+                    active.pop(index, None)
+                if finished:
+                    prioritize_newest = False
+                if active and not finished:
+                    with self._lock:
+                        periods = self._jobs[job_id]["periods"]
+                        self._jobs[job_id]["progress"] = self._progress(
+                            periods,
+                            detail="Loading the newest monthly snapshots first.",
+                            window_progress=active_progress,
+                        )
+                    time.sleep(0.1)
+            with self._lock:
+                periods = deepcopy(self._jobs[job_id]["periods"])
             self._set(
                 job_id,
                 state="complete",
                 elapsed_seconds=round(time.perf_counter() - started, 3),
-                progress={
-                    "completed": completed,
-                    "total": total,
-                    "percent": 100.0,
-                    "detail": "Monthly snapshots finished loading.",
-                },
+                progress=self._progress(
+                    periods, detail="Monthly snapshots finished loading."
+                ),
                 error_count=errors,
             )
         except Exception as error:
+            with self._lock:
+                periods = deepcopy(self._jobs[job_id]["periods"])
             self._set(
                 job_id,
                 state="error",
                 elapsed_seconds=round(time.perf_counter() - started, 3),
-                progress={
-                    "completed": completed,
-                    "total": total,
-                    "percent": round(100 * completed / total, 1),
-                    "detail": "Monthly snapshots stopped before they finished.",
-                },
+                progress=self._progress(
+                    periods, detail="Monthly snapshots stopped before they finished."
+                ),
                 error_count=errors + 1,
                 error=str(error),
             )
@@ -1109,7 +1269,15 @@ def create_app(
             ]:
                 return jsonify({"error": "Verified preprocessing is not ready"}), 503
             job = history_jobs.start(
-                latitude, longitude, latest_start, display_location
+                latitude,
+                longitude,
+                latest_start,
+                display_location,
+                expected_latest_key=(
+                    str(payload["latest_query_key"])
+                    if payload.get("latest_query_key")
+                    else None
+                ),
             )
         except ValueError as error:
             return jsonify({"error": str(error)}), 400
@@ -1118,6 +1286,13 @@ def create_app(
     @app.get("/api/history/<job_id>")
     def history_job(job_id: str):
         job = history_jobs.snapshot(job_id)
+        if job is None:
+            return jsonify({"error": "History job not found"}), 404
+        return jsonify(job)
+
+    @app.post("/api/history/<job_id>/cancel")
+    def cancel_history_job(job_id: str):
+        job = history_jobs.cancel(job_id)
         if job is None:
             return jsonify({"error": "History job not found"}), 404
         return jsonify(job)

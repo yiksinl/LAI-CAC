@@ -44,9 +44,11 @@ The app then:
   center/index, and all four footprint corners; and
 - reuses a derived result only when its coordinates, period, pipeline version, and
   model/IGBP/solar/navigation checksums match.
-- selects the monthly snapshot windows before starting work, loads them newest-first,
-  and reuses matching result and observation caches while keeping retrieval
-  concurrency bounded at four.
+- selects the monthly snapshot windows before starting work, reuses the completed
+  latest result as the chart's newest point, then loads the newest missing monthly
+  snapshot first and the rest with at most two windows in flight. Matching result
+  and observation caches are reused, and a location change stops additional work
+  from being scheduled for the old history request.
 
 For a first-time observation, LeafView opens the NOAA GOES-19 HDF5 object through
 checksummed HTTP byte ranges and caches only the blocks needed for the sampled pixel.
