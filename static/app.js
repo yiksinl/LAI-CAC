@@ -2,7 +2,10 @@ const initialPoint = [39.1547, -77.2405];
 const montgomery = {
   latitude: initialPoint[0],
   longitude: initialPoint[1],
-  displayLocation: "Montgomery County, Maryland"
+  displayLocation: "Montgomery County, Maryland",
+  county: "Montgomery County",
+  placeNameStatus: "ready",
+  placeNameSource: null
 };
 const map = L.map("map").setView(initialPoint, 9);
 const tileMessage = document.getElementById("map-tile-message");
@@ -53,12 +56,23 @@ let requestGeneration = 0;
 let historyGeneration = 0;
 let automaticEstimateTimer = null;
 let estimateRetryAction = null;
+let placeNameGeneration = 0;
+let placeNameTimer = null;
+let placeNameController = null;
 let selectedQuery = { ...montgomery };
 
 const byId = (id) => document.getElementById(id);
 const delay = (milliseconds) => new Promise(resolve => window.setTimeout(resolve, milliseconds));
 const formatCoordinates = ({ latitude, longitude }) =>
   `${latitude.toFixed(4)}, ${longitude.toFixed(4).replace("-", "−")}`;
+function locationDetails(location) {
+  const details = [];
+  if (location.county) details.push(`County: ${location.county}`);
+  details.push(`Selected coordinates: ${formatCoordinates(location)}`);
+  if (location.placeNameStatus === "loading") details.push("Finding place name…");
+  if (location.placeNameStatus === "error") details.push("Place name unavailable");
+  return details.join(" · ");
+}
 const formatDate = (value) => new Intl.DateTimeFormat("en-US", {
   month: "short", day: "numeric", year: "numeric", timeZone: "UTC"
 }).format(new Date(`${value}T00:00:00Z`));
@@ -114,6 +128,22 @@ function clearFootprint() {
   }
 }
 
+function renderSelectedLocationCopy() {
+  const details = locationDetails(selectedQuery);
+  byId("selected-name").textContent = selectedQuery.displayLocation;
+  byId("selected-location-details").textContent = details;
+  byId("place-name-attribution").hidden = selectedQuery.placeNameSource !== "OpenStreetMap";
+  byId("result-location").textContent = selectedQuery.displayLocation;
+  byId("result-location-details").textContent = details;
+  if (activeRecord && sameLocation(activeRecord.query.location, selectedQuery)) {
+    const period = activeRecord.query.period;
+    byId("example-meta").textContent = `${selectedQuery.displayLocation} · ${formatDate(period.start)}–${formatDate(period.end)} UTC · observations selected from these eight dates`;
+  }
+  if (currentHistory && sameLocation(currentHistory.query.location, selectedQuery)) {
+    renderHistory(currentHistory);
+  }
+}
+
 function resetResultPanel(message = "Loading the latest complete window for this location…") {
   activeRecord = null;
   clearFootprint();
@@ -135,6 +165,7 @@ function resetResultPanel(message = "Loading the latest complete window for this
   byId("result-time").textContent = "—";
   byId("observation-cache").textContent = "—";
   byId("result-location").textContent = selectedQuery.displayLocation;
+  byId("result-location-details").textContent = locationDetails(selectedQuery);
   byId("requested-point").textContent = formatCoordinates(selectedQuery);
   byId("pixel-center").textContent = "—";
   byId("pixel-index").textContent = "—";
@@ -195,25 +226,94 @@ function resetForLocation() {
   byId("view-latest").disabled = !dependenciesReady;
 }
 
-function selectLocation(location, fit = false) {
+function cancelPlaceNameLookup() {
+  window.clearTimeout(placeNameTimer);
+  placeNameTimer = null;
+  if (placeNameController) placeNameController.abort();
+  placeNameController = null;
+}
+
+async function resolvePlaceName(expected, generation) {
+  const controller = new AbortController();
+  placeNameController = controller;
+  try {
+    const response = await fetch("/api/place-name", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        latitude: expected.latitude,
+        longitude: expected.longitude
+      }),
+      signal: controller.signal
+    });
+    const place = await response.json();
+    if (generation !== placeNameGeneration || !sameLocation(selectedQuery, expected)) return;
+    if (!response.ok) throw new Error(place.error || "Place name lookup unavailable");
+    if (!place.requested_location || !sameLocation(place.requested_location, expected)) {
+      throw new Error("Place name response did not match the selected coordinates");
+    }
+    const displayLocation = String(place.display_name || "").trim();
+    if (!displayLocation) throw new Error("Place name lookup returned no supported area");
+    selectedQuery = {
+      ...selectedQuery,
+      displayLocation,
+      county: String(place.county || "").trim() || null,
+      placeNameStatus: "ready",
+      placeNameSource: "OpenStreetMap"
+    };
+    renderSelectedLocationCopy();
+  } catch (error) {
+    if (error.name === "AbortError"
+        || generation !== placeNameGeneration
+        || !sameLocation(selectedQuery, expected)) return;
+    selectedQuery = {
+      ...selectedQuery,
+      displayLocation: formatCoordinates(selectedQuery),
+      county: null,
+      placeNameStatus: "error",
+      placeNameSource: null
+    };
+    renderSelectedLocationCopy();
+  } finally {
+    if (generation === placeNameGeneration) placeNameController = null;
+  }
+}
+
+function schedulePlaceNameLookup(expected, generation) {
+  placeNameTimer = window.setTimeout(() => {
+    placeNameTimer = null;
+    resolvePlaceName(expected, generation);
+  }, 175);
+}
+
+function selectLocation(location, fit = false, resolveName = false) {
+  cancelPlaceNameLookup();
+  const latitude = Number(location.latitude.toFixed(6));
+  const longitude = Number(location.longitude.toFixed(6));
+  const coordinates = { latitude, longitude };
+  const generation = ++placeNameGeneration;
   selectedQuery = {
-    latitude: Number(location.latitude.toFixed(6)),
-    longitude: Number(location.longitude.toFixed(6)),
-    displayLocation: location.displayLocation
+    ...coordinates,
+    displayLocation: resolveName
+      ? formatCoordinates(coordinates)
+      : location.displayLocation,
+    county: resolveName ? null : (location.county || null),
+    placeNameStatus: resolveName ? "loading" : "ready",
+    placeNameSource: null
   };
   pointMarker.setLatLng([selectedQuery.latitude, selectedQuery.longitude]);
-  byId("selected-name").textContent = selectedQuery.displayLocation;
+  renderSelectedLocationCopy();
   if (fit) map.setView([selectedQuery.latitude, selectedQuery.longitude], 10);
   resetForLocation();
   scheduleLatestEstimate();
+  if (resolveName) schedulePlaceNameLookup({ ...selectedQuery }, generation);
 }
 
 function markCustomSelection(latitude, longitude) {
   selectLocation({
     latitude,
-    longitude,
-    displayLocation: "Custom location"
-  });
+    longitude
+  }, false, true);
 }
 
 map.on("click", ({ latlng }) => markCustomSelection(latlng.lat, latlng.lng));
@@ -324,7 +424,8 @@ function renderSupport(record) {
 }
 
 function renderFootprint(record) {
-  byId("result-location").textContent = record.display_location;
+  byId("result-location").textContent = selectedQuery.displayLocation;
+  byId("result-location-details").textContent = locationDetails(selectedQuery);
   byId("requested-point").textContent = formatCoordinates(record.query.location);
   byId("pixel-center").textContent = record.sampled_pixel.center
     ? formatCoordinates(record.sampled_pixel.center)
@@ -384,7 +485,7 @@ function renderResult(record, expected) {
   byId("result-context").textContent = period.start === latestPeriod.start
     ? "Latest at selected location"
     : "Historical window at selected location";
-  byId("example-meta").textContent = `${record.display_location} · ${formatDate(period.start)}–${formatDate(period.end)} UTC · observations selected from these eight dates`;
+  byId("example-meta").textContent = `${selectedQuery.displayLocation} · ${formatDate(period.start)}–${formatDate(period.end)} UTC · observations selected from these eight dates`;
   if (record.lai == null) {
     byId("example-lai").textContent = "—";
     byId("lai-units").hidden = true;
@@ -625,7 +726,10 @@ function renderHistory(data) {
   const latestMarker = periods.at(-1).snapshot.is_month_end
     ? ""
     : " The asterisk marks the latest rolling eight-day window.";
-  byId("trend-meta").textContent = `${scope.label} for ${data.query.location.name} run from ${firstRange} through ${latestRange}. ${scope.explanation}${latestMarker}${outside}`;
+  const locationName = sameLocation(data.query.location, selectedQuery)
+    ? selectedQuery.displayLocation
+    : data.query.location.name;
+  byId("trend-meta").textContent = `${scope.label} for ${locationName} run from ${firstRange} through ${latestRange}. ${scope.explanation}${latestMarker}${outside}`;
   const state = byId("history-state");
   if (data.state === "running") {
     state.className = "history-state";
@@ -721,7 +825,7 @@ async function loadStatus() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Scientific status unavailable");
     renderStatus(data);
-    byId("selected-name").textContent = selectedQuery.displayLocation;
+    renderSelectedLocationCopy();
     resetForLocation();
     if (dependenciesReady) runEstimate();
   } catch (error) {

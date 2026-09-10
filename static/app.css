@@ -76,6 +76,10 @@ h3 { margin: 0 0 12px; font-size: 17px; }
 
 .query-panel { padding: 26px; display: flex; flex-direction: column; align-items: stretch; gap: 9px; }
 .location-name { font: 600 25px/1.15 Newsreader, serif; margin-bottom: 8px; }
+.location-details { margin: -3px 0 6px; color: var(--muted); font-size: 11px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.place-attribution { margin: -5px 0 5px; font-size: 10px; line-height: 1.4; }
+.place-attribution a { color: var(--muted); text-underline-offset: 2px; }
+.place-attribution a:hover { color: var(--ink); }
 .window-copy { margin: 0 0 5px; padding: 10px 11px; border-radius: 8px; background: var(--leaf-soft); color: var(--leaf-dark); font-size: 12px; line-height: 1.5; }
 .window-technical { margin: -1px 0 5px; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .window-technical summary { cursor: pointer; color: var(--leaf-dark); font-weight: 700; }
@@ -132,6 +136,7 @@ button.secondary:hover:not(:disabled) { background: transparent; color: var(--in
 .bar-fill { height: 100%; border-radius: inherit; background: var(--leaf); }
 .support-note, .spatial-card p { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .result-location { margin: 0 0 8px; color: var(--ink) !important; font-size: 15px !important; font-weight: 700; }
+.spatial-card .location-details { margin-top: -3px; }
 .detail-label { margin: 12px 0 7px !important; color: var(--ink) !important; font-size: 11px !important; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .observation-dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 8px 0 14px; }
 .observation-date { padding: 8px 10px; border-radius: 7px; background: var(--leaf-soft); color: var(--leaf-dark); font-size: 11px; font-weight: 700; line-height: 1.35; font-variant-numeric: tabular-nums; }

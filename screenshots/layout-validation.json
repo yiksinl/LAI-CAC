@@ -1,7 +1,7 @@
 {
   "desktop": {
-    "latestReadyMs": 178,
-    "historyReadyMs": 178,
+    "latestReadyMs": 659,
+    "historyReadyMs": 659,
     "headline": "An eight-day estimate updated daily.",
     "displayedLai": "3.59",
     "units": "m²/m²",
@@ -25,7 +25,10 @@
       "Sep 9: 3 usable observations (3 observed)"
     ],
     "pixelArea": "The highlighted satellite pixel represents about 6.2 square kilometers. The estimate is an average for that whole area, not one yard or tree.",
+    "locationPanelName": "Montgomery County, Maryland",
+    "locationPanelDetails": "County: Montgomery County · Selected coordinates: 39.1547, −77.2405",
     "resultLocation": "Montgomery County, Maryland",
+    "resultLocationDetails": "County: Montgomery County · Selected coordinates: 39.1547, −77.2405",
     "historyMeta": "Monthly snapshots for Montgomery County, Maryland run from Apr 23, 2026–Apr 30, 2026 through Sep 2, 2026–Sep 9, 2026. Each point summarizes eight days of satellite observations. The asterisk marks the latest rolling eight-day window. Windows ending Sep 10, 2025 through Apr 13, 2026 are outside scope because every input observation must be after Apr 6, 2026.",
     "historyState": "Monthly snapshots loaded in 0.0 seconds. 6 estimates are available; 0 snapshots had insufficient data.",
     "historyPoints": 6,
@@ -85,6 +88,7 @@
       160,
       160
     ],
+    "locationDetailsWidth": 364,
     "landscapeGuideOpen": true,
     "landscapeGuideRows": 6,
     "landscapeTableLayout": "block",
@@ -102,6 +106,46 @@
     "open": true,
     "resultCleared": true,
     "selectedLocationVisible": true
+  },
+  "placeNameSuccess": {
+    "requestedPlaceCoordinates": {
+      "latitude": 39.1547,
+      "longitude": -77.2405
+    },
+    "estimateReadyMs": 500.2999999988824,
+    "placeNameReadyMs": 1112.0999999996275,
+    "estimateFinishedFirst": true,
+    "nameAtEstimateReady": "39.1547, −77.2405",
+    "panelName": "Germantown, Maryland",
+    "panelDetails": "County: Montgomery County · Selected coordinates: 39.1547, −77.2405",
+    "resultName": "Germantown, Maryland",
+    "resultDetails": "County: Montgomery County · Selected coordinates: 39.1547, −77.2405",
+    "resultMeta": "Germantown, Maryland · Sep 2, 2026–Sep 9, 2026 UTC · observations selected from these eight dates",
+    "historyMeta": "Monthly snapshots for Germantown, Maryland run from Apr 23, 2026–Apr 30, 2026 through Sep 2, 2026–Sep 9, 2026. Each point summarizes eight days of satellite observations. The asterisk marks the latest rolling eight-day window. Windows ending Sep 10, 2025 through Apr 13, 2026 are outside scope because every input observation must be after Apr 6, 2026.",
+    "attributionVisible": true
+  },
+  "placeNameFailure": {
+    "estimateStillLoaded": true,
+    "panelName": "39.1547, −77.2405",
+    "panelDetails": "Selected coordinates: 39.1547, −77.2405 · Place name unavailable",
+    "resultName": "39.1547, −77.2405",
+    "attributionHidden": true
+  },
+  "stalePlaceName": {
+    "requests": [
+      {
+        "latitude": 39.101,
+        "longitude": -77.101
+      },
+      {
+        "latitude": 39.202,
+        "longitude": -77.202
+      }
+    ],
+    "clearedOldNameImmediately": true,
+    "panelName": "New Area, Maryland",
+    "panelDetails": "County: New County · Selected coordinates: 39.2020, −77.2020",
+    "resultCleared": true
   },
   "staleEstimate": {
     "selectedLocation": "Custom location",
@@ -138,15 +182,15 @@
     "narrow": {
       "requested": {
         "width": 430,
-        "height": 7801
+        "height": 7869
       },
       "nativeCapture": {
         "width": 860,
-        "height": 15602
+        "height": 15738
       },
       "saved": {
         "width": 430,
-        "height": 7801
+        "height": 7869
       }
     }
   },

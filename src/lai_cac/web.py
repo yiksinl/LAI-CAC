@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import hashlib
 import math
+import os
 import threading
 import time
 import uuid
@@ -11,6 +12,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
+import urllib3
 from flask import Flask, jsonify, render_template, request
 
 from .assets import ReferenceAssets
@@ -44,6 +46,23 @@ MONTGOMERY = {
     "name": "Montgomery County, Maryland",
 }
 TREND_STARTS = (date(2026, 4, 7), date(2026, 4, 15), date(2026, 4, 23))
+NOMINATIM_REVERSE_URL = os.environ.get(
+    "LEAFVIEW_PLACE_LOOKUP_URL",
+    "https://nominatim.openstreetmap.org/reverse",
+)
+PLACE_AREA_FIELDS = (
+    "neighbourhood",
+    "suburb",
+    "quarter",
+    "borough",
+    "city_district",
+    "town",
+    "city",
+    "village",
+    "hamlet",
+    "municipality",
+    "locality",
+)
 
 NAVIGATION_DISCREPANCY = {
     "key": "navigation_equivalence",
@@ -54,6 +73,116 @@ NAVIGATION_DISCREPANCY = {
         "to validate navigation-raster Latitude, Longitude, LocalZenithAngle, and LandMask."
     ),
 }
+
+
+class PlaceLookupError(RuntimeError):
+    """A place-name service could not answer the selected-coordinate lookup."""
+
+
+def _place_component(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    cleaned = " ".join(value.split()).strip(" ,")
+    return cleaned or None
+
+
+def place_name_from_nominatim(payload: object) -> dict[str, str] | None:
+    """Select only response-backed U.S. area, county, and state fields."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("address"), dict):
+        return None
+    address = payload["address"]
+    country_code = _place_component(address.get("country_code"))
+    if country_code is None or country_code.casefold() != "us":
+        return None
+    state = _place_component(address.get("state"))
+    county = _place_component(address.get("county"))
+    area = next(
+        (
+            component
+            for field in PLACE_AREA_FIELDS
+            if (component := _place_component(address.get(field))) is not None
+        ),
+        None,
+    )
+    primary = area or county
+    if primary is None or state is None:
+        return None
+    return {
+        "display_name": f"{primary}, {state}"[:100],
+        "county": county[:100] if county else "",
+    }
+
+
+class NominatimPlaceLookup:
+    """Low-rate, process-local reverse-geocoder for interactive map clicks."""
+
+    def __init__(
+        self,
+        pool: urllib3.PoolManager | None = None,
+        *,
+        minimum_interval_seconds: float = 1.0,
+        monotonic: Callable[[], float] = time.monotonic,
+        sleeper: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self.pool = pool or urllib3.PoolManager(num_pools=1, maxsize=1, block=True)
+        self.minimum_interval_seconds = minimum_interval_seconds
+        self.monotonic = monotonic
+        self.sleeper = sleeper
+        self._lock = threading.Lock()
+        self._last_request_started: float | None = None
+        self._cache: dict[tuple[float, float], dict[str, str] | None] = {}
+
+    def __call__(self, latitude: float, longitude: float) -> dict[str, str] | None:
+        key = (round(latitude, 6), round(longitude, 6))
+        with self._lock:
+            if key in self._cache:
+                cached = self._cache[key]
+                return deepcopy(cached) if cached is not None else None
+            if self._last_request_started is not None:
+                remaining = (
+                    self.minimum_interval_seconds
+                    - (self.monotonic() - self._last_request_started)
+                )
+                if remaining > 0:
+                    self.sleeper(remaining)
+            self._last_request_started = self.monotonic()
+            try:
+                response = self.pool.request(
+                    "GET",
+                    NOMINATIM_REVERSE_URL,
+                    fields={
+                        "format": "jsonv2",
+                        "lat": f"{key[0]:.6f}",
+                        "lon": f"{key[1]:.6f}",
+                        "zoom": "14",
+                        "addressdetails": "1",
+                        "layer": "address",
+                        "accept-language": "en-US",
+                    },
+                    headers={
+                        "Accept": "application/json",
+                        "User-Agent": "LeafView/0.1 (CISESS LAI research app)",
+                    },
+                    timeout=urllib3.Timeout(connect=2, read=4),
+                    retries=False,
+                )
+            except urllib3.exceptions.HTTPError as error:
+                raise PlaceLookupError("Place-name service request failed") from error
+            if response.status == 404:
+                result = None
+            elif response.status != 200:
+                raise PlaceLookupError(
+                    f"Place-name service returned HTTP {response.status}"
+                )
+            else:
+                try:
+                    result = place_name_from_nominatim(json.loads(response.data))
+                except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                    raise PlaceLookupError("Place-name service returned invalid JSON") from error
+            if len(self._cache) >= 512:
+                self._cache.pop(next(iter(self._cache)))
+            self._cache[key] = deepcopy(result)
+            return result
 
 
 def dependency_status(assets: dict) -> dict:
@@ -808,10 +937,12 @@ def _parse_estimate_payload(
 def create_app(
     root: Path = ROOT,
     clock: Callable[[], datetime] | None = None,
+    place_lookup: Callable[[float, float], dict[str, str] | None] | None = None,
 ) -> Flask:
     app = Flask(__name__, template_folder=str(root / "templates"), static_folder=str(root / "static"))
     app.json = StrictJSONProvider(app)
     clock = clock or (lambda: datetime.now(timezone.utc))
+    place_lookup = place_lookup or NominatimPlaceLookup()
     observation_memo = ObservationMemo()
     jobs = EstimateJobs(root, observation_memo)
     history_jobs = HistoryJobs(root, observation_memo, jobs)
@@ -856,6 +987,28 @@ def create_app(
                     "but rolling-window prediction accuracy has not been evaluated."
                 ),
             },
+        })
+
+    @app.post("/api/place-name")
+    def place_name():
+        payload = request.get_json(silent=True) or {}
+        try:
+            latitude, longitude, _ = _parse_location(payload)
+        except ValueError as error:
+            return jsonify({"error": str(error)}), 400
+        try:
+            place = place_lookup(latitude, longitude)
+        except PlaceLookupError:
+            return jsonify({"error": "Place name lookup unavailable"}), 502
+        if place is None:
+            return jsonify({"error": "No supported area name was returned"}), 404
+        return jsonify({
+            **place,
+            "requested_location": {
+                "latitude": latitude,
+                "longitude": longitude,
+            },
+            "attribution": "© OpenStreetMap contributors",
         })
 
     @app.get("/api/examples/montgomery-2026-04-07")

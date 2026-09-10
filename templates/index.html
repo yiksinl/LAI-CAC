@@ -113,7 +113,9 @@
       </div>
       <aside class="query-panel">
         <p class="eyebrow">Location</p>
-        <div id="selected-name" class="location-name">Custom location</div>
+        <div id="selected-name" class="location-name" aria-live="polite">Custom location</div>
+        <p id="selected-location-details" class="location-details">Selected coordinates will appear here.</p>
+        <p id="place-name-attribution" class="place-attribution" hidden><a href="https://www.openstreetmap.org/copyright">Place names © OpenStreetMap contributors</a></p>
         <p id="latest-window-copy" class="window-copy">Finding the latest complete eight-day window…</p>
         <details class="window-technical">
           <summary>Technical date details</summary>
@@ -167,6 +169,7 @@
         <article class="spatial-card">
           <h3>Satellite pixel</h3>
           <p id="result-location" class="result-location">—</p>
+          <p id="result-location-details" class="location-details">Selected coordinates will appear here.</p>
           <p id="pixel-area-copy">The highlighted box is the area represented by one satellite pixel. The estimate is an average for that whole area, not one yard or tree.</p>
           <details id="pixel-details" class="compact-details">
             <summary>Pixel details</summary>

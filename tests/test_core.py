@@ -25,8 +25,11 @@ from lai_cac.inference import IGBP_CATEGORIES, ObservationMemo, seasonality_feat
 from lai_cac.web import (
     EstimateJobs,
     HistoryJobs,
+    NominatimPlaceLookup,
+    PlaceLookupError,
     create_app,
     dependency_status,
+    place_name_from_nominatim,
     public_result,
 )
 
@@ -205,6 +208,140 @@ def test_web_status_names_only_actual_missing_dependencies():
     assert response.headers["Cache-Control"] == "no-store, max-age=0"
 
 
+def test_place_name_parser_uses_only_response_backed_us_area_county_and_state():
+    place = place_name_from_nominatim({
+        "display_name": "A full address that must not be copied",
+        "address": {
+            "neighbourhood": "Woodside Park",
+            "town": "Silver Spring",
+            "county": "Montgomery County",
+            "state": "Maryland",
+            "province": "Unsupported province text",
+            "country": "United States",
+            "country_code": "us",
+        },
+    })
+    assert place == {
+        "display_name": "Woodside Park, Maryland",
+        "county": "Montgomery County",
+    }
+    assert "country" not in place
+    assert "province" not in place
+
+
+def test_place_name_parser_falls_back_to_county_and_state_without_inference():
+    assert place_name_from_nominatim({
+        "address": {
+            "road": "Unsupported as an area name",
+            "county": "Garrett County",
+            "state": "Maryland",
+            "country_code": "us",
+        },
+    }) == {
+        "display_name": "Garrett County, Maryland",
+        "county": "Garrett County",
+    }
+    assert place_name_from_nominatim({
+        "address": {
+            "city": "Toronto",
+            "state": "Ontario",
+            "country_code": "ca",
+        },
+    }) is None
+    assert place_name_from_nominatim({
+        "address": {"county": "Unknown County", "country_code": "us"},
+    }) is None
+
+
+def test_nominatim_lookup_uses_exact_requested_coordinates_and_caches_response():
+    class Response:
+        status = 200
+        data = json.dumps({
+            "address": {
+                "town": "Poolesville",
+                "county": "Montgomery County",
+                "state": "Maryland",
+                "country_code": "us",
+            },
+        }).encode()
+
+    class Pool:
+        def __init__(self):
+            self.calls = []
+
+        def request(self, method, url, **kwargs):
+            self.calls.append((method, url, kwargs))
+            return Response()
+
+    pool = Pool()
+    lookup = NominatimPlaceLookup(pool=pool, minimum_interval_seconds=0)
+    expected = {
+        "display_name": "Poolesville, Maryland",
+        "county": "Montgomery County",
+    }
+    assert lookup(39.1234567, -77.2345678) == expected
+    assert lookup(39.1234567, -77.2345678) == expected
+    assert len(pool.calls) == 1
+    method, url, options = pool.calls[0]
+    assert method == "GET"
+    assert url.endswith("/reverse")
+    assert options["fields"]["lat"] == "39.123457"
+    assert options["fields"]["lon"] == "-77.234568"
+    assert options["fields"]["layer"] == "address"
+    assert options["headers"]["User-Agent"].startswith("LeafView/")
+    assert options["retries"] is False
+
+    times = iter((10.0, 10.25, 11.0))
+    sleeps = []
+    throttled = NominatimPlaceLookup(
+        pool=pool,
+        minimum_interval_seconds=1.0,
+        monotonic=lambda: next(times),
+        sleeper=sleeps.append,
+    )
+    throttled(39.0, -77.0)
+    throttled(39.1, -77.1)
+    assert sleeps == [pytest.approx(0.75)]
+
+
+def test_place_name_endpoint_binds_response_to_clicked_coordinates_and_handles_failure():
+    calls = []
+
+    def lookup(latitude, longitude):
+        calls.append((latitude, longitude))
+        return {
+            "display_name": "Germantown, Maryland",
+            "county": "Montgomery County",
+        }
+
+    client = create_app(place_lookup=lookup).test_client()
+    response = client.post("/api/place-name", json={
+        "latitude": 39.1734567,
+        "longitude": -77.2712345,
+    })
+    assert response.status_code == 200
+    assert calls == [(39.173457, -77.271235)]
+    assert response.json == {
+        "display_name": "Germantown, Maryland",
+        "county": "Montgomery County",
+        "requested_location": {
+            "latitude": 39.173457,
+            "longitude": -77.271235,
+        },
+        "attribution": "© OpenStreetMap contributors",
+    }
+
+    def failed_lookup(_latitude, _longitude):
+        raise PlaceLookupError("network unavailable")
+
+    failed = create_app(place_lookup=failed_lookup).test_client().post(
+        "/api/place-name",
+        json={"latitude": 39.1, "longitude": -77.2},
+    )
+    assert failed.status_code == 502
+    assert failed.json == {"error": "Place name lookup unavailable"}
+
+
 def test_dependency_status_distinguishes_missing_invalid_and_verified(tmp_path: Path):
     status = dependency_status(ReferenceAssets(tmp_path).audit())
     assert not status["ready_for_estimate_execution"]
@@ -327,6 +464,19 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "Get latest estimate" not in template
     assert 'byId("estimate")' not in source
     assert "Choose a location on the map. Your latest estimate and available history will load automatically." in template
+    assert 'id="selected-location-details"' in template
+    assert 'id="result-location-details"' in template
+    assert "Place names © OpenStreetMap contributors" in template
+    assert 'fetch("/api/place-name"' in source
+    assert "placeNameGeneration" in source
+    assert "generation !== placeNameGeneration" in source
+    assert "!sameLocation(selectedQuery, expected)" in source
+    assert "place.requested_location" in source
+    assert "latitude: expected.latitude" in source
+    assert "longitude: expected.longitude" in source
+    assert "placeNameController.abort()" in source
+    assert "Place name unavailable" in source
+    assert "record.sampled_pixel.center" not in source[source.index("async function resolvePlaceName"):source.index("function schedulePlaceNameLookup")]
     assert 'id="retry-estimate"' in template
     assert 'id="retry-history"' in template
     assert "estimateRetryAction" in source
