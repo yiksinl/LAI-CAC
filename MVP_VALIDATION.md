@@ -4,7 +4,7 @@ Validated through 2026-09-10 against the supplied 600-tree model, exact IGBP gri
 checksum-matched solar helper, and the navigation raster read directly from
 `/Users/jianzhulee/Downloads/GOES_Navigation_2kmFD-GOES-East.nc`.
 
-## Latest result and daily rolling history
+## Latest result and monthly snapshots
 
 At 2026-09-10 04:03 UTC, the latest completed Montgomery County window was
 September 2–9, 2026. Its explicit boundaries are `2026-09-02T00:00:00Z` through
@@ -17,16 +17,24 @@ September 2–9, 2026. Its explicit boundaries are `2026-09-02T00:00:00Z` throug
   It used 24 ranged observation reads at concurrency 4, downloaded 36,830,588 HTTP
   bytes including listings, and made no full-file download or fallback. A repeated
   provenance-matched result took 0.003 s backend and 0.021 s client wall.
-- The available history contains 149 daily rolling windows from April 7–14 through
-  September 2–9. A complete pass with an empty derived-result cache and the existing
-  observation caches took 119.499 s backend and 120.013 s client wall. It produced
-  147 estimates and 2 explicit insufficient-data gaps, with no retrieval or
-  processing errors.
-- That pass reused 3,059 sampled observations in memory across overlapping windows,
-  used 356 partial-cache and 105 full-file cache observations, downloaded no new
-  observation bytes, made no full-file fallback, and kept every window at the
-  four-worker bound. The normal fully populated history takes 0.263 s backend and
-  0.278 s client wall to load.
+- The default available history contains six preselected windows: April through
+  August month-end snapshots plus the September 2–9 latest window. LeafView schedules
+  only those six windows; it does not generate the former 149 daily windows and then
+  downsample them. The latest result completes before history starts, and uncached
+  snapshots are processed newest first.
+- With all six provenance-matched results cached, 10 fresh-app API measurements took
+  a median 0.009 s inside the history loader and 0.010 s request wall time after the
+  first dependency-audit request. The browser capture completed history 55 ms after
+  the latest card (583 ms versus 528 ms from navigation). The former fully populated
+  daily history took 0.263 s backend and 0.278 s client wall, so the comparable warm
+  loader is about 29 times faster.
+- The earlier full daily pass remains a useful baseline: 149 windows with an empty
+  derived-result cache and existing observation caches took 119.499 s backend and
+  120.013 s client wall, producing 147 estimates and 2 insufficient-data gaps. That
+  pass reused 3,059 sampled observations in memory, used 356 partial-cache and 105
+  full-file-cache observations, downloaded no new observation bytes, and kept the
+  four-worker bound. Monthly mode preserves those cache paths but never schedules
+  the unselected daily windows.
 - The first history population exposed a reuse bug for a cached invalid reflectance:
   strict JSON had stored its non-finite value as `null`. Restoring that value to its
   in-memory non-finite representation before reuse removed all seven affected-window
@@ -36,6 +44,11 @@ September 2–9, 2026. Its explicit boundaries are `2026-09-02T00:00:00Z` throug
   feature names and values, the missing-value pattern, retained counts, and LAI
   `1.2043058872` exactly (maximum feature delta `0.0`, LAI delta `0.0`). This checks
   construction and same-boundary consistency, not rolling-window prediction accuracy.
+- For Montgomery County, each monthly point was compared with the existing daily
+  result at the identical coordinates and dates. Status, exact start/end boundaries,
+  usable-observation support, and model output matched. The LAI values were
+  `2.6258995533`, `4.8116402626`, `4.3954725266`, `4.5310139656`,
+  `4.5296845436`, and `3.5869650841` for April through the September latest point.
 
 ## Real Montgomery trend
 
@@ -70,10 +83,10 @@ client wall time.
   `5.2732105255 m²/m²`, with 5 of 24 usable observations on 2 of 8 distinct days.
   A fresh result calculation reused 23 partial-cache ranges and displayed the
   metadata-derived cached-observation explanation.
-- The selected-location trend is no longer a three-period view. It now follows the
-  exact selected point across the available daily rolling windows and reports each
-  window's UTC dates and observation support. The fixed Montgomery demonstration is
-  not used by the chart.
+- The selected-location trend is no longer a three-period view. It follows the exact
+  selected point across the preselected monthly snapshots and reports each window's
+  exact UTC dates and per-date usable-observation support. The fixed Montgomery
+  demonstration is not used by the chart.
 - The displayed source corner order is southwest, southeast, northwest, northeast.
   The renderer's perimeter order is southwest, southeast, northeast, northwest; the
   browser polygon did not cross and contained both the requested point and sampled
@@ -81,8 +94,8 @@ client wall time.
 
 The automated browser record is in `screenshots/layout-validation.json`; the desktop
 and 430-pixel captures are in the same directory. Both layouts had no horizontal
-overflow. The browser rendered 147 estimates and two insufficient-data gaps, bound
-the result and history to the same point, and rejected delayed estimate and history
+overflow. The browser rendered six monthly points, their month labels, exact dates,
+and observation support; bound the result and history to the same point; and rejected delayed estimate and history
 responses after a location change. The OpenClaw-managed browser profile could not
 start because this Mac has no supported Chrome/Brave/Edge/Chromium install, so the
 checks used the already-installed isolated Electron Chromium runtime. No GreenOrbit
@@ -93,7 +106,7 @@ source, configuration, cache, or result was changed.
 - Estimate execution: ready.
 - Supplied-pipeline preprocessing: verified.
 - Historical numerical reproduction: unverified and non-blocking for runtime use.
-- Daily rolling-window prediction accuracy: separately unevaluated. Construction and
+- Rolling eight-day-window prediction accuracy: separately unevaluated. Construction and
   same-boundary checks do not establish accuracy.
 - The supplied solar-azimuth calculation is intentionally unchanged for model
   compatibility; its convention concern remains documented in `SCIENTIFIC_NOTES.md`.

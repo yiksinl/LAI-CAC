@@ -19,7 +19,7 @@
     <section class="intro">
       <p class="eyebrow">Leaf area, seen from orbit</p>
       <h1>Explore how a landscape's canopy changes over time.</h1>
-      <p>Choose a location to see its latest eight-day leaf-area estimate, then explore the history that is available for that same place.</p>
+      <p>Choose a location to see its latest eight-day leaf-area estimate, then compare it with monthly snapshots from the same place.</p>
     </section>
 
     <section class="workspace" aria-label="Selected query">
@@ -101,17 +101,18 @@
     <section id="trend-section" class="trend-card history-card" aria-labelledby="trend-title">
       <div class="trend-heading">
         <p class="eyebrow">History at selected location</p>
-        <h2 id="trend-title">Explore available history</h2>
-        <p class="trend-lead">Daily rolling estimates load from newest to oldest after the latest result is ready.</p>
+        <h2 id="trend-title">Monthly snapshots</h2>
+        <p class="trend-lead">Each point summarizes eight days of satellite observations.</p>
       </div>
       <div class="history-content">
         <p id="trend-meta" class="trend-meta">History will start after the latest estimate.</p>
         <div id="history-state" class="history-state" role="status">Waiting for a location.</div>
         <div class="history-legend" aria-label="History status legend">
           <span><i class="legend-available"></i> Available</span>
-          <span><i class="legend-loading"></i> Still loading</span>
+          <span><i class="legend-loading"></i> Pending</span>
           <span><i class="legend-insufficient"></i> Insufficient data</span>
-          <span><i class="legend-error"></i> Retrieval error</span>
+          <span><i class="legend-error"></i> Network or retrieval error</span>
+          <span><i class="legend-error"></i> Processing error</span>
         </div>
         <div id="trend-plot" class="trend-plot" aria-live="polite"></div>
         <details class="history-picker">
@@ -123,8 +124,8 @@
             <button id="view-latest" class="secondary" disabled>Return to latest</button>
           </div>
         </details>
-        <details id="history-details" class="history-results">
-          <summary>Browse loaded windows</summary>
+        <details id="history-details" class="history-results" open>
+          <summary>Browse monthly snapshots</summary>
           <div id="history-list" class="history-list"></div>
         </details>
       </div>
@@ -138,7 +139,7 @@
         <p>These checks establish preprocessing compatibility, not prediction accuracy.</p>
         <p>LeafView applies Yixuan Li's selected 600-tree XGBoost model to GOES-19 red, near-infrared, and shortwave-infrared reflectance statistics, viewing and illumination geometry, seasonality, and IGBP land cover. The model preserves separate 15, 18, and 21 UTC composites.</p>
         <p>Each window contains eight UTC calendar dates. Seasonality is calculated from the window's start date with the notebook's formula. LeafView only uses windows whose observations are all after the model's April 6, 2026 training cutoff. Results after that cutoff test how the trained model transfers to later observations; they are not forecasts.</p>
-        <p>Rolling-window construction and numerical consistency are checked separately. Prediction accuracy for daily rolling windows has not been evaluated.</p>
+        <p>Rolling-window construction and numerical consistency are checked separately. Prediction accuracy for rolling eight-day windows has not been evaluated.</p>
         <p>The training reference is a quality-screened MODIS/VIIRS satellite consensus, not direct field ground truth. LAI is leaf area per ground area; it is not a direct plant-health score, drought diagnosis, or irrigation recommendation.</p>
         <ul id="methods-limitations"></ul>
         <p><strong>Model-compatibility concern</strong></p>

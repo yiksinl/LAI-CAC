@@ -10,7 +10,8 @@ Last updated: 2026-09-10
 4. **Completed:** rerun the April 7–14 composite and expose its revised result.
 5. **Completed:** verify and use the notebook's separate GOES navigation grid.
 6. **Completed:** build and browser-test the query-bound LeafView MVP and three-period trend.
-7. **Completed:** add automatic latest-window selection and progressive daily rolling history.
+7. **Completed:** add automatic latest-window selection and progressive query-bound history.
+8. **Completed:** make preselected month-end eight-day snapshots the default history.
 
 ## LeafView MVP
 
@@ -31,19 +32,23 @@ Last updated: 2026-09-10
   rendered unless its query still matches. The result panel
   shows usable observations and distinct usable days, 15/18/21 UTC counts,
   fixed-grid row/column, center, and all four footprint corners.
-- The trend covers the available part of the previous year with daily rolling
-  windows, newest first. Every observation remains after the April 6, 2026 training
-  cutoff. The UI distinguishes outside-scope dates, loading windows, insufficient
-  data, retrieval errors, and processing errors. Missing estimates remain gaps.
+- The trend covers the available part of the previous year with an eight-day window
+  ending on each completed month's final day, plus the latest rolling eight-day
+  window when distinct. Snapshot windows are selected before any work is scheduled
+  and processed newest first. Every observation remains after the April 6, 2026
+  training cutoff. The UI distinguishes outside-scope dates, pending work,
+  insufficient data, retrieval errors, and processing errors. Missing estimates
+  remain gaps.
 - A process-local memo shares scan selections and sampled observations across
   overlapping windows. Exact estimate jobs are also deduplicated, and observation
   retrieval remains bounded at four workers.
 - All output is labelled **Research estimate**. Zero-usable-observation runs return
   `insufficient_data` with `lai: null`; the trend renderer leaves these periods as
   gaps and never connects a line across one.
-- Browser validation covered the latest Montgomery result, all 149 available daily
-  windows, optional historical selection, stale estimate/history rejection, and
-  desktop/narrow layouts.
+- Browser validation covered the latest Montgomery result, all six current monthly
+  snapshots, optional historical selection, stale estimate/history rejection, and
+  desktop/narrow layouts. The fully cached monthly history loaded 55 ms after the
+  latest card in the browser capture.
   Detailed evidence and timings are in [MVP_VALIDATION.md](MVP_VALIDATION.md).
 
 ## Verified findings

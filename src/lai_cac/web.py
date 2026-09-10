@@ -20,9 +20,10 @@ from .composites import (
     POST_CUTOFF_ANCHOR,
     TRAINING_END,
     archive_ready_after,
+    is_month_end,
     latest_completed_rolling_period,
+    monthly_snapshot_periods,
     rolling_period,
-    rolling_periods_through,
     utc_window_boundaries,
 )
 from .goes import ObservationRetrievalError
@@ -283,10 +284,14 @@ def public_result(
 
 
 def _history_scope(latest_start: date) -> dict[str, object]:
-    windows = rolling_periods_through(latest_start)
-    latest_end = windows[-1][1]
+    latest_start, latest_end = rolling_period(latest_start)
+    snapshots = monthly_snapshot_periods(latest_start)
     requested_start = latest_end - timedelta(days=HISTORY_DAYS - 1)
-    first_start, first_end = windows[0]
+    first_start = max(
+        POST_CUTOFF_ANCHOR,
+        latest_start - timedelta(days=HISTORY_DAYS - 1),
+    )
+    _, first_end = rolling_period(first_start)
     outside_scope = None
     first_eligible_end = first_end
     if requested_start < first_eligible_end:
@@ -305,11 +310,14 @@ def _history_scope(latest_start: date) -> dict[str, object]:
         "requested_end": latest_end.isoformat(),
         "available_start": first_start.isoformat(),
         "available_first_end": first_end.isoformat(),
-        "available_latest_start": windows[-1][0].isoformat(),
+        "available_latest_start": latest_start.isoformat(),
         "available_end": latest_end.isoformat(),
         "training_cutoff": TRAINING_END.isoformat(),
         "outside_scope": outside_scope,
-        "window_count": len(windows),
+        "mode": "monthly_snapshots",
+        "label": "Monthly snapshots",
+        "explanation": "Each point summarizes eight days of satellite observations.",
+        "window_count": len(snapshots),
     }
 
 
@@ -318,11 +326,20 @@ def _history_item(
     period_start: date,
     result: dict | None = None,
     *,
+    latest_start: date,
     state: str = "loading",
     message: str | None = None,
 ) -> dict[str, object]:
+    _, period_end = rolling_period(period_start)
+    latest = period_start == latest_start
     base = {
         "period": utc_window_boundaries(period_start),
+        "snapshot": {
+            "label": period_end.strftime("%B %Y") + (" · latest" if latest else ""),
+            "month": period_end.strftime("%Y-%m"),
+            "is_month_end": is_month_end(period_end),
+            "is_latest": latest,
+        },
         "query_key": identity["key"],
         "state": state,
         "status": state,
@@ -540,13 +557,13 @@ class HistoryJobs:
         display_location: str,
     ) -> dict:
         started = time.perf_counter()
-        windows = rolling_periods_through(latest_start)
+        windows = monthly_snapshot_periods(latest_start)
         identities = [
             cache_identity(latitude, longitude, period_start, self.root)
             for period_start, _ in windows
         ]
         query_document = {
-            "version": "daily-rolling-history-v1",
+            "version": "monthly-snapshot-history-v1",
             "latitude": latitude,
             "longitude": longitude,
             "latest_start": latest_start.isoformat(),
@@ -567,13 +584,19 @@ class HistoryJobs:
             if cached:
                 result, _ = cached
                 self.observation_memo.seed_result(result)
-                items.append(_history_item(identity, period_start, result))
+                items.append(_history_item(
+                    identity,
+                    period_start,
+                    result,
+                    latest_start=latest_start,
+                ))
                 completed += 1
             else:
                 items.append(_history_item(
                     identity,
                     period_start,
-                    message="This rolling window is waiting to be calculated.",
+                    latest_start=latest_start,
+                    message="This monthly snapshot is waiting to be calculated.",
                 ))
         job_id = uuid.uuid4().hex
         state = "complete" if completed == len(items) else "running"
@@ -596,9 +619,9 @@ class HistoryJobs:
                 "total": len(items),
                 "percent": round(100 * completed / len(items), 1),
                 "detail": (
-                    "Available history loaded from provenance-matched results."
+                    "Monthly snapshots loaded from provenance-matched results."
                     if state == "complete" else
-                    "Loading the newest available rolling windows first."
+                    "Loading the newest monthly snapshots first."
                 ),
             },
             "elapsed_seconds": round(time.perf_counter() - started, 3) if state == "complete" else None,
@@ -616,6 +639,7 @@ class HistoryJobs:
                     query_key,
                     windows,
                     identities,
+                    latest_start,
                     latitude,
                     longitude,
                     display_location,
@@ -634,6 +658,7 @@ class HistoryJobs:
         query_key: str,
         windows: list[tuple[date, date]],
         identities: list[dict[str, object]],
+        latest_start: date,
         latitude: float,
         longitude: float,
         display_location: str,
@@ -667,7 +692,7 @@ class HistoryJobs:
                         "percent": round(overall, 1),
                         "current_period": utc_window_boundaries(period_start),
                         "window_progress": update,
-                        "detail": f"Loading {period_start.isoformat()} rolling window.",
+                        "detail": f"Loading the {period_start.isoformat()} snapshot window.",
                     })
                     time.sleep(0.1)
                     estimate_job = self.estimate_jobs.snapshot(estimate_job["job_id"])
@@ -678,6 +703,7 @@ class HistoryJobs:
                     item = _history_item(
                         identity,
                         period_start,
+                        latest_start=latest_start,
                         state="error",
                         message="The shared estimate job disappeared before completion.",
                     )
@@ -686,19 +712,23 @@ class HistoryJobs:
                     item = _history_item(
                         identity,
                         period_start,
+                        latest_start=latest_start,
                         state=str(estimate_job.get("error_kind") or "error"),
                         message=str(estimate_job.get("error") or "Estimate failed"),
                     )
                 else:
                     item = _history_item(
-                        identity, period_start, estimate_job["result"]
+                        identity,
+                        period_start,
+                        estimate_job["result"],
+                        latest_start=latest_start,
                     )
                 completed += 1
                 self._set_item(job_id, index, item, error_count=errors, progress={
                     "completed": completed,
                     "total": total,
                     "percent": round(100 * completed / total, 1),
-                    "detail": f"Loaded {completed} of {total} rolling windows.",
+                    "detail": f"Loaded {completed} of {total} monthly snapshots.",
                 })
             self._set(
                 job_id,
@@ -708,7 +738,7 @@ class HistoryJobs:
                     "completed": completed,
                     "total": total,
                     "percent": 100.0,
-                    "detail": "Available rolling-window history finished loading.",
+                    "detail": "Monthly snapshots finished loading.",
                 },
                 error_count=errors,
             )
@@ -721,7 +751,7 @@ class HistoryJobs:
                     "completed": completed,
                     "total": total,
                     "percent": round(100 * completed / total, 1),
-                    "detail": "Rolling-window history stopped before it finished.",
+                    "detail": "Monthly snapshots stopped before they finished.",
                 },
                 error_count=errors + 1,
                 error=str(error),

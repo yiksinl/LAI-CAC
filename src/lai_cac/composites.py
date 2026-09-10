@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from calendar import monthrange
 from datetime import date, datetime, time, timedelta, timezone
 
 TRAINING_END = date(2026, 4, 6)
@@ -73,6 +74,37 @@ def rolling_periods_through(
         rolling_period(earliest + timedelta(days=offset))
         for offset in range((latest_start - earliest).days + 1)
     ]
+
+
+def is_month_end(day: date) -> bool:
+    return day.day == monthrange(day.year, day.month)[1]
+
+
+def monthly_snapshot_periods(
+    latest_start: date,
+    history_days: int = HISTORY_DAYS,
+) -> list[tuple[date, date]]:
+    """Month-end eight-day windows plus the latest window, selected before work."""
+    if history_days <= 0:
+        raise ValueError("History length must be positive")
+    latest_start, latest_end = rolling_period(latest_start)
+    first_requested_end = latest_end - timedelta(days=history_days - 1)
+    first_eligible_end = POST_CUTOFF_ANCHOR + timedelta(days=COMPOSITE_DAYS - 1)
+    cursor = max(first_requested_end, first_eligible_end)
+    month_end = date(cursor.year, cursor.month, monthrange(cursor.year, cursor.month)[1])
+    snapshots = []
+    while month_end <= latest_end:
+        period_start = month_end - timedelta(days=COMPOSITE_DAYS - 1)
+        snapshots.append(rolling_period(period_start))
+        next_month = month_end + timedelta(days=1)
+        month_end = date(
+            next_month.year,
+            next_month.month,
+            monthrange(next_month.year, next_month.month)[1],
+        )
+    if not snapshots or snapshots[-1][0] != latest_start:
+        snapshots.append((latest_start, latest_end))
+    return snapshots
 
 
 def utc_window_boundaries(start: date) -> dict[str, str]:

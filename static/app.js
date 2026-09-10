@@ -64,8 +64,8 @@ const formatDate = (value) => new Intl.DateTimeFormat("en-US", {
 const formatShortDate = (value) => new Intl.DateTimeFormat("en-US", {
   month: "short", day: "numeric", timeZone: "UTC"
 }).format(new Date(`${value}T00:00:00Z`));
-const formatAxisDate = (value) => new Intl.DateTimeFormat("en-US", {
-  month: "short", day: "numeric", timeZone: "UTC"
+const formatMonthLabel = (value) => new Intl.DateTimeFormat("en-US", {
+  month: "short", timeZone: "UTC"
 }).format(new Date(`${value}T00:00:00Z`));
 const solarAngleExplanation = "The original helper calculates solar direction differently from its stated convention. LeafView preserves that calculation to match the model's training inputs. Correcting it would require separate evaluation and potentially retraining.";
 
@@ -473,29 +473,48 @@ function historyResponseMatchesQuery(data, query) {
 function historyItemText(item) {
   if (item.state === "available") return `${Number(item.lai).toFixed(2)} m²/m²`;
   if (item.state === "insufficient_data") return "Insufficient data";
-  if (item.state === "retrieval_error") return "Retrieval error";
+  if (item.state === "retrieval_error") return "Network or retrieval error";
   if (item.state === "error" || item.state === "processing_error") return "Processing error";
-  return "Still loading";
+  return "Pending";
 }
 
 function historyItemSupport(item) {
-  if (item.usable_total == null) return item.state === "loading" ? "Waiting" : "No support count";
+  if (item.usable_total == null) return item.state === "loading" ? "Pending" : "No support count";
   return `${item.usable_total}/${item.possible_total} observations · ${item.usable_days}/${item.possible_days} days`;
+}
+
+function historyObservationDates(item) {
+  if (!item.observation_dates?.length) {
+    return item.state === "loading"
+      ? "Actual observation dates will appear when this snapshot finishes."
+      : "No satellite observations were available for this snapshot.";
+  }
+  return `Actual observations (UTC): ${item.observation_dates.map(dateItem =>
+    `${formatShortDate(dateItem.date)} ${dateItem.usable}/${dateItem.observations} usable`
+  ).join(" · ")}`;
 }
 
 function renderHistoryList(data) {
   const list = byId("history-list");
   list.replaceChildren();
   data.periods.slice().reverse().forEach(item => {
-    const row = document.createElement("div");
+    const row = document.createElement("details");
     row.className = `history-row ${item.state}`;
+    const summary = document.createElement("summary");
+    summary.className = "snapshot-summary";
+    const month = document.createElement("strong");
+    month.textContent = item.snapshot.label;
     const dates = document.createElement("strong");
     dates.textContent = `${formatDate(item.period.start)}–${formatDate(item.period.end)}`;
     const outcome = document.createElement("span");
     outcome.textContent = historyItemText(item);
     const support = document.createElement("span");
     support.textContent = historyItemSupport(item);
-    row.append(dates, outcome, support);
+    summary.append(month, dates, outcome, support);
+    const observationDates = document.createElement("p");
+    observationDates.className = "snapshot-observation-dates";
+    observationDates.textContent = historyObservationDates(item);
+    row.append(summary, observationDates);
     list.append(row);
   });
 }
@@ -521,9 +540,9 @@ function renderHistory(data) {
   const svg = svgElement("svg", {
     viewBox: `0 0 ${width} ${height}`,
     role: "img",
-    "aria-label": "Daily rolling eight-day leaf-area history for the selected location"
+    "aria-label": "Monthly eight-day leaf-area snapshots for the selected location"
   });
-  svg.append(svgElement("title", {}, "Available daily rolling leaf-area history"));
+  svg.append(svgElement("title", {}, "Monthly leaf-area snapshots"));
   [0, maximum / 3, maximum * 2 / 3, maximum].forEach(value => {
     const y = yFor(value);
     svg.append(svgElement("line", {
@@ -571,37 +590,37 @@ function renderHistory(data) {
     point.append(svgElement("title", {}, `${formatTrendPeriod(item.period)} · ${historyItemText(item)} · ${historyItemSupport(item)}`));
     svg.append(point);
   });
-  const tickIndexes = new Set([0, periods.length - 1]);
-  for (let step = 1; step < 4; step += 1) {
-    tickIndexes.add(Math.round((periods.length - 1) * step / 4));
-  }
-  [...tickIndexes].sort((a, b) => a - b).forEach(index => {
+  periods.forEach((item, index) => {
+    const suffix = item.snapshot.is_latest && !item.snapshot.is_month_end ? "*" : "";
     svg.append(svgElement("text", {
       x: xFor(index), y: height - 15, class: "trend-date"
-    }, formatAxisDate(periods[index].period.end)));
+    }, `${formatMonthLabel(item.period.end)}${suffix}`));
   });
   plot.replaceChildren(svg);
 
   const scope = data.scope;
-  const firstRange = `${formatDate(scope.available_start)}–${formatDate(scope.available_first_end)}`;
-  const latestRange = `${formatDate(scope.available_latest_start)}–${formatDate(scope.available_end)}`;
+  const firstRange = `${formatDate(periods[0].period.start)}–${formatDate(periods[0].period.end)}`;
+  const latestRange = `${formatDate(periods[periods.length - 1].period.start)}–${formatDate(periods[periods.length - 1].period.end)}`;
   const outside = scope.outside_scope
     ? ` Windows ending ${formatDate(scope.outside_scope.start)} through ${formatDate(scope.outside_scope.end)} are outside scope because every input observation must be after ${formatDate(scope.training_cutoff)}.`
     : "";
-  byId("trend-meta").textContent = `Available daily eight-day windows for ${data.query.location.name} run from ${firstRange} through ${latestRange}.${outside}`;
+  const latestMarker = periods.at(-1).snapshot.is_month_end
+    ? ""
+    : " The asterisk marks the latest rolling eight-day window.";
+  byId("trend-meta").textContent = `${scope.label} for ${data.query.location.name} run from ${firstRange} through ${latestRange}. ${scope.explanation}${latestMarker}${outside}`;
   const state = byId("history-state");
   if (data.state === "running") {
     state.className = "history-state";
-    state.textContent = `History still loading: ${data.progress.completed} of ${data.progress.total} windows checked, newest first.`;
+    state.textContent = `Monthly snapshots pending: ${data.progress.completed} of ${data.progress.total} loaded, newest first.`;
   } else if (retrievalErrors || processingErrors) {
     state.className = "history-state error";
     const errors = [];
-    if (retrievalErrors) errors.push(`${retrievalErrors} retrieval error${retrievalErrors === 1 ? "" : "s"}`);
+    if (retrievalErrors) errors.push(`${retrievalErrors} network or retrieval error${retrievalErrors === 1 ? "" : "s"}`);
     if (processingErrors) errors.push(`${processingErrors} processing error${processingErrors === 1 ? "" : "s"}`);
-    state.textContent = `History loaded in ${Number(data.elapsed_seconds).toFixed(1)} seconds with ${errors.join(" and ")}. ${available.length} estimates are available; ${insufficient} windows had insufficient data.`;
+    state.textContent = `Monthly snapshots loaded in ${Number(data.elapsed_seconds).toFixed(1)} seconds with ${errors.join(" and ")}. ${available.length} estimates are available; ${insufficient} snapshots had insufficient data.`;
   } else {
     state.className = "history-state complete";
-    state.textContent = `History loaded in ${Number(data.elapsed_seconds).toFixed(1)} seconds. ${available.length} estimates are available; ${insufficient} windows had insufficient data.`;
+    state.textContent = `Monthly snapshots loaded in ${Number(data.elapsed_seconds).toFixed(1)} seconds. ${available.length} estimates are available; ${insufficient} snapshots had insufficient data.`;
   }
   renderHistoryList(data);
 }
@@ -610,7 +629,7 @@ async function startHistory() {
   const generation = ++historyGeneration;
   const query = { ...selectedQuery };
   byId("history-state").className = "history-state";
-  byId("history-state").textContent = "History still loading: checking the newest windows first.";
+  byId("history-state").textContent = "Monthly snapshots pending: checking the newest point first.";
   try {
     const response = await fetch("/api/history", {
       method: "POST",

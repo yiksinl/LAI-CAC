@@ -11,6 +11,7 @@ from lai_cac.composites import (
     aligned_period,
     archive_ready_after,
     latest_completed_rolling_period,
+    monthly_snapshot_periods,
     rolling_period,
     rolling_periods_through,
     utc_window_boundaries,
@@ -54,6 +55,21 @@ def test_daily_rolling_windows_accept_off_calendar_starts_and_stay_post_training
     assert [start for start, _ in windows] == [
         date(2026, 4, 7), date(2026, 4, 8), date(2026, 4, 9), date(2026, 4, 10)
     ]
+
+
+def test_monthly_snapshots_select_month_end_windows_before_latest_and_deduplicate():
+    assert monthly_snapshot_periods(date(2026, 9, 2)) == [
+        (date(2026, 4, 23), date(2026, 4, 30)),
+        (date(2026, 5, 24), date(2026, 5, 31)),
+        (date(2026, 6, 23), date(2026, 6, 30)),
+        (date(2026, 7, 24), date(2026, 7, 31)),
+        (date(2026, 8, 24), date(2026, 8, 31)),
+        (date(2026, 9, 2), date(2026, 9, 9)),
+    ]
+    assert monthly_snapshot_periods(date(2026, 8, 24))[-1] == (
+        date(2026, 8, 24), date(2026, 8, 31)
+    )
+    assert len(monthly_snapshot_periods(date(2026, 8, 24))) == 5
 
 
 def test_latest_window_waits_for_the_archive_publication_delay_and_has_utc_bounds():
@@ -180,6 +196,11 @@ def test_web_status_names_only_actual_missing_dependencies():
     assert response.json["history_scope"]["available_first_end"] == "2026-04-14"
     assert response.json["history_scope"]["available_latest_start"] == "2026-09-02"
     assert response.json["history_scope"]["outside_scope"]["end"] == "2026-04-13"
+    assert response.json["history_scope"]["mode"] == "monthly_snapshots"
+    assert response.json["history_scope"]["window_count"] == 6
+    assert response.json["history_scope"]["explanation"] == (
+        "Each point summarizes eight days of satellite observations."
+    )
     assert response.json["rolling_window_accuracy"]["status"] == "separately_unevaluated"
     assert response.headers["Cache-Control"] == "no-store, max-age=0"
 
@@ -322,8 +343,9 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert 'fetch("/api/trends/montgomery"' not in source
     assert "historyResponseMatchesQuery" in source
     assert "generation !== historyGeneration" in source
-    assert "Available daily eight-day windows" in source
-    assert "scope.available_first_end" in source
+    assert "scope.label" in source
+    assert "item.snapshot.is_latest" in source
+    assert "historyObservationDates" in source
     assert "clearHistory" in source
     assert "Calculated using cached satellite observations." not in source
     assert "No differences from the supplied preprocessing were identified for this query." in source
@@ -340,7 +362,11 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "An eight-day estimate updated daily." in template
     assert "View an older eight-day window" in template
     assert "History at selected location" in template
-    assert "Prediction accuracy for daily rolling windows has not been evaluated." in template
+    assert "Monthly snapshots" in template
+    assert "Each point summarizes eight days of satellite observations." in template
+    assert "Network or retrieval error" in template
+    assert "Network or retrieval error" in source
+    assert "Prediction accuracy for rolling eight-day windows has not been evaluated." in template
     assert template.count('id="result-badge"') == 1
 
 
@@ -471,7 +497,7 @@ def test_real_trend_has_three_consecutive_query_bound_periods():
     assert all(item["gap"] is False for item in response.json["periods"])
 
 
-def test_history_loads_daily_windows_newest_first_and_keeps_query_provenance(
+def test_history_schedules_only_month_end_snapshots_and_latest_newest_first(
     tmp_path: Path, monkeypatch
 ):
     import lai_cac.web as web
@@ -511,7 +537,7 @@ def test_history_loads_daily_windows_newest_first_and_keeps_query_provenance(
     monkeypatch.setattr(web, "load_compatible_result", lambda *args: None)
     jobs = HistoryJobs(tmp_path, ObservationMemo(), FakeEstimateJobs())
     history = jobs.start(
-        requested[0], requested[1], date(2026, 4, 8), "Custom location"
+        requested[0], requested[1], date(2026, 9, 2), "Custom location"
     )
     for _ in range(100):
         history = jobs.snapshot(history["job_id"])
@@ -521,12 +547,21 @@ def test_history_loads_daily_windows_newest_first_and_keeps_query_provenance(
     assert history["state"] == "complete"
     assert history["query"]["location"]["latitude"] == requested[0]
     assert [item["period"]["start"] for item in history["periods"]] == [
-        "2026-04-07", "2026-04-08",
+        "2026-04-23", "2026-05-24", "2026-06-23",
+        "2026-07-24", "2026-08-24", "2026-09-02",
     ]
-    assert [item["state"] for item in history["periods"]] == [
-        "available", "available",
+    assert all(item["state"] == "available" for item in history["periods"])
+    assert [item["lai"] for item in history["periods"]] == [
+        23.0, 24.0, 23.0, 24.0, 24.0, 2.0,
     ]
-    assert calls == [date(2026, 4, 8), date(2026, 4, 7)]
+    assert [item["snapshot"]["label"] for item in history["periods"]] == [
+        "April 2026", "May 2026", "June 2026",
+        "July 2026", "August 2026", "September 2026 · latest",
+    ]
+    assert calls == [
+        date(2026, 9, 2), date(2026, 8, 24), date(2026, 7, 24),
+        date(2026, 6, 23), date(2026, 5, 24), date(2026, 4, 23),
+    ]
 
 
 def test_history_endpoint_uses_the_latest_query_and_existing_cached_result():
