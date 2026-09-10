@@ -28,10 +28,13 @@ Last updated: 2026-09-10
   checksums. Raw observations are still accepted from cache only when their byte size
   matches the selected immutable NOAA object.
 - Changing coordinates or the optional historical window immediately clears the
-  displayed LAI, footprint, and history; a late estimate or history response is not
-  rendered unless its query still matches. The result panel
+  displayed LAI, footprint, calculation timestamp, and history; a late estimate or
+  history response is not rendered unless its query still matches. The result panel
   shows usable observations and distinct usable days, 15/18/21 UTC counts,
   fixed-grid row/column, center, and all four footprint corners.
+- New result files record a UTC calculation timestamp in processing provenance.
+  Saved results retain and display that original value; older files without a
+  trustworthy timestamp show `Calculation time unavailable.`
 - The trend covers the available part of the previous year with an eight-day window
   ending on each completed month's final day, plus the latest rolling eight-day
   window when distinct. Snapshot windows are selected before any work is scheduled

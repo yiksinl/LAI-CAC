@@ -59,7 +59,10 @@ Changing the map point or selected window clears the displayed result and histor
 Late estimate and history responses are discarded unless their coordinates and UTC
 dates still match the selection. Every output is labelled **Research estimate**; a
 window with no usable observations is displayed as an explicit gap rather than a
-model prediction. See [MVP_VALIDATION.md](MVP_VALIDATION.md) for direct numerical
+model prediction. Newly calculated results record their UTC calculation time, and
+cache hits retain that original timestamp. Older results without a recorded time are
+explicitly labelled as unavailable rather than dated from the request or file. See
+[MVP_VALIDATION.md](MVP_VALIDATION.md) for direct numerical
 checks, browser evidence, and separate latest/history timings.
 
 Inspect the real scan selection for the first post-cutoff composite:

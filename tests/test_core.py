@@ -321,7 +321,8 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "1.29" not in source
     assert 'id="period"' not in template
     assert "latestPeriod.start" in source
-    assert "Latest complete window:" in source
+    assert "Latest observation period:" in source
+    assert "formatObservationPeriod" in source
     assert 'byId("methods-concerns")' in source
     assert "preprocessing_discrepancies" in source
     assert 'fetch("/api/estimate"' in source
@@ -353,6 +354,8 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "const ordered = [corners[0], corners[1], corners[3], corners[2]]" in source
     assert 'id="map-tile-message"' in template
     assert 'id="calculation-source"' in template
+    assert 'id="calculated-at"' in template
+    assert 'id="latest-window-details"' in template
     assert 'id="processing-diagnostics"' in template
     assert 'id="observation-details"' in template
     assert 'id="pixel-details"' in template
@@ -367,6 +370,9 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "Network or retrieval error" in template
     assert "Network or retrieval error" in source
     assert "Prediction accuracy for rolling eight-day windows has not been evaluated." in template
+    assert "Calculation time unavailable." in source
+    assert 'showEstimateState("Estimate ready")' in source
+    assert "Binding this result to the selected location and UTC dates" not in source
     assert template.count('id="result-badge"') == 1
 
 
@@ -379,6 +385,9 @@ def test_result_support_and_calculation_copy_are_derived_from_metadata():
         "start": "2026-07-04", "end": "2026-07-11",
     }
     result["provenance"]["usable_counts"] = {"15": 2, "18": 2, "21": 1}
+    result["provenance"]["processing"]["calculated_at_utc"] = (
+        "2026-09-10T17:42:31.123456Z"
+    )
     result["provenance"]["attempts"] = [
         {"strict": True, "date": "2026-07-04", "target_hour": hour, "scan": f"scan-04-{hour}"}
         for hour in (15, 18, 21)
@@ -418,17 +427,19 @@ def test_result_support_and_calculation_copy_are_derived_from_metadata():
         ],
     }
     assert displayed["delivery"]["calculation"] == {
-        "kind": "cached_observations",
-        "summary": "Calculated using cached satellite observations.",
+        "kind": "new_result",
+        "summary": "New estimate calculated.",
     }
+    assert displayed["calculated_at_utc"] == "2026-09-10T17:42:31.123456Z"
 
     loaded = public_result(result, "custom", "Custom location", {
         **delivery, "cache_hit": True,
     })
-    assert loaded["delivery"]["calculation"]["kind"] == "previous_result"
+    assert loaded["delivery"]["calculation"]["kind"] == "saved_result"
     assert loaded["delivery"]["calculation"]["summary"] == (
-        "Loaded a previously calculated LAI result."
+        "Showing a saved estimate for this location and period."
     )
+    assert loaded["calculated_at_utc"] == displayed["calculated_at_utc"]
 
     downloaded = public_result(result, "custom", "Custom location", {
         **delivery,
@@ -436,7 +447,7 @@ def test_result_support_and_calculation_copy_are_derived_from_metadata():
             **delivery["observation_cache"], "partial_remote": 1,
         },
     })
-    assert downloaded["delivery"]["calculation"]["kind"] == "new_observations"
+    assert downloaded["delivery"]["calculation"]["kind"] == "new_result"
 
 
 def test_live_estimate_endpoint_validates_payload_without_running_pipeline():
@@ -453,7 +464,15 @@ def test_live_estimate_reuses_matching_cached_result():
     })
     assert response.status_code == 200
     assert response.json["state"] == "complete"
+    assert response.json["progress"]["detail"] == (
+        "Showing a saved estimate for this location and period."
+    )
     assert response.json["result"]["delivery"]["cache_hit"] is True
+    assert response.json["result"]["delivery"]["calculation"] == {
+        "kind": "saved_result",
+        "summary": "Showing a saved estimate for this location and period.",
+    }
+    assert response.json["result"]["calculated_at_utc"] is None
     assert response.json["result"]["query"]["period"]["start"] == "2026-04-07"
     assert response.json["result"]["lai"] == pytest.approx(1.20430588722229)
 
@@ -605,6 +624,11 @@ def test_insufficient_data_returns_a_gap_without_calling_model(tmp_path: Path, m
         "observation_cache": {"reused": 24, "downloaded": 0, "total_selected": 24},
     }
     monkeypatch.setattr(inference, "prepare_composite", lambda *args, **kwargs: (features, provenance))
+    monkeypatch.setattr(
+        inference,
+        "calculation_timestamp_utc",
+        lambda: "2026-09-10T18:04:05.123456Z",
+    )
     output = tmp_path / "gap.json"
     result = inference.run_estimate(
         39.0, -77.0, date(2026, 4, 7), None, tmp_path, output,
@@ -612,8 +636,15 @@ def test_insufficient_data_returns_a_gap_without_calling_model(tmp_path: Path, m
     )
     assert result["status"] == "insufficient_data"
     assert result["lai"] is None
+    assert result["provenance"]["processing"]["calculated_at_utc"] == (
+        "2026-09-10T18:04:05.123456Z"
+    )
     assert "shown as a gap" in result["data_message"]
-    assert json.loads(output.read_text())["lai"] is None
+    stored = json.loads(output.read_text())
+    assert stored["lai"] is None
+    assert stored["provenance"]["processing"]["calculated_at_utc"] == (
+        "2026-09-10T18:04:05.123456Z"
+    )
 
 
 def test_nonfinite_rejected_observation_exports_as_null_without_changing_internal_values(

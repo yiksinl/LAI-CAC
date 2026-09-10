@@ -34,9 +34,14 @@
         <p class="eyebrow">Location</p>
         <div id="selected-name" class="location-name">Custom location</div>
         <p id="latest-window-copy" class="window-copy">Finding the latest complete eight-day window…</p>
+        <details class="window-technical">
+          <summary>Technical date details</summary>
+          <p id="latest-window-details">Exact UTC boundaries and archive timing will appear here.</p>
+        </details>
         <button id="load-example" class="secondary restore-action" disabled>Use Montgomery example</button>
-        <button id="estimate" disabled>Get latest estimate</button>
-        <p class="button-note">LeafView chooses the newest complete window after allowing time for the satellite archive to publish it.</p>
+        <div class="estimate-action">
+          <button id="estimate" disabled>Get latest estimate</button>
+        </div>
         <div id="status" class="status loading" role="status">Checking scientific dependencies…</div>
         <div id="processing" class="processing" aria-live="polite" hidden>
           <div class="processing-heading"><strong id="processing-stage">Preparing estimate</strong><span id="processing-percent">0%</span></div>
@@ -57,6 +62,7 @@
           <div class="lai-measure"><span id="example-lai" class="lai-value">—</span><span id="lai-units" class="lai-units" hidden>m²/m²</span></div>
           <p id="lai-explanation" class="lead-explanation">Loading the cached result…</p>
           <p id="calculation-source" class="calculation-source">Checking how this result was calculated…</p>
+          <p id="calculated-at" class="calculated-at" hidden></p>
           <p id="provisional-note" class="provisional-note"></p>
           <details id="processing-diagnostics" class="compact-details diagnostics">
             <summary>Processing details</summary>

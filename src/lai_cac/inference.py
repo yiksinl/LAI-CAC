@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from copy import deepcopy
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from multiprocessing import get_context
 from pathlib import Path
 from typing import Callable
@@ -37,6 +37,13 @@ from .serialization import strict_json_dumps
 IGBP_CATEGORIES = (1, 10, 11, 12, 13, 14, 16, 2, 3, 4, 5, 6, 7, 8, 9)
 ProgressCallback = Callable[[dict[str, object]], None]
 MAX_OBSERVATION_WORKERS = 4
+
+
+def calculation_timestamp_utc() -> str:
+    """Return the completion time recorded with a newly calculated result."""
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds").replace(
+        "+00:00", "Z"
+    )
 
 
 class ObservationMemo:
@@ -741,6 +748,7 @@ def run_estimate(latitude: float, longitude: float, start: date, igbp_class: int
     provenance["processing"] = {
         "duration_seconds": round(time.perf_counter() - started, 3),
         "result_cache_hit": False,
+        "calculated_at_utc": calculation_timestamp_utc(),
     }
     result = {"status": status, "label": "Research estimate", "lai": prediction, "units": "m² leaf area per m² ground area",
               "model_sha256": ReferenceAssets(root / "artifacts/reference").audit()["model"]["sha256"],
@@ -783,5 +791,5 @@ def run_estimate(latitude: float, longitude: float, start: date, igbp_class: int
     temporary = output.with_suffix(output.suffix + ".part")
     temporary.write_text(strict_json_dumps(result, indent=2), encoding="utf-8")
     temporary.replace(output)
-    _report(progress, 100, "complete", "Research estimate complete")
+    _report(progress, 100, "complete", "Estimate ready")
     return result

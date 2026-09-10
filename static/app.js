@@ -67,6 +67,32 @@ const formatShortDate = (value) => new Intl.DateTimeFormat("en-US", {
 const formatMonthLabel = (value) => new Intl.DateTimeFormat("en-US", {
   month: "short", timeZone: "UTC"
 }).format(new Date(`${value}T00:00:00Z`));
+const formatObservationPeriod = (startValue, endValue) => {
+  const start = new Date(`${startValue}T00:00:00Z`);
+  const end = new Date(`${endValue}T00:00:00Z`);
+  const month = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" });
+  const startMonth = month.format(start);
+  const endMonth = month.format(end);
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+  if (startMonth === endMonth && startYear === endYear) {
+    return `${startMonth} ${start.getUTCDate()}–${end.getUTCDate()}, ${endYear}`;
+  }
+  if (startYear === endYear) {
+    return `${startMonth} ${start.getUTCDate()}–${endMonth} ${end.getUTCDate()}, ${endYear}`;
+  }
+  return `${startMonth} ${start.getUTCDate()}, ${startYear}–${endMonth} ${end.getUTCDate()}, ${endYear}`;
+};
+const formatCalculationTimestamp = (value) => {
+  if (!value) return null;
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) return null;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit", second: "2-digit",
+    timeZone: "UTC", timeZoneName: "short"
+  }).format(timestamp);
+};
 const solarAngleExplanation = "The original helper calculates solar direction differently from its stated convention. LeafView preserves that calculation to match the model's training inputs. Correcting it would require separate evaluation and potentially retraining.";
 
 function sameLocation(left, right) {
@@ -99,7 +125,10 @@ function resetResultPanel(message = "Loading the latest complete window for this
   byId("lai-units").hidden = true;
   byId("result-badge").textContent = "Research estimate";
   byId("lai-explanation").textContent = "Leaf area is the one-sided area of leaves above each square meter of ground.";
-  byId("calculation-source").textContent = "Calculation information will appear with the result.";
+  byId("calculation-source").textContent = "";
+  byId("calculation-source").hidden = true;
+  byId("calculated-at").textContent = "";
+  byId("calculated-at").hidden = true;
   byId("provisional-note").textContent = "";
   byId("result-source").textContent = "—";
   byId("result-time").textContent = "—";
@@ -118,6 +147,16 @@ function resetResultPanel(message = "Loading the latest complete window for this
   byId("pixel-details").open = false;
   byId("methods-limitations").replaceChildren();
   byId("methods-concerns").replaceChildren();
+}
+
+function showEstimateState(label, state = "ready") {
+  byId("processing").hidden = true;
+  const status = byId("status");
+  status.hidden = false;
+  status.className = `status ${state}`;
+  const title = document.createElement("strong");
+  title.textContent = label;
+  status.replaceChildren(title);
 }
 
 function clearHistory(message = "History will start after the latest estimate.") {
@@ -144,6 +183,7 @@ function resetForLocation() {
   resetResultPanel();
   clearHistory();
   byId("result-context").textContent = "Latest at selected location";
+  if (dependenciesReady) showEstimateState("Ready to estimate");
   byId("estimate").disabled = !dependenciesReady;
   byId("view-latest").disabled = !dependenciesReady;
 }
@@ -203,10 +243,8 @@ function renderStatus(data) {
   latestPeriod = data.latest_window;
   if (!selectedWindowStart) selectedWindowStart = latestPeriod.start;
   const status = byId("status");
-  status.className = `status ${dependenciesReady ? "ready" : "blocked"}`;
-  const title = document.createElement("strong");
-  title.textContent = dependenciesReady ? "Ready to estimate" : data.headline;
-  status.replaceChildren(title);
+  showEstimateState(dependenciesReady ? "Ready to estimate" : data.headline,
+    dependenciesReady ? "ready" : "blocked");
   if (data.missing.length) {
     const missing = document.createElement("p");
     missing.textContent = `Still required: ${data.missing.map(item => item.filename).join(" and ")}.`;
@@ -217,7 +255,8 @@ function renderStatus(data) {
     discrepancy.textContent = `Unresolved preprocessing: ${data.preprocessing_discrepancies.map(item => item.name).join("; ")}.`;
     status.append(discrepancy);
   }
-  byId("latest-window-copy").textContent = `Latest complete window: ${formatDate(latestPeriod.start)}–${formatDate(latestPeriod.end)} UTC. The window runs from 00:00 UTC on ${formatShortDate(latestPeriod.start)} to 00:00 UTC on ${formatShortDate(latestPeriod.end_exclusive_utc.slice(0, 10))}, end exclusive. ${data.archive_note}`;
+  byId("latest-window-copy").textContent = `Latest observation period: ${formatObservationPeriod(latestPeriod.start, latestPeriod.end)} UTC.`;
+  byId("latest-window-details").textContent = `UTC boundaries: 00:00 on ${formatDate(latestPeriod.start)} through 00:00 on ${formatDate(latestPeriod.end_exclusive_utc.slice(0, 10))} (end exclusive). ${data.archive_note}`;
   const historyDate = byId("history-date");
   historyDate.min = data.historical_date_range.minimum_end;
   historyDate.max = data.historical_date_range.maximum_end;
@@ -241,6 +280,7 @@ function renderStatus(data) {
 
 function renderProgress(progress) {
   const panel = byId("processing");
+  byId("status").hidden = true;
   panel.hidden = false;
   const percent = Math.max(0, Math.min(100, Number(progress.percent || 0)));
   byId("processing-stage").textContent = String(progress.stage || "processing")
@@ -316,10 +356,16 @@ function renderFootprint(record) {
 function renderDiagnostics(record) {
   const timing = Number(record.delivery?.request_seconds || 0);
   byId("result-source").textContent = record.delivery?.cache_hit
-    ? "Previously calculated LAI result"
-    : "Calculated for this request";
+    ? "Saved estimate"
+    : "New calculation";
   byId("calculation-source").textContent = record.delivery?.calculation?.summary
     || "Calculation source unavailable.";
+  byId("calculation-source").hidden = false;
+  const calculated = formatCalculationTimestamp(record.calculated_at_utc);
+  byId("calculated-at").textContent = calculated
+    ? `Calculated: ${calculated}`
+    : "Calculation time unavailable.";
+  byId("calculated-at").hidden = false;
   byId("result-time").textContent = `${timing.toFixed(3)} seconds`;
   const observationCache = record.delivery?.observation_cache || {};
   const reused = Number(observationCache.reused || 0);
@@ -414,11 +460,11 @@ async function runEstimate(periodStart = null) {
   resetResultPanel(periodStart
     ? "Loading this historical eight-day window…"
     : "Loading the latest complete eight-day window…");
+  showEstimateState("Ready to estimate");
   if (currentHistory) renderHistory(currentHistory);
   const button = byId("estimate");
   button.disabled = true;
   button.textContent = periodStart ? "Loading older window…" : "Loading latest…";
-  renderProgress({ percent: 0, stage: "starting", detail: "Binding this result to the selected location and UTC dates" });
   const payload = {
     latitude: expected.latitude,
     longitude: expected.longitude,
@@ -435,15 +481,15 @@ async function runEstimate(periodStart = null) {
     if (!response.ok) throw new Error(job.error || "Estimate failed");
     job = await pollEstimate(job, generation);
     if (!job || generation !== requestGeneration || !sameLocation(selectedQuery, expected)) return;
-    renderProgress(job.progress);
     if (job.state === "error") throw new Error(job.error || "Estimate failed");
     if (!renderResult(job.result, expected)) {
       throw new Error("The completed result did not match the selected location and dates");
     }
+    showEstimateState("Estimate ready");
     if (!periodStart) startHistory();
   } catch (error) {
     if (generation !== requestGeneration) return;
-    renderProgress({ percent: 100, stage: "error", detail: error.message });
+    showEstimateState(`Estimate unavailable: ${error.message}`, "blocked");
   } finally {
     if (generation === requestGeneration) {
       button.disabled = !dependenciesReady;

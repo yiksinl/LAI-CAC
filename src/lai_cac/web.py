@@ -200,6 +200,26 @@ def _observation_support(provenance: dict) -> dict[str, object]:
     }
 
 
+def _recorded_calculation_timestamp(result: dict) -> str | None:
+    provenance = result.get("provenance", {})
+    processing = provenance.get("processing", {})
+    candidates = (
+        processing.get("calculated_at_utc"),
+        result.get("calculated_at_utc"),
+    )
+    for candidate in candidates:
+        if not isinstance(candidate, str) or not candidate.strip():
+            continue
+        try:
+            parsed = datetime.fromisoformat(candidate.strip().replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if parsed.tzinfo is None:
+            continue
+        return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    return None
+
+
 def _delivery_details(
     provenance: dict, delivery: dict[str, object] | None
 ) -> dict[str, object]:
@@ -212,27 +232,13 @@ def _delivery_details(
     details["observation_cache"] = observation_cache
     if details.get("cache_hit"):
         calculation = {
-            "kind": "previous_result",
-            "summary": "Loaded a previously calculated LAI result.",
-        }
-    elif int(observation_cache.get("downloaded", 0)) or int(
-        observation_cache.get("partial_remote", 0)
-    ):
-        calculation = {
-            "kind": "new_observations",
-            "summary": "Calculated after downloading new satellite observations.",
-        }
-    elif int(observation_cache.get("reused", 0)) or int(
-        observation_cache.get("partial_reused", 0)
-    ) or int(observation_cache.get("memory_reused", 0)):
-        calculation = {
-            "kind": "cached_observations",
-            "summary": "Calculated using cached satellite observations.",
+            "kind": "saved_result",
+            "summary": "Showing a saved estimate for this location and period.",
         }
     else:
         calculation = {
-            "kind": "calculated",
-            "summary": "Calculated from the selected satellite observations.",
+            "kind": "new_result",
+            "summary": "New estimate calculated.",
         }
     details["calculation"] = calculation
     return details
@@ -263,6 +269,7 @@ def public_result(
         "lai": result["lai"],
         "units": result["units"],
         "data_message": result.get("data_message"),
+        "calculated_at_utc": _recorded_calculation_timestamp(result),
         "limitations": result["limitations"],
         "readiness": result.get("readiness", {}),
         "scientific_concerns": result.get("scientific_concerns", []),
@@ -420,7 +427,7 @@ class EstimateJobs:
                 "progress": {
                     "percent": 100,
                     "stage": "cache",
-                    "detail": "Loaded a provenance-matched cached research estimate",
+                    "detail": "Showing a saved estimate for this location and period.",
                 },
                 "result": public_result(result, key[:16], display_location, delivery),
             }
@@ -494,7 +501,7 @@ class EstimateJobs:
                     "detail": (
                         "No usable observations; the period is shown as a gap"
                         if result["status"] == "insufficient_data"
-                        else "Research estimate complete"
+                        else "Estimate ready"
                     ),
                 },
                 result=public_result(result, key[:16], display_location, delivery),
@@ -619,7 +626,7 @@ class HistoryJobs:
                 "total": len(items),
                 "percent": round(100 * completed / len(items), 1),
                 "detail": (
-                    "Monthly snapshots loaded from provenance-matched results."
+                    "Monthly snapshots loaded from saved estimates."
                     if state == "complete" else
                     "Loading the newest monthly snapshots first."
                 ),

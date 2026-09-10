@@ -13,6 +13,9 @@ September 2–9, 2026. Its explicit boundaries are `2026-09-02T00:00:00Z` throug
 
 - The latest result is LAI `3.5869650841 m²/m²`, with 5/1/3 usable observations at
   15/18/21 UTC: 9 of 24 observations across 6 of 8 days.
+- The selected saved result contains no recorded calculation or save timestamp. The
+  interface therefore displays `Calculation time unavailable.` and does not infer a
+  date from the current request or the cache file's modification time.
 - The first latest-result request took 15.406 s backend and 15.975 s client wall.
   It used 24 ranged observation reads at concurrency 4, downloaded 36,830,588 HTTP
   bytes including listings, and made no full-file download or fallback. A repeated
@@ -77,8 +80,11 @@ client wall time.
   and the browser displayed a gap message. Processing 24 cached observations took
   2.187 s.
 - Changing the selected period or point cleared the LAI, footprint polygon, support
-  bars, and result metadata before any new response. The browser did not attach an
-  older result to the new query.
+  bars, saved-result message, and calculation timestamp before any new response. The
+  browser did not attach an older result to the new query.
+- A genuine recomputation at the nearby timestamp-verification point recorded
+  `2026-09-10T21:13:11.193202Z`. Its immediate cache hit returned that exact original
+  timestamp, while identifying the result as saved rather than simulating progress.
 - The July 4–11 custom-location result (`39.165474, -77.325871`) remained
   `5.2732105255 m²/m²`, with 5 of 24 usable observations on 2 of 8 distinct days.
   A fresh result calculation reused 23 partial-cache ranges and displayed the
@@ -94,7 +100,9 @@ client wall time.
 
 The automated browser record is in `screenshots/layout-validation.json`; the desktop
 and 430-pixel captures are in the same directory. Both layouts had no horizontal
-overflow. The browser rendered six monthly points, their month labels, exact dates,
+overflow. The location panel uses one estimate state, keeps its example and estimate
+actions visually separate, and moves UTC boundaries and archive timing into technical
+details. The browser rendered six monthly points, their month labels, exact dates,
 and observation support; bound the result and history to the same point; and rejected delayed estimate and history
 responses after a location change. The OpenClaw-managed browser profile could not
 start because this Mac has no supported Chrome/Brave/Edge/Chromium install, so the
