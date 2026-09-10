@@ -57,6 +57,7 @@
           <div class="result-label"><span id="result-badge" class="badge">Research estimate</span></div>
           <div class="lai-measure"><span id="example-lai" class="lai-value">—</span><span id="lai-units" class="lai-units" hidden>m²/m²</span></div>
           <p id="lai-explanation" class="lead-explanation">Loading the cached result…</p>
+          <p id="calculation-source" class="calculation-source">Checking how this result was calculated…</p>
           <p id="provisional-note" class="provisional-note"></p>
           <details id="processing-diagnostics" class="compact-details diagnostics">
             <summary>Processing details</summary>
@@ -97,10 +98,10 @@
       </div>
     </section>
 
-    <section class="trend-card">
-      <div><p class="eyebrow">Trend</p><h2>Change over time</h2></div>
+    <section id="trend-section" class="trend-card" aria-labelledby="trend-title">
+      <div><p class="eyebrow">Selected-query trend</p><h2 id="trend-title">Change over time</h2></div>
       <div>
-        <p id="trend-meta" class="trend-meta">Loading three real Montgomery County periods…</p>
+        <p id="trend-meta" class="trend-meta">Loading the trend for your selected location…</p>
         <div id="trend-plot" class="trend-plot" aria-live="polite"></div>
       </div>
     </section>
@@ -110,7 +111,9 @@
       <div class="methods-content">
         <p><strong>Readiness and validation</strong></p>
         <ul id="methods-readiness"><li>Checking installed assets and validation status…</li></ul>
+        <p>These checks establish preprocessing compatibility, not prediction accuracy.</p>
         <p>LeafView applies Yixuan Li's selected 600-tree XGBoost model to GOES-19 red, near-infrared, and shortwave-infrared reflectance statistics, viewing and illumination geometry, seasonality, and IGBP land cover. The model preserves separate 15, 18, and 21 UTC composites.</p>
+        <p>LeafView only offers periods after the model's April 6, 2026 training cutoff. Results after that cutoff test how the trained model transfers to later observations; they are not forecasts.</p>
         <p>The training reference is a quality-screened MODIS/VIIRS satellite consensus, not direct field ground truth. LAI is leaf area per ground area; it is not a direct plant-health score, drought diagnosis, or irrigation recommendation.</p>
         <ul id="methods-limitations"></ul>
         <p><strong>Model-compatibility concern</strong></p>

@@ -1,6 +1,6 @@
 # Implementation status
 
-Last updated: 2026-09-08
+Last updated: 2026-09-09
 
 ## Plan
 
@@ -23,8 +23,12 @@ Last updated: 2026-09-08
   matches the selected immutable NOAA object.
 - Changing coordinates or period immediately clears the displayed LAI and footprint;
   a late response is not rendered unless its query still matches. The result panel
-  shows usable dates, 15/18/21 UTC counts, fixed-grid row/column, center, and all four
-  footprint corners.
+  shows usable observations and distinct usable days, 15/18/21 UTC counts,
+  fixed-grid row/column, center, and all four footprint corners.
+- The displayed trend now follows the exact selected coordinates and period, accepts
+  only provenance-matched cached results, clears on selection changes, and rejects
+  stale responses. Missing estimates remain gaps. The fixed Montgomery endpoint is
+  retained only as an explicitly marked demonstration and is not used by the chart.
 - All output is labelled **Research estimate**. Zero-usable-observation runs return
   `insufficient_data` with `lai: null`; the trend renderer leaves these periods as
   gaps and never connects a line across one.

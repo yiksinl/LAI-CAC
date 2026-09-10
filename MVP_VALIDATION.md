@@ -1,6 +1,6 @@
 # LeafView MVP validation
 
-Validated on 2026-09-08 against the supplied 600-tree model, exact IGBP grid,
+Validated through 2026-09-09 against the supplied 600-tree model, exact IGBP grid,
 checksum-matched solar helper, and the navigation raster read directly from
 `/Users/jianzhulee/Downloads/GOES_Navigation_2kmFD-GOES-East.nc`.
 
@@ -33,6 +33,17 @@ client wall time.
 - Changing the selected period or point cleared the LAI, footprint polygon, support
   bars, and result metadata before any new response. The browser did not attach an
   older result to the new query.
+- The July 4–11 custom-location result (`39.165474, -77.325871`) remained
+  `5.2732105255 m²/m²`, with 5 of 24 usable observations on 2 of 8 distinct days.
+  A fresh result calculation reused 23 partial-cache ranges and displayed the
+  metadata-derived cached-observation explanation.
+- The custom-location trend used the selected point and period, not the fixed
+  Montgomery demonstration. It displayed June 18–25 and June 26–July 3 as
+  uncalculated gaps and July 4–11 with 5/24 observations across 2/8 days.
+- The displayed source corner order is southwest, southeast, northwest, northeast.
+  The renderer's perimeter order is southwest, southeast, northeast, northwest; the
+  browser polygon did not cross and contained both the requested point and sampled
+  center. No footprint-coordinate or feature-construction change was required.
 
 The automated browser record is in `screenshots/layout-validation.json`; the desktop
 and narrow captures are in the same directory. The OpenClaw-managed browser profile

@@ -42,6 +42,8 @@ let demoRecord = null;
 let activeRecord = null;
 let dependenciesReady = false;
 let requestGeneration = 0;
+let trendGeneration = 0;
+let trendController = null;
 let selectedQuery = {
   latitude: initialPoint[0],
   longitude: initialPoint[1],
@@ -59,6 +61,7 @@ const formatDate = (value) => new Intl.DateTimeFormat("en-US", {
 const formatShortDate = (value) => new Intl.DateTimeFormat("en-US", {
   month: "short", day: "numeric", timeZone: "UTC"
 }).format(new Date(`${value}T00:00:00Z`));
+const solarAngleExplanation = "The original helper calculates solar direction differently from its stated convention. LeafView preserves that calculation to match the model's training inputs. Correcting it would require separate evaluation and potentially retraining.";
 
 function queryMatchesRecord(record) {
   if (!record || !selectedQuery.periodStart) return false;
@@ -87,6 +90,7 @@ function resetResultForQuery() {
   byId("lai-units").hidden = true;
   byId("result-badge").textContent = "Research estimate";
   byId("lai-explanation").textContent = "LeafView will only display a result whose coordinates and period match the selected query.";
+  byId("calculation-source").textContent = "Calculation information will appear with the selected result.";
   byId("provisional-note").textContent = "";
   byId("result-source").textContent = "—";
   byId("result-time").textContent = "—";
@@ -103,6 +107,7 @@ function resetResultForQuery() {
   byId("observation-details").open = false;
   byId("pixel-details").open = false;
   byId("estimate").disabled = !dependenciesReady;
+  refreshSelectedTrend();
 }
 
 function markCustomSelection(latitude, longitude) {
@@ -131,6 +136,7 @@ function drawFootprint(record) {
 
 function loadDemoIntoQuery() {
   if (!demoRecord) return;
+  requestGeneration += 1;
   const { location, period } = demoRecord.query;
   selectedQuery = {
     latitude: location.latitude,
@@ -148,6 +154,7 @@ function loadDemoIntoQuery() {
     : L.latLngBounds([location.latitude, location.longitude]);
   map.fitBounds(bounds.pad(0.65), { maxZoom: 12 });
   resizeMap();
+  refreshSelectedTrend();
 }
 
 function renderStatus(data) {
@@ -169,11 +176,11 @@ function renderStatus(data) {
   }
   const readiness = byId("methods-readiness");
   readiness.replaceChildren();
-  [
-    `Operational readiness: ${data.operational_readiness.status}.`,
-    `Preprocessing validation: ${data.preprocessing_validation.status}.`,
-    `Historical numerical reproduction: ${data.historical_numerical_reproduction.status}; historical feature rows remain non-blocking runtime validation evidence.`
-  ].forEach(text => {
+  const readinessItems = [
+    data.preprocessing_validation.detail,
+    data.historical_numerical_reproduction.detail
+  ];
+  readinessItems.forEach(text => {
     const item = document.createElement("li");
     item.textContent = text;
     readiness.append(item);
@@ -233,18 +240,21 @@ function renderSupport(record) {
     row.append(hourLabel, track, count);
     container.append(row);
   });
-  byId("support-summary").textContent = `${record.observation_support.passed_total} of ${possible * 3} observations usable.`;
+  const possibleTotal = Number(record.observation_support.possible_total ?? possible * 3);
+  const usableDays = Number(record.observation_support.usable_days ?? record.observation_support.usable_dates.length);
+  const possibleDays = Number(record.observation_support.possible_days ?? possible);
+  byId("support-summary").textContent = `${record.observation_support.passed_total} of ${possibleTotal} observations usable, covering ${usableDays} of ${possibleDays} days.`;
   const dates = byId("observation-dates");
   dates.replaceChildren();
   record.observation_support.usable_dates.forEach(item => {
-    const chip = document.createElement("span");
-    chip.className = "observation-date";
-    chip.textContent = `${formatShortDate(item.date)} · ${item.count}`;
-    chip.title = `${item.count} usable observation${item.count === 1 ? "" : "s"}; ${item.hours_utc.join(", ")} UTC`;
-    dates.append(chip);
+    const label = document.createElement("span");
+    label.className = "observation-date";
+    label.textContent = `${formatShortDate(item.date)}: ${item.count} usable observation${item.count === 1 ? "" : "s"}`;
+    label.title = `Selected times: ${item.hours_utc.join(", ")} UTC`;
+    dates.append(label);
   });
   if (!record.observation_support.usable_dates.length) {
-    dates.textContent = "None";
+    dates.textContent = "No usable dates.";
   }
 }
 
@@ -272,17 +282,19 @@ function renderFootprint(record) {
 function renderDiagnostics(record) {
   const timing = Number(record.delivery?.request_seconds || 0);
   byId("result-source").textContent = record.delivery?.cache_hit
-    ? "Provenance-matched cached result"
-    : "Newly processed result";
+    ? "Previously calculated LAI result"
+    : "Calculated for this request";
+  byId("calculation-source").textContent = record.delivery?.calculation?.summary
+    || "Calculation source unavailable.";
   byId("result-time").textContent = `${timing.toFixed(3)} seconds`;
   const observationCache = record.delivery?.observation_cache || {};
   const reused = Number(observationCache.reused || 0);
   const downloaded = Number(observationCache.downloaded || 0);
   const partialRemote = Number(observationCache.partial_remote || 0);
   const partialReused = Number(observationCache.partial_reused || 0);
-  const parts = [`${reused} full-file reused`, `${downloaded} full-file downloaded`];
+  const parts = [`${reused} full-file reuses`, `${downloaded} full-file downloads`];
   if (partialRemote || partialReused) {
-    parts.push(`${partialRemote} range-read`, `${partialReused} partial-cache reused`);
+    parts.push(`${partialRemote} new range reads`, `${partialReused} partial-cache reuses`);
   }
   byId("observation-cache").textContent = parts.join(" · ");
 }
@@ -292,7 +304,7 @@ function renderMethods(record) {
   limitations.replaceChildren();
   if (!record.limitations.length) {
     const item = document.createElement("li");
-    item.textContent = "No unresolved preprocessing limitation was identified for this query.";
+    item.textContent = "No differences from the supplied preprocessing were identified for this query. The known solar-angle issue below remains.";
     limitations.append(item);
   } else {
     record.limitations.forEach(text => {
@@ -305,7 +317,9 @@ function renderMethods(record) {
   concerns.replaceChildren();
   (record.scientific_concerns || []).forEach(text => {
     const item = document.createElement("li");
-    item.textContent = text;
+    item.textContent = text.toLowerCase().includes("solar azimuth")
+      ? solarAngleExplanation
+      : text;
     concerns.append(item);
   });
 }
@@ -365,8 +379,8 @@ function renderTrend(data) {
   const plot = byId("trend-plot");
   const width = Math.max(360, Math.round(plot.clientWidth || 760));
   renderedTrendWidth = width;
-  const height = 240;
-  const margin = { top: 26, right: 20, bottom: 62, left: 56 };
+  const height = 270;
+  const margin = { top: 26, right: 20, bottom: 82, left: 56 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
   const yFor = value => margin.top + plotHeight - (Number(value) / maximum) * plotHeight;
@@ -374,9 +388,9 @@ function renderTrend(data) {
   const svg = svgElement("svg", {
     viewBox: `0 0 ${width} ${height}`,
     role: "img",
-    "aria-label": "Three consecutive Montgomery County research estimate periods"
+    "aria-label": "Leaf area across three eight-day periods at the selected location"
   });
-  svg.append(svgElement("title", {}, "Montgomery County research estimate trend"));
+  svg.append(svgElement("title", {}, "Selected-location leaf area trend"));
   [0, maximum / 3, (maximum * 2) / 3, maximum].forEach(value => {
     const y = yFor(value);
     svg.append(svgElement("line", {
@@ -420,11 +434,85 @@ function renderTrend(data) {
       svg.append(svgElement("circle", { cx: x, cy: y, r: 7, class: "trend-point" }));
       svg.append(svgElement("text", { x, y: y - 14, class: "trend-value" }, Number(item.lai).toFixed(2)));
     }
-    svg.append(svgElement("text", { x, y: height - 34, class: "trend-date" }, formatTrendPeriod(item.period)));
-    svg.append(svgElement("text", { x, y: height - 16, class: "trend-count" }, `${item.usable_total}/24`));
+    svg.append(svgElement("text", {
+      x,
+      y: height - 51,
+      class: item.selected ? "trend-date trend-selected-date" : "trend-date"
+    }, formatTrendPeriod(item.period)));
+    const observationSupport = item.usable_total == null
+      ? "Not calculated"
+      : `${item.usable_total}/${item.possible_total} obs`;
+    const daySupport = item.usable_days == null
+      ? ""
+      : `${item.usable_days}/${item.possible_days} days`;
+    svg.append(svgElement("text", { x, y: height - 32, class: "trend-support" }, observationSupport));
+    if (daySupport) {
+      svg.append(svgElement("text", { x, y: height - 16, class: "trend-support" }, daySupport));
+    }
   });
   plot.replaceChildren(svg);
-  byId("trend-meta").textContent = `${data.location.name} · three consecutive completed post-cutoff periods. Missing estimates remain gaps.`;
+  byId("trend-meta").textContent = `${data.introduction} Selected period: ${formatDate(data.selected_query.period.start)}–${formatDate(data.selected_query.period.end)}. Requested point: ${formatCoordinates(data.selected_query.location)}. Missing estimates remain gaps.`;
+}
+
+function trendResponseMatchesQuery(data, query) {
+  const returned = data?.selected_query;
+  const selectedPeriod = data?.periods?.find(item => item.selected);
+  if (!returned || !selectedPeriod || data.demo !== false) return false;
+  return Math.abs(query.latitude - returned.location.latitude) < 0.0000005
+    && Math.abs(query.longitude - returned.location.longitude) < 0.0000005
+    && query.periodStart === returned.period.start
+    && selectedPeriod.period.start === returned.period.start
+    && selectedPeriod.query_key === returned.key;
+}
+
+function queryStillSelected(query) {
+  return Math.abs(query.latitude - selectedQuery.latitude) < 0.0000005
+    && Math.abs(query.longitude - selectedQuery.longitude) < 0.0000005
+    && query.periodStart === selectedQuery.periodStart;
+}
+
+function clearTrendForQuery() {
+  currentTrend = null;
+  renderedTrendWidth = 0;
+  byId("trend-plot").replaceChildren();
+  byId("trend-meta").textContent = "Loading the trend for your selected location…";
+}
+
+async function refreshSelectedTrend() {
+  const generation = ++trendGeneration;
+  if (trendController) trendController.abort();
+  trendController = null;
+  clearTrendForQuery();
+  if (!selectedQuery.periodStart) return;
+  const query = { ...selectedQuery };
+  const controller = new AbortController();
+  trendController = controller;
+  const parameters = new URLSearchParams({
+    latitude: String(query.latitude),
+    longitude: String(query.longitude),
+    start: query.periodStart,
+    display_location: query.displayLocation
+  });
+  try {
+    const response = await fetch(`/api/trends/selected?${parameters}`, {
+      cache: "no-store",
+      signal: controller.signal
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Trend could not be loaded");
+    if (generation !== trendGeneration || !queryStillSelected(query)) return;
+    if (!trendResponseMatchesQuery(data, query)) {
+      throw new Error("Trend response did not match the selected query");
+    }
+    renderTrend(data);
+  } catch (error) {
+    if (error.name === "AbortError" || generation !== trendGeneration) return;
+    currentTrend = null;
+    byId("trend-plot").replaceChildren();
+    byId("trend-meta").textContent = `Trend unavailable for this selection: ${error.message}`;
+  } finally {
+    if (generation === trendGeneration) trendController = null;
+  }
 }
 
 new ResizeObserver(entries => {
@@ -473,6 +561,7 @@ byId("estimate").addEventListener("click", async () => {
     if (!renderResult(job.result)) {
       throw new Error("The completed result did not match the current selected query and was not displayed");
     }
+    refreshSelectedTrend();
   } catch (error) {
     if (generation !== requestGeneration) return;
     renderProgress({ percent: 100, stage: "error", detail: error.message });
@@ -490,15 +579,13 @@ Promise.all([
     const body = await response.json();
     if (!response.ok) throw new Error(body.error || "Verified Montgomery record unavailable");
     return body;
-  }),
-  fetch("/api/trends/montgomery", { cache: "no-store" }).then(response => response.json())
-]).then(([status, example, trend]) => {
+  })
+]).then(([status, example]) => {
   renderStatus(status);
   demoRecord = example;
   byId("load-example").disabled = false;
   renderPeriods(status, example.query.period.start);
   loadDemoIntoQuery();
-  renderTrend(trend);
 }).catch(error => {
   const status = byId("status");
   status.className = "status blocked";

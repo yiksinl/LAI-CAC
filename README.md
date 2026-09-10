@@ -111,9 +111,11 @@ copy. The configured source must remain at that path for future inference.
 
 `/api/status` generates this state from the live dependency audit. `/api/estimate`
 starts or reuses a query-bound job, `/api/jobs/<id>` reports progress, and
-`/api/trends/montgomery` serves the three-period demonstration. HTML, JavaScript,
-CSS, and API responses use `Cache-Control: no-store`; scientific result reuse is
-controlled separately by explicit provenance identities.
+`/api/trends/selected` serves provenance-matched cached periods for the exact selected
+coordinates and period. The separate `/api/trends/montgomery` endpoint is explicitly
+marked as a fixed demonstration. HTML, JavaScript, CSS, and API responses use
+`Cache-Control: no-store`; scientific result reuse is controlled separately by
+explicit provenance identities.
 
 ## Scientific boundaries
 

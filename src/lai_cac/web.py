@@ -112,14 +112,20 @@ def dependency_status(assets: dict) -> dict:
         "preprocessing_validation": {
             "verified": preprocessing_verified,
             "status": "verified" if preprocessing_verified else "provisional",
-            "detail": "The supplied research preprocessing is matched." if preprocessing_verified else
-                      "A research-pipeline equivalence check remains unresolved.",
+            "detail": (
+                "Processing checks passed. LeafView uses the supplied model and reference files."
+                if preprocessing_verified else
+                "A difference from the supplied preprocessing remains unresolved."
+            ),
         },
         "historical_numerical_reproduction": {
             "completed": False,
             "status": "unverified",
             "required_for_runtime": False,
-            "detail": "Historical feature rows are validation evidence, not runtime inputs.",
+            "detail": (
+                "Reproduction of the original training-period results remains unverified because "
+                "historical feature rows are unavailable."
+            ),
         },
     }
 
@@ -139,6 +145,62 @@ def _usable_dates(provenance: dict) -> list[dict[str, object]]:
     ]
 
 
+def _observation_support(provenance: dict) -> dict[str, object]:
+    passed = provenance["usable_counts"]
+    usable_dates = _usable_dates(provenance)
+    composite = provenance["composite"]
+    start = date.fromisoformat(str(composite["start"]))
+    end = date.fromisoformat(str(composite["end"]))
+    possible_days = (end - start).days + 1
+    return {
+        "passed_by_hour": passed,
+        "passed_total": sum(passed.values()),
+        "possible_per_hour": possible_days,
+        "possible_total": possible_days * len(passed),
+        "usable_days": len(usable_dates),
+        "possible_days": possible_days,
+        "usable_dates": usable_dates,
+    }
+
+
+def _delivery_details(
+    provenance: dict, delivery: dict[str, object] | None
+) -> dict[str, object]:
+    details = dict(delivery or {
+        "cache_hit": False,
+        "request_seconds": provenance.get("processing", {}).get("duration_seconds"),
+        "observation_cache": provenance.get("observation_cache", {}),
+    })
+    observation_cache = dict(details.get("observation_cache") or {})
+    details["observation_cache"] = observation_cache
+    if details.get("cache_hit"):
+        calculation = {
+            "kind": "previous_result",
+            "summary": "Loaded a previously calculated LAI result.",
+        }
+    elif int(observation_cache.get("downloaded", 0)) or int(
+        observation_cache.get("partial_remote", 0)
+    ):
+        calculation = {
+            "kind": "new_observations",
+            "summary": "Calculated after downloading new satellite observations.",
+        }
+    elif int(observation_cache.get("reused", 0)) or int(
+        observation_cache.get("partial_reused", 0)
+    ):
+        calculation = {
+            "kind": "cached_observations",
+            "summary": "Calculated using cached satellite observations.",
+        }
+    else:
+        calculation = {
+            "kind": "calculated",
+            "summary": "Calculated from the selected satellite observations.",
+        }
+    details["calculation"] = calculation
+    return details
+
+
 def public_result(
     result: dict,
     identifier: str,
@@ -154,7 +216,6 @@ def public_result(
         ),
         None,
     )
-    passed = provenance["usable_counts"]
     return {
         "id": identifier,
         "label": "Research estimate",
@@ -177,18 +238,65 @@ def public_result(
             "row": provenance.get("navigation", {}).get("goes_row"),
             "column": provenance.get("navigation", {}).get("goes_column"),
         },
-        "observation_support": {
-            "passed_by_hour": passed,
-            "passed_total": sum(passed.values()),
-            "possible_per_hour": 8,
-            "usable_dates": _usable_dates(provenance),
-        },
-        "delivery": delivery or {
-            "cache_hit": False,
-            "request_seconds": provenance.get("processing", {}).get("duration_seconds"),
-            "observation_cache": provenance.get("observation_cache", {}),
-        },
+        "observation_support": _observation_support(provenance),
+        "delivery": _delivery_details(provenance, delivery),
         "provenance": provenance,
+    }
+
+
+def _selected_trend_periods(period_start: date) -> list[tuple[date, date]]:
+    completed = periods_after_cutoff(date.today())
+    starts = [start for start, _ in completed]
+    try:
+        selected_index = starts.index(period_start)
+    except ValueError as error:
+        raise ValueError("The selected period is not a completed post-cutoff period") from error
+    window_size = min(3, len(completed))
+    first_index = max(0, selected_index - window_size + 1)
+    first_index = min(first_index, len(completed) - window_size)
+    return completed[first_index:first_index + window_size]
+
+
+def _trend_period(
+    root: Path,
+    latitude: float,
+    longitude: float,
+    period_start: date,
+    selected_start: date,
+) -> dict[str, object]:
+    query = normalized_query(latitude, longitude, period_start)
+    identity = cache_identity(latitude, longitude, period_start, root)
+    cached = load_compatible_result(root, identity)
+    base = {
+        "period": {"start": query["start"], "end": query["end"]},
+        "query_key": identity["key"],
+        "selected": period_start == selected_start,
+    }
+    if not cached:
+        return {
+            **base,
+            "status": "unavailable",
+            "lai": None,
+            "usable_total": None,
+            "possible_total": 24,
+            "usable_days": None,
+            "possible_days": 8,
+            "gap": True,
+            "message": "No provenance-matched result has been calculated for this period.",
+        }
+    result, _ = cached
+    support = _observation_support(result["provenance"])
+    return {
+        **base,
+        "status": result["status"],
+        "lai": result["lai"],
+        "usable_total": support["passed_total"],
+        "possible_total": support["possible_total"],
+        "usable_days": support["usable_days"],
+        "possible_days": support["possible_days"],
+        "usable_counts": support["passed_by_hour"],
+        "gap": result["lai"] is None,
+        "message": result.get("data_message"),
     }
 
 
@@ -431,9 +539,48 @@ def create_app(root: Path = ROOT) -> Flask:
             })
         return jsonify({
             "label": "Research estimate trend demonstration",
+            "demo": True,
             "location": MONTGOMERY,
             "periods": periods,
             "gap_rule": "Periods without a research estimate are rendered as gaps; lines never bridge them.",
+        })
+
+    @app.get("/api/trends/selected")
+    def selected_trend():
+        try:
+            latitude, longitude, period_start, display_location = _parse_estimate_payload(
+                request.args
+            )
+            periods = _selected_trend_periods(period_start)
+        except ValueError as error:
+            return jsonify({"error": str(error)}), 400
+        selected_query = normalized_query(latitude, longitude, period_start)
+        selected_identity = cache_identity(latitude, longitude, period_start, root)
+        return jsonify({
+            "label": "Selected-query LAI trend",
+            "demo": False,
+            "introduction": "Leaf area across three eight-day periods at your selected location.",
+            "location": {
+                "latitude": latitude,
+                "longitude": longitude,
+                "name": display_location,
+            },
+            "selected_query": {
+                "location": {"latitude": latitude, "longitude": longitude},
+                "period": {
+                    "start": selected_query["start"],
+                    "end": selected_query["end"],
+                },
+                "key": selected_identity["key"],
+            },
+            "periods": [
+                _trend_period(root, latitude, longitude, start, period_start)
+                for start, _ in periods
+            ],
+            "gap_rule": (
+                "Periods without a provenance-matched estimate are rendered as gaps; "
+                "lines never bridge them."
+            ),
         })
 
     @app.post("/api/estimate")
