@@ -24,8 +24,8 @@
   <main>
     <section class="intro" aria-labelledby="page-title">
       <div>
-        <h1 id="page-title">Explore leaf area near you</h1>
-        <p class="intro-lead">Choose a U.S. location to see its latest leaf area estimate and monthly snapshots.</p>
+        <h1 id="page-title">Explore leaf area with satellites and machine learning</h1>
+        <p class="intro-lead">LeafView uses GOES-19 satellite data and a trained machine-learning model to estimate leaf area. Choose a U.S. location to explore the latest estimate and monthly snapshots.</p>
       </div>
       <div class="intro-definition">
         <h2>What is leaf area index (LAI)?</h2>
@@ -215,7 +215,7 @@
       <div class="methods-content">
         <section>
           <h3>How LeafView estimates leaf area</h3>
-          <p>LeafView uses a machine-learning model developed by Yixuan Li during his CISESS research. It estimates leaf area from GOES-19 satellite observations, using reflected light, viewing and illumination angles, season, and land cover.</p>
+          <p>LeafView uses a trained machine-learning model to estimate leaf area from GOES-19 satellite observations, using reflected light, viewing and illumination angles, season, and land cover.</p>
           <p>The model was trained against quality-screened MODIS and VIIRS satellite LAI estimates. These are satellite-based reference values, rather than direct field measurements.</p>
         </section>
 
@@ -250,12 +250,12 @@
       <details id="about-project" class="bottom-detail about-project">
         <summary>About this project</summary>
         <div class="bottom-detail-content">
-          <p>Created by Yixuan Li, inspired by his summer research internship at CISESS. LeafView makes his leaf-area model accessible through an interactive map.</p>
+          <p>Inspired by summer research at the University of Maryland’s CISESS, LeafView makes a satellite-based leaf-area model accessible through an interactive map.</p>
         </div>
       </details>
     </section>
 
-    <footer>LeafView · From Yixuan Li’s summer research to landscapes near you.</footer>
+    <footer>LeafView · Satellite-based leaf area estimates.</footer>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="{{ url_for('static', filename='app.js') }}"></script>

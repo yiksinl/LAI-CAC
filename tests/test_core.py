@@ -598,8 +598,10 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert '.brand-mark { width: 34px; height: 34px;' in styles
     assert 'data-open-details="methods">How it works</a>' in template
     assert 'data-open-details="about-project">About</a>' in template
-    assert "CISESS / ESSIC research by Yixuan Li" not in template
-    assert "Choose a U.S. location to see its latest leaf area estimate and monthly snapshots." in template
+    assert "Yixuan" not in template
+    assert "near you" not in template.lower()
+    assert "Explore leaf area with satellites and machine learning" in template
+    assert "LeafView uses GOES-19 satellite data and a trained machine-learning model to estimate leaf area. Choose a U.S. location to explore the latest estimate and monthly snapshots." in template
     assert 'id="location-search"' in template
     assert 'placeholder="U.S. place, address, or coordinates"' in template
     assert "Or click the map. Results load automatically." in template
@@ -689,6 +691,9 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr)" in styles
     assert ".map-wrap { position: relative; width: 100%; height: 340px;" in styles
     assert "main { width: min(1200px, 100%);" in styles
+    assert "max-width: 600px" in styles
+    assert "text-wrap: balance" in styles
+    assert "h1 { max-width: none; font-size: 29px; }" in styles
     assert "@media (max-width: 760px)" in styles
     assert "April 6, 2026, the model’s training cutoff" in template
     assert "How LeafView works" in template
@@ -701,7 +706,9 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "LAI alone cannot diagnose plant health or drought" in template
     assert "Methods and limitations" not in template
     assert "Estimated leaf area" in template
-    assert "Explore leaf area near you" in template
+    assert "LeafView uses a trained machine-learning model to estimate leaf area from GOES-19 satellite observations" in template
+    assert "Inspired by summer research at the University of Maryland’s CISESS, LeafView makes a satellite-based leaf-area model accessible through an interactive map." in template
+    assert "LeafView · Satellite-based leaf area estimates." in template
     assert "What is leaf area index (LAI)?" in template
     assert "3 m² of leaves per m² of ground" in template
     assert "More leaf area doesn’t necessarily mean healthier plants." in template

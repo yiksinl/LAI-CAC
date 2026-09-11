@@ -39,7 +39,7 @@ a:hover { color: var(--leaf-dark); }
 main { width: min(1200px, 100%); margin: auto; padding: 27px 32px 24px; }
 h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3, strong { font-weight: 600; }
-h1 { max-width: 430px; margin-bottom: 11px; font-size: 32px; line-height: 1.15; letter-spacing: -.9px; }
+h1 { max-width: 600px; margin-bottom: 11px; font-size: 32px; line-height: 1.15; letter-spacing: -.9px; text-wrap: balance; }
 h2 { margin-bottom: 0; font-size: 20px; line-height: 1.3; }
 h3 { margin-bottom: 10px; font-size: 15px; line-height: 1.35; }
 .eyebrow { margin: 0 0 5px; color: var(--leaf); font-size: 10px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
@@ -256,7 +256,7 @@ footer { padding-top: 7px; color: var(--muted); font-size: 12px; }
   .site-nav { gap: 14px; font-size: 12px; }
   main { padding: 23px 16px 20px; }
   .intro { grid-template-columns: 1fr; gap: 16px; margin-bottom: 19px; }
-  h1 { max-width: 330px; font-size: 29px; }
+  h1 { max-width: none; font-size: 29px; }
   .intro-definition { padding-left: 0; border-left: 0; }
   .selection-bar { grid-template-columns: 1fr; gap: 0; }
   .selection-hint { max-width: none; margin: 6px 0 11px; }
