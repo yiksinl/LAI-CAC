@@ -595,12 +595,15 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert 'byId("estimate")' not in source
     assert 'class="brand-mark"' in template
     assert "filename='leafview-mark.svg'" in template
-    assert '.brand-mark { width: 38px; height: 38px;' in styles
-    assert '.brand-copy span { display: none; }' in styles
+    assert '.brand-mark { width: 34px; height: 34px;' in styles
+    assert 'data-open-details="methods">How it works</a>' in template
+    assert 'data-open-details="about-project">About</a>' in template
     assert "CISESS / ESSIC research by Yixuan Li" not in template
-    assert "Choose a location on the map to automatically load its" in template
+    assert "Choose a U.S. location to see its latest leaf area estimate and monthly snapshots." in template
     assert 'id="location-search"' in template
-    assert 'placeholder="Search a U.S. place, address, or coordinates"' in template
+    assert 'placeholder="U.S. place, address, or coordinates"' in template
+    assert "Or click the map. Results load automatically." in template
+    assert "Each estimate combines eight days of observations across the highlighted satellite area" in template
     assert 'id="location-search-suggestions"' in template
     assert 'fetch(`/api/place-search?q=${encodeURIComponent(query)}`' in source
     assert "coordinateSearch(query)" in source
@@ -671,8 +674,10 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert 'id="observation-details"' in template
     assert 'id="pixel-details"' in template
     assert 'class="results-layout"' in template
-    assert 'id="results-location-name"' in template
-    assert 'id="results-location-details"' in template
+    assert 'id="results-location-name"' not in template
+    assert 'id="results-location-details"' not in template
+    assert 'id="data-details"' in template
+    assert template.index('id="data-details"') > template.index('class="results-layout"')
     assert '<h3 id="example-title">Estimated leaf area</h3>' in template
     assert 'id="observation-period-dates"' in template
     assert 'id="observation-total"' in template
@@ -681,7 +686,9 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "Usable observations from ${distinctUsableDates.size} of ${support.possible_days} days" in source
     assert "passed_total / 3" not in source
     assert "passed_total/3" not in source
-    assert "grid-template-columns: minmax(300px, 1fr) minmax(0, 2fr)" in styles
+    assert "grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr)" in styles
+    assert ".map-wrap { position: relative; width: 100%; height: 340px;" in styles
+    assert "main { width: min(1200px, 100%);" in styles
     assert "@media (max-width: 760px)" in styles
     assert "April 6, 2026, the model’s training cutoff" in template
     assert "How LeafView works" in template
@@ -695,11 +702,9 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "Methods and limitations" not in template
     assert "Estimated leaf area" in template
     assert "Explore leaf area near you" in template
-    assert "latest estimate and monthly snapshots" in template
-    assert "Each estimate uses eight days of satellite observations." in template
-    assert "What does LAI mean?" in template
+    assert "What is leaf area index (LAI)?" in template
     assert "3 m² of leaves per m² of ground" in template
-    assert "Higher LAI means more foliage, not necessarily healthier plants." in template
+    assert "More leaf area doesn’t necessarily mean healthier plants." in template
     assert "highlighted satellite area" in template
     assert "Accuracy for rolling eight-day estimates has not yet been evaluated." in template
     assert "Leaf area, seen from orbit" not in template
@@ -707,9 +712,10 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "What will you see?" not in template
     assert "Choose a location below to begin." not in template
     assert "View an older eight-day window" in template
-    assert "History at selected location" in template
     assert "Monthly snapshots" in template
-    assert "Each point summarizes eight days of satellite observations." in template
+    assert "Each point represents eight days of observations." in template
+    assert '`${formatTrendPeriod(item.period)} · ${historyItemText(item)}`' in source
+    assert "About ${Number(record.lai).toFixed(1)} square meters of leaves for each square meter of ground." in source
     assert "Network or retrieval error" in template
     assert "Network or retrieval error" in source
     assert "Calculation time unavailable." in source
@@ -725,7 +731,8 @@ def test_ui_has_compact_always_visible_lai_reference_strip():
     template = (root / "templates/index.html").read_text(encoding="utf-8")
 
     assert '<section id="landscape-guide" class="lai-reference"' in template
-    assert '<h2 id="lai-reference-title" tabindex="-1">LAI reference · Published averages</h2>' in template
+    assert '<h2 id="lai-reference-title" tabindex="-1">LAI reference</h2>' in template
+    assert '<span>Published landscape averages</span>' in template
     assert template.index('id="landscape-guide"') < template.index('class="workspace"')
     for landscape, average in (
         ("Deserts", "1.3"),
@@ -755,8 +762,8 @@ def test_ui_has_compact_always_visible_lai_reference_strip():
     assert 'byId("lai-reference-title").focus' in source
     assert "grid-template-columns: repeat(6, minmax(0, 1fr))" in styles
     assert "grid-template-columns: repeat(3, minmax(0, 1fr))" in styles
-    assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
-    assert "@media (max-width: 680px)" in styles
+    assert ".lai-reference-tiles { grid-template-columns: repeat(3, minmax(0, 1fr))" in styles
+    assert "@media (max-width: 600px)" in styles
 
 
 def test_result_support_and_calculation_copy_are_derived_from_metadata():

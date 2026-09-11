@@ -1,6 +1,13 @@
 {
-  "checkedAtUtc": "2026-09-11T01:11:39.470Z",
+  "checkedAtUtc": "2026-09-11T02:01:57.751Z",
   "desktop": {
+    "actualLoadingState": {
+      "processingVisible": true,
+      "stage": "Loading latest estimate",
+      "detail": "Starting the latest estimate for the selected location…",
+      "location": "Montgomery County, Maryland",
+      "staleLaiHidden": true
+    },
     "estimateBeforeHistory": {
       "lai": "3.59",
       "estimateState": "Estimate ready",
@@ -9,26 +16,27 @@
     },
     "viewportWidth": 1440,
     "horizontalOverflow": false,
-    "layoutColumns": "433.328px 866.672px",
-    "panelWidthRatio": 2.0000360581256986,
+    "layoutColumns": "386.203px 733.789px",
+    "panelWidthRatio": 1.9000080915968767,
     "panelsShareRow": true,
     "locationHeadingAbovePanels": true,
     "referenceAboveMap": true,
-    "mapStartsAt": 499,
-    "introHeight": 195,
+    "mapStartsAt": 381,
+    "introHeight": 93,
     "introTitle": "Explore leaf area near you",
     "introParagraphs": [
-      "Choose a location on the map to automatically load its latest estimate and monthly snapshots. Each estimate uses eight days of satellite observations.",
-      "What does LAI mean? An LAI of 3 means about 3 m² of leaves per m² of ground. Leaves overlap in layers, so values can exceed 1. Higher LAI means more foliage, not necessarily healthier plants.",
-      "The estimate covers the highlighted satellite area, which may contain mixed landscapes."
+      "Choose a U.S. location to see its latest leaf area estimate and monthly snapshots.",
+      "LAI 3 means 3 m² of leaves per m² of ground. Leaves overlap in layers. More leaf area doesn’t necessarily mean healthier plants."
     ],
     "searchAboveMap": true,
+    "mapFullWidth": true,
+    "mapHeight": 340,
     "logoRendered": true,
     "logoBeforeWordmark": true,
     "logoVerticallyAligned": true,
-    "searchPlaceholder": "Search a U.S. place, address, or coordinates",
+    "searchPlaceholder": "U.S. place, address, or coordinates",
     "suggestionsInitiallyHidden": true,
-    "referenceColumns": "205.664px 205.664px 205.672px 205.664px 205.664px 205.672px",
+    "referenceColumns": "183.328px 183.336px 183.328px 183.336px 183.336px 183.328px",
     "referenceTilesOneRow": true,
     "referenceTiles": [
       "1.3Deserts",
@@ -73,45 +81,76 @@
     "historyState": "Monthly snapshots loaded in 0.1 seconds. 6 estimates are available; 0 snapshots had insufficient data.",
     "historyPoints": 6,
     "historyPointTitles": [
-      "Apr 23–Apr 30 · 2.63 m²/m² · 6/24 observations · 3/8 days · Actual observations (UTC): Apr 23 2/3 usable · Apr 24 1/3 usable · Apr 25 0/3 usable · Apr 26 0/3 usable · Apr 27 3/3 usable · Apr 28 0/3 usable · Apr 29 0/3 usable · Apr 30 0/3 usable",
-      "May 24–May 31 · 4.81 m²/m² · 10/24 observations · 4/8 days · Actual observations (UTC): May 24 0/3 usable · May 25 0/3 usable · May 26 0/3 usable · May 27 0/3 usable · May 28 1/3 usable · May 29 3/3 usable · May 30 3/3 usable · May 31 3/3 usable",
-      "Jun 23–Jun 30 · 4.40 m²/m² · 4/24 observations · 2/8 days · Actual observations (UTC): Jun 23 0/3 usable · Jun 24 3/3 usable · Jun 25 1/3 usable · Jun 26 0/3 usable · Jun 27 0/3 usable · Jun 28 0/3 usable · Jun 29 0/1 usable · Jun 30 0/3 usable",
-      "Jul 24–Jul 31 · 4.53 m²/m² · 1/24 observations · 1/8 days · Actual observations (UTC): Jul 24 0/3 usable · Jul 25 0/3 usable · Jul 26 0/3 usable · Jul 27 0/3 usable · Jul 28 0/3 usable · Jul 29 0/3 usable · Jul 30 1/3 usable · Jul 31 0/3 usable",
-      "Aug 24–Aug 31 · 4.53 m²/m² · 10/24 observations · 7/8 days · Actual observations (UTC): Aug 24 3/3 usable · Aug 25 1/3 usable · Aug 26 1/3 usable · Aug 27 1/3 usable · Aug 28 1/3 usable · Aug 29 2/3 usable · Aug 30 1/3 usable · Aug 31 0/3 usable",
-      "Sep 3–Sep 10 · 3.59 m²/m² · 9/24 observations · 6/8 days · Actual observations (UTC): Sep 3 1/3 usable · Sep 4 1/3 usable · Sep 5 0/3 usable · Sep 6 1/3 usable · Sep 7 2/3 usable · Sep 8 1/3 usable · Sep 9 3/3 usable · Sep 10 0/3 usable"
+      "Apr 23–Apr 30 · 2.63 m²/m²",
+      "May 24–May 31 · 4.81 m²/m²",
+      "Jun 23–Jun 30 · 4.40 m²/m²",
+      "Jul 24–Jul 31 · 4.53 m²/m²",
+      "Aug 24–Aug 31 · 4.53 m²/m²",
+      "Sep 3–Sep 10 · 3.59 m²/m²"
     ],
     "consoleErrors": [],
     "sourceDisclosure": {
       "opened": true,
       "closedAgain": true,
       "includesBoundaryCaveat": true
+    },
+    "keyboardFocus": {
+      "text": "How it works",
+      "tag": "A",
+      "focusVisible": true,
+      "outlineVisible": true
+    },
+    "bottomDisclosures": {
+      "dataVisible": true,
+      "observationSupport": "Usable observations from 6 of 8 days",
+      "dataClosedAgain": true,
+      "methodsOpenedFromNav": true,
+      "aboutOpenedFromNav": true
+    },
+    "nonResultStates": {
+      "insufficientState": {
+        "rendered": true,
+        "status": "Estimate ready",
+        "badge": "Insufficient data",
+        "reason": "Not enough observations passed the existing checks for this window.",
+        "retryHidden": true,
+        "noZeroSubstitution": true
+      },
+      "retrievalErrorState": {
+        "status": "Estimate unavailable",
+        "blocked": true,
+        "retryVisible": true,
+        "staleLaiCleared": true,
+        "locationStillVisible": true
+      }
     }
   },
   "narrow": {
     "viewportWidth": 430,
     "horizontalOverflow": false,
-    "layoutColumns": "402px",
+    "layoutColumns": "398px",
     "estimateAboveHistory": true,
     "equalPanelWidths": true,
     "locationHeadingAbovePanels": true,
     "referenceAboveMap": true,
-    "mapStartsAt": 731,
-    "introHeight": 276,
+    "mapStartsAt": 576,
+    "introHeight": 226,
     "introTitle": "Explore leaf area near you",
     "introParagraphs": [
-      "Choose a location on the map to automatically load its latest estimate and monthly snapshots. Each estimate uses eight days of satellite observations.",
-      "What does LAI mean? An LAI of 3 means about 3 m² of leaves per m² of ground. Leaves overlap in layers, so values can exceed 1. Higher LAI means more foliage, not necessarily healthier plants.",
-      "The estimate covers the highlighted satellite area, which may contain mixed landscapes."
+      "Choose a U.S. location to see its latest leaf area estimate and monthly snapshots.",
+      "LAI 3 means 3 m² of leaves per m² of ground. Leaves overlap in layers. More leaf area doesn’t necessarily mean healthier plants."
     ],
     "searchAboveMap": true,
+    "mapFullWidth": true,
+    "mapHeight": 300,
     "logoRendered": true,
     "logoBeforeWordmark": true,
     "logoVerticallyAligned": true,
-    "searchPlaceholder": "Search a U.S. place, address, or coordinates",
-    "searchRowColumns": "286px 82px",
-    "referenceColumns": "180px 180px",
+    "searchPlaceholder": "U.S. place, address, or coordinates",
+    "searchRowColumns": "19px 289px 75px",
+    "referenceColumns": "120.664px 120.664px 120.664px",
     "referenceTileCount": 6,
-    "referenceTileRows": 3,
+    "referenceTileRows": 2,
     "sourcesInitiallyClosed": true,
     "sourceDisclosure": {
       "initiallyClosed": true,
@@ -119,7 +158,8 @@
       "includesBoundaryCaveat": true,
       "closedAgain": true
     },
-    "periodDateColumns": "179px 179px",
+    "bottomDetailsInitiallyClosed": true,
+    "periodDateColumns": "180.5px 180.5px",
     "periodDateCount": 8,
     "supportSummary": "Usable observations from 6 of 8 days",
     "automaticResultLoaded": true,

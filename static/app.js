@@ -136,8 +136,6 @@ function renderSelectedLocationCopy() {
   byId("selected-name").textContent = selectedQuery.displayLocation;
   byId("selected-location-details").textContent = details;
   byId("place-name-attribution").hidden = selectedQuery.placeNameSource !== "OpenStreetMap";
-  byId("results-location-name").textContent = selectedQuery.displayLocation;
-  byId("results-location-details").textContent = details;
   byId("result-location").textContent = selectedQuery.displayLocation;
   byId("result-location-details").textContent = details;
   if (activeRecord && sameLocation(activeRecord.query.location, selectedQuery)) {
@@ -182,7 +180,6 @@ function resetResultPanel(message = "Loading the latest complete window for this
   byId("observation-dates").replaceChildren();
   byId("footprint-corners").replaceChildren();
   byId("processing-diagnostics").open = false;
-  byId("observation-details").open = false;
   byId("pixel-details").open = false;
 }
 
@@ -340,6 +337,13 @@ function markCustomSelection(latitude, longitude) {
 
 map.on("click", ({ latlng }) => markCustomSelection(latlng.lat, latlng.lng));
 
+document.querySelectorAll("[data-open-details]").forEach(link => {
+  link.addEventListener("click", () => {
+    const target = byId(link.dataset.openDetails);
+    if (target) target.open = true;
+  });
+});
+
 function normalizedSearchText(value) {
   return String(value || "").trim().replace(/\s+/g, " ");
 }
@@ -373,6 +377,7 @@ function setSearchStatus(message, error = false) {
   const status = byId("location-search-status");
   status.textContent = message;
   status.className = `location-search-status${error ? " error" : ""}`;
+  status.hidden = !message;
 }
 
 function cancelPlaceSearch() {
@@ -708,7 +713,7 @@ function renderResult(record, expected) {
     byId("example-lai").textContent = Number(record.lai).toFixed(2);
     byId("lai-units").hidden = false;
     byId("result-badge").textContent = "Research estimate";
-    byId("lai-explanation").textContent = `An LAI of ${Number(record.lai).toFixed(1)} means about ${Number(record.lai).toFixed(1)} square meters of one-sided leaf area above each square meter of ground, averaged across this satellite pixel.`;
+    byId("lai-explanation").textContent = `About ${Number(record.lai).toFixed(1)} square meters of leaves for each square meter of ground.`;
   }
   byId("provisional-note").textContent = record.status.startsWith("provisional")
     ? "This output has an unresolved preprocessing limitation."
@@ -795,8 +800,8 @@ function renderHistoryFrame(message = "Monthly snapshots will appear here.") {
   const plot = byId("trend-plot");
   const width = Math.max(520, Math.round(plot.clientWidth || 900));
   renderedTrendWidth = width;
-  const height = 300;
-  const margin = { top: 24, right: 18, bottom: 48, left: 54 };
+  const height = 230;
+  const margin = { top: 22, right: 18, bottom: 42, left: 54 };
   const plotHeight = height - margin.top - margin.bottom;
   const svg = svgElement("svg", {
     viewBox: `0 0 ${width} ${height}`,
@@ -902,8 +907,8 @@ function renderHistory(data) {
   const plot = byId("trend-plot");
   const width = Math.max(520, Math.round(plot.clientWidth || 900));
   renderedTrendWidth = width;
-  const height = 300;
-  const margin = { top: 24, right: 18, bottom: 48, left: 54 };
+  const height = 230;
+  const margin = { top: 22, right: 18, bottom: 42, left: 54 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
   const yFor = value => margin.top + plotHeight - Number(value) / maximum * plotHeight;
@@ -958,7 +963,7 @@ function renderHistory(data) {
       r: item.period.start === selectedWindowStart ? 5 : 2.5,
       class: className
     });
-    point.append(svgElement("title", {}, `${formatTrendPeriod(item.period)} · ${historyItemText(item)} · ${historyItemSupport(item)} · ${historyObservationDates(item)}`));
+    point.append(svgElement("title", {}, `${formatTrendPeriod(item.period)} · ${historyItemText(item)}`));
     svg.append(point);
   });
   periods.forEach((item, index) => {

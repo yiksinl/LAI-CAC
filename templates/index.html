@@ -6,28 +6,37 @@
   <title>LeafView — GOES-19 LAI Explorer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="brand">
       <img class="brand-mark" src="{{ url_for('static', filename='leafview-mark.svg') }}" alt="">
-      <div class="brand-copy">LeafView <span>GOES-19 LAI Explorer</span></div>
+      <div class="brand-copy">LeafView</div>
     </div>
+    <nav class="site-nav" aria-label="LeafView information">
+      <a href="#methods" data-open-details="methods">How it works</a>
+      <a href="#about-project" data-open-details="about-project">About</a>
+    </nav>
   </header>
   <main>
-    <section class="intro">
-      <h1>Explore leaf area near you</h1>
-      <p class="intro-lead">Choose a location on the map to automatically load its <strong>latest estimate and monthly snapshots</strong>. Each estimate uses eight days of satellite observations.</p>
-      <p class="intro-definition"><strong>What does LAI mean?</strong> An LAI of <strong>3</strong> means about <strong>3 m² of leaves per m² of ground</strong>. Leaves overlap in layers, so values can exceed 1. Higher LAI means more foliage, not necessarily healthier plants.</p>
-      <p class="intro-footprint">The estimate covers the <strong>highlighted satellite area</strong>, which may contain mixed landscapes.</p>
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <h1 id="page-title">Explore leaf area near you</h1>
+        <p class="intro-lead">Choose a U.S. location to see its latest leaf area estimate and monthly snapshots.</p>
+      </div>
+      <div class="intro-definition">
+        <h2>What is leaf area index (LAI)?</h2>
+        <p><strong>LAI 3 means 3 m² of leaves per m² of ground.</strong> Leaves overlap in layers. More leaf area doesn’t necessarily mean healthier plants.</p>
+      </div>
     </section>
 
     <section id="landscape-guide" class="lai-reference" aria-labelledby="lai-reference-title">
       <div class="lai-reference-heading">
-        <h2 id="lai-reference-title" tabindex="-1">LAI reference · Published averages</h2>
+        <h2 id="lai-reference-title" tabindex="-1">LAI reference</h2>
+        <span>Published landscape averages</span>
       </div>
       <div class="lai-reference-tiles" aria-label="Published average leaf area index values">
         <article class="lai-reference-tile"><strong>1.3</strong><span>Deserts</span></article>
@@ -51,82 +60,114 @@
     </section>
 
     <section class="workspace" aria-label="Selected query">
-      <div class="map-column">
+      <div class="selection-bar">
         <form id="location-search" class="location-search" role="search">
-          <label for="location-search-input">Search for a location</label>
+          <label for="location-search-input">Find a location</label>
           <div class="location-search-row">
-            <input id="location-search-input" type="search" placeholder="Search a U.S. place, address, or coordinates" autocomplete="off" spellcheck="false" aria-describedby="location-search-status" aria-controls="location-search-suggestions" aria-expanded="false">
+            <span class="search-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+            </span>
+            <input id="location-search-input" type="search" placeholder="U.S. place, address, or coordinates" autocomplete="off" spellcheck="false" aria-describedby="location-search-status location-selection-hint" aria-controls="location-search-suggestions" aria-expanded="false">
             <button id="location-search-submit" type="submit">Search</button>
           </div>
-          <p id="location-search-status" class="location-search-status" role="status">Enter a place and press Search, or enter latitude and longitude.</p>
+          <p id="location-search-status" class="location-search-status" role="status" hidden></p>
           <ul id="location-search-suggestions" class="location-search-suggestions" aria-label="Location search suggestions" hidden></ul>
           <p id="location-search-attribution" class="search-attribution" hidden><a href="https://www.openstreetmap.org/copyright">Search results © OpenStreetMap contributors</a></p>
         </form>
-        <div class="map-wrap">
-          <div id="map"></div>
-          <div id="map-tile-message" class="map-tile-message" role="alert" hidden>
-            Map tiles could not load. Check the internet connection; the selected point and satellite footprint remain available.
-          </div>
-          <div class="map-legend"><span class="legend-point"></span> Requested point <span class="legend-footprint"></span> Sampled GOES pixel</div>
-        </div>
+        <p id="location-selection-hint" class="selection-hint">Or click the map. Results load automatically.</p>
       </div>
-      <aside class="query-panel">
-        <p class="eyebrow">Location</p>
-        <div id="selected-name" class="location-name" aria-live="polite">Custom location</div>
-        <p id="selected-location-details" class="location-details">Selected coordinates will appear here.</p>
-        <p id="place-name-attribution" class="place-attribution" hidden><a href="https://www.openstreetmap.org/copyright">Place names © OpenStreetMap contributors</a></p>
-        <p id="latest-window-copy" class="window-copy">Finding the latest complete eight-day window…</p>
-        <details class="window-technical">
-          <summary>Technical date details</summary>
-          <p id="latest-window-details">Exact UTC boundaries and archive timing will appear here.</p>
-        </details>
-        <div id="status" class="status loading" role="status">Checking scientific dependencies…</div>
-        <button id="retry-estimate" class="secondary retry-action" hidden>Retry</button>
-        <div id="processing" class="processing" aria-live="polite" hidden>
-          <div class="processing-heading"><strong id="processing-stage">Preparing estimate</strong><span id="processing-percent">0%</span></div>
-          <progress id="processing-bar" max="100" value="0"></progress>
-          <p id="processing-detail">Preparing the selected query…</p>
+      <div class="map-wrap">
+        <div id="map"></div>
+        <div id="map-tile-message" class="map-tile-message" role="alert" hidden>
+          Map tiles could not load. Check the internet connection; the selected point and satellite footprint remain available.
         </div>
-      </aside>
+        <div class="map-legend"><span class="legend-point"></span> Requested point <span class="legend-footprint"></span> Sampled GOES pixel</div>
+      </div>
+      <p class="map-area-note">Each estimate combines eight days of observations across the highlighted satellite area, which may include mixed landscapes.</p>
     </section>
 
-    <section class="results-shell" aria-labelledby="results-location-name">
+    <section class="results-shell" aria-labelledby="selected-name">
       <div class="results-location-heading">
-        <p class="eyebrow">Results for selected location</p>
-        <h2 id="results-location-name">Montgomery County, Maryland</h2>
-        <p id="results-location-details" class="location-details">Selected coordinates will appear here.</p>
+        <div class="results-location-copy">
+          <p id="result-context" class="eyebrow">Latest eight-day estimate</p>
+          <h2 id="selected-name" aria-live="polite">Montgomery County, Maryland</h2>
+          <details class="location-disclosure">
+            <summary>Location details</summary>
+            <p id="selected-location-details" class="location-details">Selected coordinates will appear here.</p>
+            <p id="place-name-attribution" class="place-attribution" hidden><a href="https://www.openstreetmap.org/copyright">Place names © OpenStreetMap contributors</a></p>
+          </details>
+        </div>
+        <div class="result-state">
+          <div id="example-meta" class="example-meta">Choose a location to load its latest complete window.</div>
+          <div id="status" class="status loading" role="status">Checking scientific dependencies…</div>
+          <button id="retry-estimate" class="secondary retry-action" hidden>Retry</button>
+        </div>
+      </div>
+      <div id="processing" class="processing" aria-live="polite" hidden>
+        <div class="processing-heading"><strong id="processing-stage">Preparing estimate</strong><span id="processing-percent">0%</span></div>
+        <progress id="processing-bar" max="100" value="0"></progress>
+        <p id="processing-detail">Preparing the selected query…</p>
       </div>
 
       <div class="results-layout">
         <section id="result-section" class="estimate-panel awaiting" aria-labelledby="example-title">
           <div class="panel-heading">
-            <p id="result-context" class="eyebrow">Latest eight-day estimate</p>
             <h3 id="example-title">Estimated leaf area</h3>
           </div>
-          <div id="example-meta" class="example-meta">Choose a location to load its latest complete window.</div>
           <div class="estimate-content">
-            <div class="result-label"><span id="result-badge" class="badge">Research estimate</span><a id="compare-landscapes" href="#landscape-guide">Compare with landscape examples</a></div>
             <div class="lai-measure"><span id="example-lai" class="lai-value">—</span><span id="lai-units" class="lai-units" hidden>m²/m²</span></div>
             <p id="lai-explanation" class="lead-explanation">Loading the cached result…</p>
-
-            <p class="detail-label observation-period-label">Eight-day observation dates (UTC)</p>
-            <div id="observation-period-dates" class="observation-period-dates" aria-label="Eight-day observation dates"></div>
-            <p id="support-summary" class="support-summary"></p>
-
+            <div class="result-label"><span id="result-badge" class="badge">Research estimate</span><a id="compare-landscapes" href="#landscape-guide">Compare with landscape examples</a></div>
             <p id="calculation-source" class="calculation-source">Checking how this result was calculated…</p>
             <p id="calculated-at" class="calculated-at" hidden></p>
             <p id="provisional-note" class="provisional-note"></p>
+          </div>
+        </section>
 
-            <details id="observation-details" class="compact-details">
-              <summary>Observation details</summary>
-              <p id="observation-total" class="observation-total"></p>
-              <p class="detail-label">Usable observations by selected time</p>
-              <div id="support-bars" class="support-bars"></div>
-              <p class="detail-label">Per-day counts and selected observation times (UTC)</p>
-              <div id="observation-dates" class="observation-dates"></div>
-              <p class="support-note">This describes data availability, not prediction confidence.</p>
+        <section id="trend-section" class="trend-card history-panel history-card" aria-labelledby="trend-title">
+          <div class="trend-heading">
+            <h3 id="trend-title">Monthly snapshots</h3>
+            <p class="trend-lead">Each point represents eight days of observations.</p>
+          </div>
+          <div class="history-content">
+            <div id="history-state" class="history-state" role="status">Waiting for a location.</div>
+            <button id="retry-history" class="secondary retry-action history-retry" hidden>Retry</button>
+            <div class="history-legend" aria-label="History status legend">
+              <span><i class="legend-available"></i> Available</span>
+              <span><i class="legend-loading"></i> Pending</span>
+              <span><i class="legend-insufficient"></i> Insufficient data</span>
+              <span><i class="legend-error"></i> Network or retrieval error</span>
+              <span><i class="legend-error"></i> Processing error</span>
+            </div>
+            <div id="trend-plot" class="trend-plot" aria-live="polite"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="bottom-disclosures" aria-label="LeafView details">
+      <details id="data-details" class="bottom-detail data-details">
+        <summary>Data details</summary>
+        <div class="bottom-detail-content data-details-content">
+          <section id="observation-details" class="data-section" aria-labelledby="observation-details-title">
+            <h3 id="observation-details-title">Observation dates and availability</h3>
+            <p class="detail-label observation-period-label">Eight-day observation dates (UTC)</p>
+            <div id="observation-period-dates" class="observation-period-dates" aria-label="Eight-day observation dates"></div>
+            <p id="support-summary" class="support-summary"></p>
+            <p id="observation-total" class="observation-total"></p>
+            <p class="detail-label">Usable observations by selected time</p>
+            <div id="support-bars" class="support-bars"></div>
+            <p class="detail-label">Per-day counts and selected observation times (UTC)</p>
+            <div id="observation-dates" class="observation-dates"></div>
+            <p class="support-note">This describes data availability, not prediction confidence.</p>
+          </section>
+
+          <section class="data-section" aria-label="Technical result details">
+            <p id="latest-window-copy" class="window-copy">Finding the latest complete eight-day window…</p>
+            <details class="compact-details window-technical">
+              <summary>Technical date details</summary>
+              <p id="latest-window-details">Exact UTC boundaries and archive timing will appear here.</p>
             </details>
-
             <details id="processing-diagnostics" class="compact-details diagnostics">
               <summary>Processing details</summary>
               <dl>
@@ -135,7 +176,6 @@
                 <div><dt>Observation cache</dt><dd id="observation-cache">—</dd></div>
               </dl>
             </details>
-
             <details id="pixel-details" class="compact-details">
               <summary>Satellite pixel details</summary>
               <p id="result-location" class="result-location">—</p>
@@ -149,27 +189,10 @@
               <p class="detail-label">Footprint corners</p>
               <ol id="footprint-corners" class="footprint-corners"></ol>
             </details>
-          </div>
-        </section>
+          </section>
 
-        <section id="trend-section" class="trend-card history-panel history-card" aria-labelledby="trend-title">
-          <div class="trend-heading">
-            <p class="eyebrow">History at selected location</p>
-            <h3 id="trend-title">Monthly snapshots</h3>
-            <p class="trend-lead">Each point summarizes eight days of satellite observations.</p>
-          </div>
-          <div class="history-content">
+          <section class="data-section history-data" aria-label="Historical window details">
             <p id="trend-meta" class="trend-meta">History will start after the latest estimate.</p>
-            <div id="history-state" class="history-state" role="status">Waiting for a location.</div>
-            <button id="retry-history" class="secondary retry-action history-retry" hidden>Retry</button>
-            <div class="history-legend" aria-label="History status legend">
-              <span><i class="legend-available"></i> Available</span>
-              <span><i class="legend-loading"></i> Pending</span>
-              <span><i class="legend-insufficient"></i> Insufficient data</span>
-              <span><i class="legend-error"></i> Network or retrieval error</span>
-              <span><i class="legend-error"></i> Processing error</span>
-            </div>
-            <div id="trend-plot" class="trend-plot" aria-live="polite"></div>
             <details class="history-picker">
               <summary>View an older eight-day window</summary>
               <div class="history-picker-row">
@@ -179,16 +202,15 @@
                 <button id="view-latest" class="secondary" disabled>Return to latest</button>
               </div>
             </details>
-            <details id="history-details" class="history-results" open>
+            <details id="history-details" class="history-results">
               <summary>Browse monthly snapshots</summary>
               <div id="history-list" class="history-list"></div>
             </details>
-          </div>
-        </section>
-      </div>
-    </section>
+          </section>
+        </div>
+      </details>
 
-    <details class="methods">
+      <details id="methods" class="bottom-detail methods">
       <summary>How LeafView works</summary>
       <div class="methods-content">
         <section>
@@ -223,7 +245,17 @@
           <p>LeafView uses the selected 600-tree XGBoost model with the original feature definitions and preprocessing. It preserves separate composites for observations around 15, 18, and 21 UTC. Seasonality is calculated from each window’s start date using the original notebook formula.</p>
         </section>
       </div>
-    </details>
+      </details>
+
+      <details id="about-project" class="bottom-detail about-project">
+        <summary>About this project</summary>
+        <div class="bottom-detail-content">
+          <p>Created by Yixuan Li, inspired by his summer research internship at CISESS. LeafView makes his leaf-area model accessible through an interactive map.</p>
+        </div>
+      </details>
+    </section>
+
+    <footer>LeafView · From Yixuan Li’s summer research to landscapes near you.</footer>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
