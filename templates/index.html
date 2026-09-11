@@ -9,10 +9,13 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
-</head>
+  </head>
 <body>
   <header>
-    <div class="brand">LeafView <span>GOES-19 LAI Explorer</span></div>
+    <div class="brand">
+      <img class="brand-mark" src="{{ url_for('static', filename='leafview-mark.svg') }}" alt="">
+      <div class="brand-copy">LeafView <span>GOES-19 LAI Explorer</span></div>
+    </div>
     <div class="research">CISESS / ESSIC research by Yixuan Li</div>
   </header>
   <main>

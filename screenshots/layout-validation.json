@@ -1,5 +1,5 @@
 {
-  "checkedAtUtc": "2026-09-11T00:45:57.325Z",
+  "checkedAtUtc": "2026-09-11T01:05:24.533Z",
   "desktop": {
     "estimateBeforeHistory": {
       "lai": "3.59",
@@ -23,6 +23,9 @@
       "The estimate covers the highlighted satellite area, which may contain mixed landscapes."
     ],
     "searchAboveMap": true,
+    "logoRendered": true,
+    "logoBeforeWordmark": true,
+    "logoVerticallyAligned": true,
     "searchPlaceholder": "Search a U.S. place, address, or coordinates",
     "suggestionsInitiallyHidden": true,
     "referenceColumns": "205.664px 205.664px 205.672px 205.664px 205.664px 205.672px",
@@ -67,7 +70,7 @@
       "Sep 10, 2026: 0 of 3 available observations usableSelected observation times: 15, 18, 21 UTC. Usable times: none."
     ],
     "availabilityNote": "This describes data availability, not prediction confidence.",
-    "historyState": "Monthly snapshots loaded in 0.0 seconds. 6 estimates are available; 0 snapshots had insufficient data.",
+    "historyState": "Monthly snapshots loaded in 0.1 seconds. 6 estimates are available; 0 snapshots had insufficient data.",
     "historyPoints": 6,
     "historyPointTitles": [
       "Apr 23–Apr 30 · 2.63 m²/m² · 6/24 observations · 3/8 days · Actual observations (UTC): Apr 23 2/3 usable · Apr 24 1/3 usable · Apr 25 0/3 usable · Apr 26 0/3 usable · Apr 27 3/3 usable · Apr 28 0/3 usable · Apr 29 0/3 usable · Apr 30 0/3 usable",
@@ -92,7 +95,7 @@
     "equalPanelWidths": true,
     "locationHeadingAbovePanels": true,
     "referenceAboveMap": true,
-    "mapStartsAt": 730,
+    "mapStartsAt": 731,
     "introHeight": 276,
     "introTitle": "Explore leaf area near you",
     "introParagraphs": [
@@ -101,6 +104,9 @@
       "The estimate covers the highlighted satellite area, which may contain mixed landscapes."
     ],
     "searchAboveMap": true,
+    "logoRendered": true,
+    "logoBeforeWordmark": true,
+    "logoVerticallyAligned": true,
     "searchPlaceholder": "Search a U.S. place, address, or coordinates",
     "searchRowColumns": "286px 82px",
     "referenceColumns": "180px 180px",
