@@ -593,7 +593,7 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert 'id="estimate"' not in template
     assert "Get latest estimate" not in template
     assert 'byId("estimate")' not in source
-    assert "Choose a location on the map. Your latest estimate and available history will load automatically." in template
+    assert "Choose a location on the map to automatically load its" in template
     assert 'id="location-search"' in template
     assert 'placeholder="Search a U.S. place, address, or coordinates"' in template
     assert 'id="location-search-suggestions"' in template
@@ -689,14 +689,17 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "LAI alone cannot diagnose plant health or drought" in template
     assert "Methods and limitations" not in template
     assert "Estimated leaf area" in template
-    assert "Explore the leaves in your landscape" in template
-    assert "What is leaf area index?" in template
-    assert "3 square meters of leaves for every square meter of ground" in template
-    assert "Choose a landscape to explore" in template
-    assert "Latest estimated leaf area" in template
-    assert "Observation availability" in template
-    assert "LeafView selects the observation period automatically." in template
-    assert "Research estimates: prediction accuracy for the rolling eight-day windows has not yet been evaluated." in template
+    assert "Explore leaf area near you" in template
+    assert "latest estimate and monthly snapshots" in template
+    assert "Each estimate uses eight days of satellite observations." in template
+    assert "What does LAI mean?" in template
+    assert "3 m² of leaves per m² of ground" in template
+    assert "Higher LAI means more foliage, not necessarily healthier plants." in template
+    assert "highlighted satellite area" in template
+    assert "Accuracy for rolling eight-day estimates has not yet been evaluated." in template
+    assert "Leaf area, seen from orbit" not in template
+    assert "Choose a landscape to explore" not in template
+    assert "What will you see?" not in template
     assert "Choose a location below to begin." not in template
     assert "View an older eight-day window" in template
     assert "History at selected location" in template
@@ -717,7 +720,7 @@ def test_ui_has_compact_always_visible_lai_reference_strip():
     template = (root / "templates/index.html").read_text(encoding="utf-8")
 
     assert '<section id="landscape-guide" class="lai-reference"' in template
-    assert '<h2 id="lai-reference-title" tabindex="-1">LAI reference</h2>' in template
+    assert '<h2 id="lai-reference-title" tabindex="-1">LAI reference · Published averages</h2>' in template
     assert template.index('id="landscape-guide"') < template.index('class="workspace"')
     for landscape, average in (
         ("Deserts", "1.3"),
@@ -729,7 +732,8 @@ def test_ui_has_compact_always_visible_lai_reference_strip():
     ):
         assert f"<strong>{average}</strong><span>{landscape}</span>" in template
 
-    assert "Published averages for context. Values vary with season and location." in template
+    assert "Values vary with season and location." in template
+    assert "Published averages for context." not in template
     assert '<details id="lai-reference-sources" class="lai-reference-sources">' in template
     assert "reference examples—not category boundaries, health ratings" in template
     assert "Leaf area across different landscapes" not in template

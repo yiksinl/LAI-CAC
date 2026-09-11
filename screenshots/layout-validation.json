@@ -1,5 +1,5 @@
 {
-  "checkedAtUtc": "2026-09-11T00:31:24.136Z",
+  "checkedAtUtc": "2026-09-11T00:45:57.325Z",
   "desktop": {
     "estimateBeforeHistory": {
       "lai": "3.59",
@@ -14,6 +14,14 @@
     "panelsShareRow": true,
     "locationHeadingAbovePanels": true,
     "referenceAboveMap": true,
+    "mapStartsAt": 499,
+    "introHeight": 195,
+    "introTitle": "Explore leaf area near you",
+    "introParagraphs": [
+      "Choose a location on the map to automatically load its latest estimate and monthly snapshots. Each estimate uses eight days of satellite observations.",
+      "What does LAI mean? An LAI of 3 means about 3 m² of leaves per m² of ground. Leaves overlap in layers, so values can exceed 1. Higher LAI means more foliage, not necessarily healthier plants.",
+      "The estimate covers the highlighted satellite area, which may contain mixed landscapes."
+    ],
     "searchAboveMap": true,
     "searchPlaceholder": "Search a U.S. place, address, or coordinates",
     "suggestionsInitiallyHidden": true,
@@ -27,7 +35,7 @@
       "5.1Temperate deciduous forests",
       "5.5Temperate conifer forests"
     ],
-    "referenceNote": "Published averages for context. Values vary with season and location.",
+    "referenceNote": "Values vary with season and location.",
     "sourcesInitiallyClosed": true,
     "sourceLinks": 3,
     "locationName": "Montgomery County, Maryland",
@@ -84,6 +92,14 @@
     "equalPanelWidths": true,
     "locationHeadingAbovePanels": true,
     "referenceAboveMap": true,
+    "mapStartsAt": 730,
+    "introHeight": 276,
+    "introTitle": "Explore leaf area near you",
+    "introParagraphs": [
+      "Choose a location on the map to automatically load its latest estimate and monthly snapshots. Each estimate uses eight days of satellite observations.",
+      "What does LAI mean? An LAI of 3 means about 3 m² of leaves per m² of ground. Leaves overlap in layers, so values can exceed 1. Higher LAI means more foliage, not necessarily healthier plants.",
+      "The estimate covers the highlighted satellite area, which may contain mixed landscapes."
+    ],
     "searchAboveMap": true,
     "searchPlaceholder": "Search a U.S. place, address, or coordinates",
     "searchRowColumns": "286px 82px",
@@ -91,9 +107,16 @@
     "referenceTileCount": 6,
     "referenceTileRows": 3,
     "sourcesInitiallyClosed": true,
+    "sourceDisclosure": {
+      "initiallyClosed": true,
+      "opened": true,
+      "includesBoundaryCaveat": true,
+      "closedAgain": true
+    },
     "periodDateColumns": "179px 179px",
     "periodDateCount": 8,
     "supportSummary": "Usable observations from 6 of 8 days",
+    "automaticResultLoaded": true,
     "consoleErrors": []
   },
   "images": {
