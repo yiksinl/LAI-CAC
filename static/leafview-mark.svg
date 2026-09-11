@@ -1,16 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="30" fill="#e7f0e8"/>
-  <ellipse cx="31" cy="29" rx="25" ry="10" fill="none" stroke="#759080" stroke-width="2" transform="rotate(-28 31 29)"/>
-  <circle cx="9.5" cy="40.5" r="2.5" fill="#2d7855"/>
-  <g transform="rotate(-28 31 25)">
-    <rect x="24" y="20" width="14" height="11" rx="2.5" fill="#17332a"/>
-    <rect x="7" y="21" width="14" height="9" rx="1.5" fill="#6aa07c" stroke="#205b40" stroke-width="1.5"/>
-    <path d="M14 21v9M7 25.5h14" stroke="#e7f0e8" stroke-width="1"/>
-    <rect x="41" y="21" width="14" height="9" rx="1.5" fill="#6aa07c" stroke="#205b40" stroke-width="1.5"/>
-    <path d="M48 21v9M41 25.5h14" stroke="#e7f0e8" stroke-width="1"/>
-    <path d="M31 19v-5M27.5 14h7" fill="none" stroke="#17332a" stroke-linecap="round" stroke-width="2"/>
-    <circle cx="31" cy="25.5" r="2.5" fill="#fffefa"/>
-  </g>
-  <path d="M32.5 42.5C36.5 33 47 31.5 54 35.5c-.5 10-6.5 17.5-17 17-3-2.5-4.5-5.5-4-9.5z" fill="#2d7855"/>
-  <path d="M35 49c4-5 8.5-8.5 14.5-11.5M41.5 43.5l.5 5M44.5 41l5 .5" fill="none" stroke="#e7f0e8" stroke-linecap="round" stroke-width="1.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="40" x2="430" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#173f2a"/>
+      <stop offset="1" stop-color="#2f7d3d"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="108" fill="#dcebcf"/>
+  <ellipse cx="256" cy="256" rx="208" ry="86" fill="none" stroke="#f5f7ef" stroke-width="24" transform="rotate(-25 256 256)"/>
+  <path d="M205 294c50-10 88-50 109-112 20 69 2 130-58 158-31 15-57 5-75-20 25 0 46-12 62-34-16 8-29 11-38 8Z" fill="#2f7d3d"/>
+  <circle cx="430" cy="206" r="31" fill="#d4e86e" stroke="#173f2a" stroke-width="14"/>
 </svg>
