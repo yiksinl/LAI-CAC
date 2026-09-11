@@ -596,7 +596,8 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert 'class="brand-mark"' in template
     assert "filename='leafview-mark.svg'" in template
     assert '.brand-mark { width: 38px; height: 38px;' in styles
-    assert '.brand-copy span, .research { display: none; }' in styles
+    assert '.brand-copy span { display: none; }' in styles
+    assert "CISESS / ESSIC research by Yixuan Li" not in template
     assert "Choose a location on the map to automatically load its" in template
     assert 'id="location-search"' in template
     assert 'placeholder="Search a U.S. place, address, or coordinates"' in template

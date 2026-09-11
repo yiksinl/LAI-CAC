@@ -18,8 +18,7 @@ header { min-height: 64px; padding: 0 max(24px, 5vw); display: flex; align-items
 .brand { display: flex; align-items: center; gap: 9px; font: 600 26px Newsreader, serif; }
 .brand-mark { width: 38px; height: 38px; flex: 0 0 auto; }
 .brand-copy { white-space: nowrap; }
-.brand-copy span, .research { font: 600 12px "DM Sans", sans-serif; color: var(--muted); margin-left: 10px; }
-.research { text-transform: uppercase; letter-spacing: .08em; }
+.brand-copy span { margin-left: 10px; color: var(--muted); font: 600 12px "DM Sans", sans-serif; }
 main { width: min(1380px, 100%); margin: auto; padding: 36px 32px 56px; }
 .intro { max-width: 1040px; margin-bottom: 18px; }
 .eyebrow { margin: 0 0 7px; text-transform: uppercase; letter-spacing: .13em; font-weight: 700; font-size: 11px; color: var(--leaf); }
@@ -235,7 +234,7 @@ dd { margin: 3px 0 0; color: var(--ink); font-weight: 600; font-size: 12px; font
 @media (max-width: 680px) {
   header { min-height: 58px; padding: 12px 18px; }
   .brand-mark { width: 34px; height: 34px; }
-  .brand-copy span, .research { display: none; }
+  .brand-copy span { display: none; }
   main { padding: 26px 14px 40px; }
   .intro { margin-bottom: 20px; }
   h1 { font-size: 38px; }
