@@ -31,6 +31,7 @@ from lai_cac.web import (
     create_app,
     dependency_status,
     place_name_from_nominatim,
+    places_from_nominatim_search,
     public_result,
 )
 
@@ -305,6 +306,99 @@ def test_nominatim_lookup_uses_exact_requested_coordinates_and_caches_response()
     assert sleeps == [pytest.approx(0.75)]
 
 
+def test_nominatim_search_parser_keeps_us_places_addresses_and_counties_clear():
+    results = places_from_nominatim_search([
+        {
+            "lat": "39.114268",
+            "lon": "-77.106981",
+            "name": "Rock Creek Regional Park",
+            "namedetails": {"name": "Rock Creek Regional Park"},
+            "display_name": "Text including a country that must not be copied",
+            "address": {
+                "suburb": "Derwood",
+                "county": "Montgomery County",
+                "state": "Maryland",
+                "province": "Unsupported province",
+                "country": "United States",
+                "country_code": "us",
+            },
+        },
+        {
+            "lat": "39.084100",
+            "lon": "-77.152800",
+            "address": {
+                "house_number": "10",
+                "road": "Main Street",
+                "city": "Rockville",
+                "county": "Montgomery County",
+                "state": "Maryland",
+                "country_code": "us",
+            },
+        },
+        {
+            "lat": "43.6532",
+            "lon": "-79.3832",
+            "name": "Toronto",
+            "address": {
+                "city": "Toronto", "state": "Ontario", "country_code": "ca"
+            },
+        },
+    ])
+    assert results == [
+        {
+            "display_name": "Rock Creek Regional Park, Derwood, Maryland",
+            "county": "Montgomery County",
+            "latitude": 39.114268,
+            "longitude": -77.106981,
+        },
+        {
+            "display_name": "10 Main Street, Rockville, Maryland",
+            "county": "Montgomery County",
+            "latitude": 39.0841,
+            "longitude": -77.1528,
+        },
+    ]
+    assert all("country" not in item and "province" not in item for item in results)
+
+
+def test_nominatim_forward_search_is_us_restricted_and_cached():
+    class Response:
+        status = 200
+        data = json.dumps([{
+            "lat": "39.083997",
+            "lon": "-77.152758",
+            "name": "Rockville",
+            "address": {
+                "city": "Rockville",
+                "county": "Montgomery County",
+                "state": "Maryland",
+                "country_code": "us",
+            },
+        }]).encode()
+
+    class Pool:
+        def __init__(self):
+            self.calls = []
+
+        def request(self, method, url, **kwargs):
+            self.calls.append((method, url, kwargs))
+            return Response()
+
+    pool = Pool()
+    lookup = NominatimPlaceLookup(pool=pool, minimum_interval_seconds=0)
+    first = lookup.search(" Rockville ")
+    second = lookup.search("rockville")
+    assert first == second
+    assert len(pool.calls) == 1
+    method, url, options = pool.calls[0]
+    assert method == "GET"
+    assert url.endswith("/search")
+    assert options["fields"]["q"] == "Rockville"
+    assert options["fields"]["countrycodes"] == "us"
+    assert options["fields"]["addressdetails"] == "1"
+    assert options["fields"]["limit"] == "8"
+
+
 def test_place_name_endpoint_binds_response_to_clicked_coordinates_and_handles_failure():
     calls = []
 
@@ -341,6 +435,40 @@ def test_place_name_endpoint_binds_response_to_clicked_coordinates_and_handles_f
     )
     assert failed.status_code == 502
     assert failed.json == {"error": "Place name lookup unavailable"}
+
+
+def test_place_search_endpoint_returns_bound_us_suggestions_and_no_match_list():
+    calls = []
+
+    def search(query):
+        calls.append(query)
+        if query == "nowhere nearby":
+            return []
+        return [{
+            "display_name": "Rockville, Maryland",
+            "county": "Montgomery County",
+            "latitude": 39.083997,
+            "longitude": -77.152758,
+        }]
+
+    client = create_app(place_search=search).test_client()
+    response = client.get("/api/place-search?q=%20Rockville%20")
+    assert response.status_code == 200
+    assert response.json == {
+        "query": "Rockville",
+        "results": [{
+            "display_name": "Rockville, Maryland",
+            "county": "Montgomery County",
+            "latitude": 39.083997,
+            "longitude": -77.152758,
+        }],
+        "attribution": "© OpenStreetMap contributors",
+    }
+    no_match = client.get("/api/place-search?q=nowhere%20nearby")
+    assert no_match.status_code == 200
+    assert no_match.json["results"] == []
+    assert calls == ["Rockville", "nowhere nearby"]
+    assert client.get("/api/place-search?q=x").status_code == 400
 
 
 def test_dependency_status_distinguishes_missing_invalid_and_verified(tmp_path: Path):
@@ -466,6 +594,18 @@ def test_ui_uses_location_first_latest_estimate_and_query_bound_progressive_hist
     assert "Get latest estimate" not in template
     assert 'byId("estimate")' not in source
     assert "Choose a location on the map. Your latest estimate and available history will load automatically." in template
+    assert 'id="location-search"' in template
+    assert 'placeholder="Search a U.S. place, address, or coordinates"' in template
+    assert 'id="location-search-suggestions"' in template
+    assert 'fetch(`/api/place-search?q=${encodeURIComponent(query)}`' in source
+    assert "coordinateSearch(query)" in source
+    assert "Typing does not start an estimate." in source
+    assert "No matching place found. Try a nearby town or enter coordinates." in source
+    assert "normalizedSearchText(input.value) !== query" in source
+    assert "searchController.abort()" in source
+    assert "chooseSearchSuggestion" in source
+    assert "selectLocation(coordinates, true, true)" in source
+    assert 'placeNameSource: "OpenStreetMap"' in source
     assert 'id="selected-location-details"' in template
     assert 'id="result-location-details"' in template
     assert "Place names © OpenStreetMap contributors" in template
@@ -735,6 +875,26 @@ def test_cached_results_are_query_bound_across_period_changes():
     assert first.json["result"]["query"]["period"]["start"] == "2026-04-07"
     assert second.json["result"]["query"]["period"]["start"] == "2026-04-15"
     assert second.json["result"]["lai"] == pytest.approx(2.283097743988037)
+
+
+def test_search_and_map_labels_at_identical_coordinates_share_query_and_result():
+    client = create_app().test_client()
+    searched = client.post("/api/estimate", json={
+        "latitude": 39.1547,
+        "longitude": -77.2405,
+        "display_location": "Gaithersburg, Maryland",
+        "start": "2026-04-07",
+    })
+    clicked = client.post("/api/estimate", json={
+        "latitude": 39.1547,
+        "longitude": -77.2405,
+        "display_location": "39.1547, −77.2405",
+        "start": "2026-04-07",
+    })
+    assert searched.status_code == clicked.status_code == 200
+    assert searched.json["query_key"] == clicked.json["query_key"]
+    assert searched.json["result"]["query"] == clicked.json["result"]["query"]
+    assert searched.json["result"]["lai"] == clicked.json["result"]["lai"]
 
 
 def test_real_trend_has_three_consecutive_query_bound_periods():

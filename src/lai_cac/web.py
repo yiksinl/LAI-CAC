@@ -51,6 +51,10 @@ NOMINATIM_REVERSE_URL = os.environ.get(
     "LEAFVIEW_PLACE_LOOKUP_URL",
     "https://nominatim.openstreetmap.org/reverse",
 )
+NOMINATIM_SEARCH_URL = os.environ.get(
+    "LEAFVIEW_PLACE_SEARCH_URL",
+    "https://nominatim.openstreetmap.org/search",
+)
 PLACE_AREA_FIELDS = (
     "neighbourhood",
     "suburb",
@@ -114,8 +118,82 @@ def place_name_from_nominatim(payload: object) -> dict[str, str] | None:
     }
 
 
+def places_from_nominatim_search(payload: object) -> list[dict[str, object]]:
+    """Return response-backed U.S. search suggestions without country/province text."""
+
+    if not isinstance(payload, list):
+        return []
+    suggestions: list[dict[str, object]] = []
+    seen: set[tuple[float, float]] = set()
+    for raw in payload:
+        if not isinstance(raw, dict) or not isinstance(raw.get("address"), dict):
+            continue
+        address = raw["address"]
+        country_code = _place_component(address.get("country_code"))
+        state = _place_component(address.get("state"))
+        if country_code is None or country_code.casefold() != "us" or state is None:
+            continue
+        try:
+            latitude = round(float(raw["lat"]), 6)
+            longitude = round(float(raw["lon"]), 6)
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not (
+            math.isfinite(latitude)
+            and math.isfinite(longitude)
+            and -90 <= latitude <= 90
+            and -180 <= longitude <= 180
+        ):
+            continue
+        coordinate_key = (latitude, longitude)
+        if coordinate_key in seen:
+            continue
+
+        area = next(
+            (
+                component
+                for field in PLACE_AREA_FIELDS
+                if (component := _place_component(address.get(field))) is not None
+            ),
+            None,
+        )
+        road = _place_component(address.get("road"))
+        house_number = _place_component(address.get("house_number"))
+        namedetails = raw.get("namedetails")
+        named_name = (
+            _place_component(namedetails.get("name"))
+            if isinstance(namedetails, dict)
+            else None
+        )
+        name = (
+            _place_component(raw.get("name"))
+            or named_name
+            or (f"{house_number} {road}" if house_number and road else road)
+            or area
+            or _place_component(address.get("county"))
+        )
+        if name is None:
+            continue
+        label_parts = [name]
+        if area and area.casefold() != name.casefold() and (road or named_name):
+            label_parts.append(area)
+        if state.casefold() not in {part.casefold() for part in label_parts}:
+            label_parts.append(state)
+        county = _place_component(address.get("county"))
+        suggestions.append({
+            "display_name": ", ".join(label_parts)[:100],
+            "county": county[:100] if county else "",
+            "latitude": latitude,
+            "longitude": longitude,
+        })
+        seen.add(coordinate_key)
+        if len(suggestions) == 5:
+            break
+    return suggestions
+
+
 class NominatimPlaceLookup:
-    """Low-rate, process-local reverse-geocoder for interactive map clicks."""
+    """Low-rate, process-local forward and reverse geocoder."""
 
     def __init__(
         self,
@@ -132,6 +210,39 @@ class NominatimPlaceLookup:
         self._lock = threading.Lock()
         self._last_request_started: float | None = None
         self._cache: dict[tuple[float, float], dict[str, str] | None] = {}
+        self._search_cache: dict[str, list[dict[str, object]]] = {}
+
+    def _request_locked(self, url: str, fields: dict[str, str]) -> object | None:
+        if self._last_request_started is not None:
+            remaining = (
+                self.minimum_interval_seconds
+                - (self.monotonic() - self._last_request_started)
+            )
+            if remaining > 0:
+                self.sleeper(remaining)
+        self._last_request_started = self.monotonic()
+        try:
+            response = self.pool.request(
+                "GET",
+                url,
+                fields=fields,
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "LeafView/0.1 (CISESS LAI research app)",
+                },
+                timeout=urllib3.Timeout(connect=2, read=4),
+                retries=False,
+            )
+        except urllib3.exceptions.HTTPError as error:
+            raise PlaceLookupError("Place service request failed") from error
+        if response.status == 404:
+            return None
+        if response.status != 200:
+            raise PlaceLookupError(f"Place service returned HTTP {response.status}")
+        try:
+            return json.loads(response.data)
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise PlaceLookupError("Place service returned invalid JSON") from error
 
     def __call__(self, latitude: float, longitude: float) -> dict[str, str] | None:
         key = (round(latitude, 6), round(longitude, 6))
@@ -139,51 +250,42 @@ class NominatimPlaceLookup:
             if key in self._cache:
                 cached = self._cache[key]
                 return deepcopy(cached) if cached is not None else None
-            if self._last_request_started is not None:
-                remaining = (
-                    self.minimum_interval_seconds
-                    - (self.monotonic() - self._last_request_started)
-                )
-                if remaining > 0:
-                    self.sleeper(remaining)
-            self._last_request_started = self.monotonic()
-            try:
-                response = self.pool.request(
-                    "GET",
-                    NOMINATIM_REVERSE_URL,
-                    fields={
-                        "format": "jsonv2",
-                        "lat": f"{key[0]:.6f}",
-                        "lon": f"{key[1]:.6f}",
-                        "zoom": "14",
-                        "addressdetails": "1",
-                        "layer": "address",
-                        "accept-language": "en-US",
-                    },
-                    headers={
-                        "Accept": "application/json",
-                        "User-Agent": "LeafView/0.1 (CISESS LAI research app)",
-                    },
-                    timeout=urllib3.Timeout(connect=2, read=4),
-                    retries=False,
-                )
-            except urllib3.exceptions.HTTPError as error:
-                raise PlaceLookupError("Place-name service request failed") from error
-            if response.status == 404:
-                result = None
-            elif response.status != 200:
-                raise PlaceLookupError(
-                    f"Place-name service returned HTTP {response.status}"
-                )
-            else:
-                try:
-                    result = place_name_from_nominatim(json.loads(response.data))
-                except (UnicodeDecodeError, json.JSONDecodeError) as error:
-                    raise PlaceLookupError("Place-name service returned invalid JSON") from error
+            payload = self._request_locked(NOMINATIM_REVERSE_URL, {
+                "format": "jsonv2",
+                "lat": f"{key[0]:.6f}",
+                "lon": f"{key[1]:.6f}",
+                "zoom": "14",
+                "addressdetails": "1",
+                "layer": "address",
+                "accept-language": "en-US",
+            })
+            result = place_name_from_nominatim(payload) if payload is not None else None
             if len(self._cache) >= 512:
                 self._cache.pop(next(iter(self._cache)))
             self._cache[key] = deepcopy(result)
             return result
+
+    def search(self, query: str) -> list[dict[str, object]]:
+        normalized = " ".join(query.split()).strip()
+        cache_key = normalized.casefold()
+        with self._lock:
+            if cache_key in self._search_cache:
+                return deepcopy(self._search_cache[cache_key])
+            payload = self._request_locked(NOMINATIM_SEARCH_URL, {
+                "format": "jsonv2",
+                "q": normalized,
+                "countrycodes": "us",
+                "addressdetails": "1",
+                "namedetails": "1",
+                "accept-language": "en-US",
+                "dedupe": "1",
+                "limit": "8",
+            })
+            results = places_from_nominatim_search(payload)
+            if len(self._search_cache) >= 256:
+                self._search_cache.pop(next(iter(self._search_cache)))
+            self._search_cache[cache_key] = deepcopy(results)
+            return results
 
 
 def dependency_status(assets: dict) -> dict:
@@ -1098,11 +1200,17 @@ def create_app(
     root: Path = ROOT,
     clock: Callable[[], datetime] | None = None,
     place_lookup: Callable[[float, float], dict[str, str] | None] | None = None,
+    place_search: Callable[[str], list[dict[str, object]]] | None = None,
 ) -> Flask:
     app = Flask(__name__, template_folder=str(root / "templates"), static_folder=str(root / "static"))
     app.json = StrictJSONProvider(app)
     clock = clock or (lambda: datetime.now(timezone.utc))
-    place_lookup = place_lookup or NominatimPlaceLookup()
+    if place_lookup is None:
+        provider = NominatimPlaceLookup()
+        place_lookup = provider
+        place_search = place_search or provider.search
+    elif place_search is None:
+        place_search = getattr(place_lookup, "search", None)
     observation_memo = ObservationMemo()
     jobs = EstimateJobs(root, observation_memo)
     history_jobs = HistoryJobs(root, observation_memo, jobs)
@@ -1168,6 +1276,25 @@ def create_app(
                 "latitude": latitude,
                 "longitude": longitude,
             },
+            "attribution": "© OpenStreetMap contributors",
+        })
+
+    @app.get("/api/place-search")
+    def search_places():
+        query = " ".join(str(request.args.get("q") or "").split()).strip()
+        if len(query) < 2:
+            return jsonify({"error": "Enter at least two characters to search"}), 400
+        if len(query) > 160:
+            return jsonify({"error": "Place search is too long"}), 400
+        if place_search is None:
+            return jsonify({"error": "Place search is unavailable"}), 503
+        try:
+            results = place_search(query)
+        except PlaceLookupError:
+            return jsonify({"error": "Place search is unavailable"}), 502
+        return jsonify({
+            "query": query,
+            "results": results,
             "attribution": "© OpenStreetMap contributors",
         })
 

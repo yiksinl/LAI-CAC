@@ -1,10 +1,10 @@
 {
-  "checkedAtUtc": "2026-09-10T23:51:11.481Z",
+  "checkedAtUtc": "2026-09-11T00:31:24.136Z",
   "desktop": {
     "estimateBeforeHistory": {
       "lai": "3.59",
       "estimateState": "Estimate ready",
-      "historyState": "Monthly snapshots pending: checking the newest point first.",
+      "historyState": "Loading history: checking monthly snapshots.",
       "historyPoints": 0
     },
     "viewportWidth": 1440,
@@ -14,6 +14,9 @@
     "panelsShareRow": true,
     "locationHeadingAbovePanels": true,
     "referenceAboveMap": true,
+    "searchAboveMap": true,
+    "searchPlaceholder": "Search a U.S. place, address, or coordinates",
+    "suggestionsInitiallyHidden": true,
     "referenceColumns": "205.664px 205.664px 205.672px 205.664px 205.664px 205.672px",
     "referenceTilesOneRow": true,
     "referenceTiles": [
@@ -81,6 +84,9 @@
     "equalPanelWidths": true,
     "locationHeadingAbovePanels": true,
     "referenceAboveMap": true,
+    "searchAboveMap": true,
+    "searchPlaceholder": "Search a U.S. place, address, or coordinates",
+    "searchRowColumns": "286px 82px",
     "referenceColumns": "180px 180px",
     "referenceTileCount": 6,
     "referenceTileRows": 3,

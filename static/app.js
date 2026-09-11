@@ -60,6 +60,8 @@ let estimateRetryAction = null;
 let placeNameGeneration = 0;
 let placeNameTimer = null;
 let placeNameController = null;
+let searchGeneration = 0;
+let searchController = null;
 let selectedQuery = { ...montgomery };
 
 const byId = (id) => document.getElementById(id);
@@ -319,7 +321,7 @@ function selectLocation(location, fit = false, resolveName = false) {
       : location.displayLocation,
     county: resolveName ? null : (location.county || null),
     placeNameStatus: resolveName ? "loading" : "ready",
-    placeNameSource: null
+    placeNameSource: resolveName ? null : (location.placeNameSource || null)
   };
   pointMarker.setLatLng([selectedQuery.latitude, selectedQuery.longitude]);
   renderSelectedLocationCopy();
@@ -337,6 +339,155 @@ function markCustomSelection(latitude, longitude) {
 }
 
 map.on("click", ({ latlng }) => markCustomSelection(latlng.lat, latlng.lng));
+
+function normalizedSearchText(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function coordinateSearch(value) {
+  const match = normalizedSearchText(value).match(
+    /^([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*,\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))$/
+  );
+  if (!match) return null;
+  const latitude = Number(match[1]);
+  const longitude = Number(match[2]);
+  return {
+    matched: true,
+    valid: Number.isFinite(latitude) && Number.isFinite(longitude)
+      && latitude >= -90 && latitude <= 90
+      && longitude >= -180 && longitude <= 180,
+    latitude,
+    longitude
+  };
+}
+
+function clearSearchSuggestions() {
+  const suggestions = byId("location-search-suggestions");
+  suggestions.replaceChildren();
+  suggestions.hidden = true;
+  byId("location-search-input").setAttribute("aria-expanded", "false");
+  byId("location-search-attribution").hidden = true;
+}
+
+function setSearchStatus(message, error = false) {
+  const status = byId("location-search-status");
+  status.textContent = message;
+  status.className = `location-search-status${error ? " error" : ""}`;
+}
+
+function cancelPlaceSearch() {
+  searchGeneration += 1;
+  if (searchController) searchController.abort();
+  searchController = null;
+  byId("location-search-submit").disabled = false;
+}
+
+function chooseSearchSuggestion(suggestion) {
+  cancelPlaceSearch();
+  clearSearchSuggestions();
+  byId("location-search-input").value = suggestion.display_name;
+  setSearchStatus(`Selected ${suggestion.display_name}. Loading its estimate and history.`);
+  selectLocation({
+    latitude: Number(suggestion.latitude),
+    longitude: Number(suggestion.longitude),
+    displayLocation: suggestion.display_name,
+    county: suggestion.county || null,
+    placeNameSource: "OpenStreetMap"
+  }, true, false);
+}
+
+function renderSearchSuggestions(results) {
+  const list = byId("location-search-suggestions");
+  list.replaceChildren();
+  results.forEach(suggestion => {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "location-suggestion";
+    const name = document.createElement("strong");
+    name.textContent = suggestion.display_name;
+    const context = document.createElement("span");
+    context.textContent = suggestion.county ? `County: ${suggestion.county}` : "Select this location";
+    button.append(name, context);
+    button.addEventListener("click", () => chooseSearchSuggestion(suggestion));
+    item.append(button);
+    list.append(item);
+  });
+  list.hidden = false;
+  byId("location-search-input").setAttribute("aria-expanded", "true");
+  byId("location-search-attribution").hidden = false;
+}
+
+async function submitLocationSearch() {
+  const input = byId("location-search-input");
+  const query = normalizedSearchText(input.value);
+  clearSearchSuggestions();
+  const coordinates = coordinateSearch(query);
+  if (coordinates?.matched) {
+    cancelPlaceSearch();
+    if (!coordinates.valid) {
+      setSearchStatus("Enter latitude from −90 to 90 and longitude from −180 to 180.", true);
+      return;
+    }
+    input.value = `${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`;
+    setSearchStatus("Coordinates selected. Loading the estimate and history.");
+    selectLocation(coordinates, true, true);
+    return;
+  }
+  if (query.length < 2) {
+    setSearchStatus("Enter at least two characters or latitude and longitude.", true);
+    return;
+  }
+
+  cancelPlaceSearch();
+  const generation = searchGeneration;
+  const controller = new AbortController();
+  searchController = controller;
+  byId("location-search-submit").disabled = true;
+  setSearchStatus("Searching U.S. locations…");
+  try {
+    const response = await fetch(`/api/place-search?q=${encodeURIComponent(query)}`, {
+      cache: "no-store",
+      signal: controller.signal
+    });
+    const data = await response.json();
+    if (generation !== searchGeneration
+        || normalizedSearchText(input.value) !== query) return;
+    if (!response.ok) throw new Error(data.error || "Place search is unavailable");
+    if (data.query !== query) throw new Error("Search response did not match the current search");
+    if (!data.results?.length) {
+      setSearchStatus("No matching place found. Try a nearby town or enter coordinates.", true);
+      return;
+    }
+    renderSearchSuggestions(data.results);
+    setSearchStatus(`${data.results.length} matching U.S. location${data.results.length === 1 ? "" : "s"}. Choose one below.`);
+  } catch (error) {
+    if (error.name === "AbortError" || generation !== searchGeneration) return;
+    setSearchStatus("Place search is unavailable. Try coordinates or choose a point on the map.", true);
+  } finally {
+    if (generation === searchGeneration) {
+      searchController = null;
+      byId("location-search-submit").disabled = false;
+    }
+  }
+}
+
+byId("location-search").addEventListener("submit", event => {
+  event.preventDefault();
+  submitLocationSearch();
+});
+byId("location-search-input").addEventListener("input", () => {
+  cancelPlaceSearch();
+  clearSearchSuggestions();
+  setSearchStatus("Press Search to find a U.S. location. Typing does not start an estimate.");
+});
+byId("location-search-input").addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    cancelPlaceSearch();
+    clearSearchSuggestions();
+    setSearchStatus("Search suggestions closed.");
+  }
+});
 
 function drawFootprint(record) {
   const corners = record.sampled_pixel?.footprint;

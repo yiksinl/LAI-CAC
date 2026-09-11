@@ -1,0 +1,77 @@
+{
+  "typingOnly": {
+    "before": {
+      "queryKey": "dac279100e8e0d6e7a32b4df763f4c885a8b964393d3fec6d7c5592e984fde80",
+      "lai": 3.5869650840759277
+    },
+    "status": "Press Search to find a U.S. location. Typing does not start an estimate.",
+    "selectedCoordinates": [
+      39.1547,
+      -77.2405
+    ],
+    "estimateRequests": 0
+  },
+  "staleSearch": {
+    "labels": [
+      "Current Place, Maryland"
+    ],
+    "selectedCoordinates": [
+      39.1547,
+      -77.2405
+    ]
+  },
+  "suggestions": {
+    "status": "1 matching U.S. location. Choose one below.",
+    "labels": [
+      "Rockville, Maryland"
+    ],
+    "contexts": [
+      "County: Montgomery County"
+    ],
+    "expanded": "true",
+    "attributionVisible": true
+  },
+  "searched": {
+    "latitude": 39.081798,
+    "longitude": -77.151684,
+    "displayLocation": "Rockville, Maryland",
+    "county": "Montgomery County",
+    "queryKey": "1f5590e3f624836dd5980bf479a078f3fb19e3b38a5b32a09c94d1f09919393b",
+    "resultLatitude": 39.081798,
+    "resultLongitude": -77.151684,
+    "lai": 1.8579949140548706,
+    "mapCenter": [
+      39.081798,
+      -77.151684
+    ],
+    "marker": [
+      39.081798,
+      -77.151684
+    ],
+    "footprintPaths": 2,
+    "historyPoints": 6
+  },
+  "coordinates": {
+    "queryKey": "1f5590e3f624836dd5980bf479a078f3fb19e3b38a5b32a09c94d1f09919393b",
+    "lai": 1.8579949140548706,
+    "latitude": 39.081798,
+    "longitude": -77.151684,
+    "marker": [
+      39.081798,
+      -77.151684
+    ]
+  },
+  "clicked": {
+    "queryKey": "1f5590e3f624836dd5980bf479a078f3fb19e3b38a5b32a09c94d1f09919393b",
+    "lai": 1.8579949140548706,
+    "latitude": 39.081798,
+    "longitude": -77.151684,
+    "marker": [
+      39.081798,
+      -77.151684
+    ]
+  },
+  "equivalentQuery": true,
+  "equivalentResult": true,
+  "consoleErrors": []
+}

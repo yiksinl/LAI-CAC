@@ -76,12 +76,24 @@
     </section>
 
     <section class="workspace" aria-label="Selected query">
-      <div class="map-wrap">
-        <div id="map"></div>
-        <div id="map-tile-message" class="map-tile-message" role="alert" hidden>
-          Map tiles could not load. Check the internet connection; the selected point and satellite footprint remain available.
+      <div class="map-column">
+        <form id="location-search" class="location-search" role="search">
+          <label for="location-search-input">Search for a location</label>
+          <div class="location-search-row">
+            <input id="location-search-input" type="search" placeholder="Search a U.S. place, address, or coordinates" autocomplete="off" spellcheck="false" aria-describedby="location-search-status" aria-controls="location-search-suggestions" aria-expanded="false">
+            <button id="location-search-submit" type="submit">Search</button>
+          </div>
+          <p id="location-search-status" class="location-search-status" role="status">Enter a place and press Search, or enter latitude and longitude.</p>
+          <ul id="location-search-suggestions" class="location-search-suggestions" aria-label="Location search suggestions" hidden></ul>
+          <p id="location-search-attribution" class="search-attribution" hidden><a href="https://www.openstreetmap.org/copyright">Search results © OpenStreetMap contributors</a></p>
+        </form>
+        <div class="map-wrap">
+          <div id="map"></div>
+          <div id="map-tile-message" class="map-tile-message" role="alert" hidden>
+            Map tiles could not load. Check the internet connection; the selected point and satellite footprint remain available.
+          </div>
+          <div class="map-legend"><span class="legend-point"></span> Requested point <span class="legend-footprint"></span> Sampled GOES pixel</div>
         </div>
-        <div class="map-legend"><span class="legend-point"></span> Requested point <span class="legend-footprint"></span> Sampled GOES pixel</div>
       </div>
       <aside class="query-panel">
         <p class="eyebrow">Location</p>
