@@ -165,6 +165,16 @@ def test_missing_reference_assets_are_reported(tmp_path: Path):
     assert audit["navigation"]["present"] is False
 
 
+def test_navigation_source_resolves_a_relative_path_from_the_reference_root(tmp_path: Path):
+    navigation = tmp_path / "GOES_Navigation_2kmFD-GOES-East.nc"
+    navigation.touch()
+    (tmp_path / "navigation-source.json").write_text(
+        json.dumps({"path": navigation.name}), encoding="utf-8"
+    )
+
+    assert ReferenceAssets(tmp_path).navigation == navigation
+
+
 def test_web_status_names_only_actual_missing_dependencies():
     response = create_app(clock=lambda: datetime(
         2026, 9, 10, 1, 0, tzinfo=timezone.utc

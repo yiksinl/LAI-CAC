@@ -112,9 +112,10 @@ view azimuth separately with the notebook's `calculateViewGeometry` translation;
   not match its implemented quadrant formula. The formula is deliberately preserved;
   see [SCIENTIFIC_NOTES.md](SCIENTIFIC_NOTES.md).
 
-The navigation raster remains in Downloads and is read directly through
-`artifacts/reference/navigation-source.json`; LAI-CAC does not create another full
-copy. The configured source must remain at that path for future inference.
+The checksum-verified navigation raster is tracked with Git LFS at
+`artifacts/reference/GOES_Navigation_2kmFD-GOES-East.nc`. Install Git LFS before
+cloning (or run `git lfs pull` in an existing clone) so verified inference has the
+full raster rather than only its small pointer file.
 
 `/api/status` generates this state and the latest UTC window from the live clock and
 dependency audit. `/api/estimate` starts or reuses a query-bound latest or historical

@@ -6,7 +6,8 @@ The supplied scientific reference assets are stored here without renaming:
 - `lai_xgboost_model.json`
 - `S-NPP_VIIRS_GST_IGBP_8-Year_30arcsec.nc`
 - `geometry_goes19.py`
-- `navigation-source.json` (small direct-path record; the 735 MB raster is not copied here)
+- `GOES_Navigation_2kmFD-GOES-East.nc` (735 MB, tracked with Git LFS)
+- `navigation-source.json` (portable relative-path and checksum record)
 
 Recorded SHA-256 values:
 
@@ -18,6 +19,5 @@ Recorded SHA-256 values:
 
 The application refuses verified inference if the model, IGBP grid, solar helper, or
 configured navigation raster differs from its expected checksum. The navigation
-source record points directly to the completed Downloads copy; no second full raster
-is stored in the repository. The mounted Google Drive original and original Downloads
-copy of the solar helper remain untouched.
+source record resolves the Git LFS asset relative to this directory, so a complete
+clone can run without a machine-specific path.

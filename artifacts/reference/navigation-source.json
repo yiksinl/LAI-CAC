@@ -1,8 +1,7 @@
 {
   "filename": "GOES_Navigation_2kmFD-GOES-East.nc",
-  "path": "/Users/jianzhulee/Downloads/GOES_Navigation_2kmFD-GOES-East.nc",
+  "path": "GOES_Navigation_2kmFD-GOES-East.nc",
   "size_bytes": 735508871,
   "sha256": "c08fa491793996ab204c936f4bb25f299f4cf18383b0bd3673db87f8bd780e96",
-  "original_drive_path": "/Users/jianzhulee/Library/CloudStorage/GoogleDrive-yiksli009@gmail.com/My Drive/Summer26/ABI/GOES_Navigation_2kmFD-GOES-East.nc",
-  "preservation": "The Google Drive original is untouched; LAI-CAC reads the completed Downloads copy directly."
+  "preservation": "The checksum-verified raster is stored in Git LFS and resolved relative to this file."
 }

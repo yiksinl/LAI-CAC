@@ -47,7 +47,8 @@ class ReferenceAssets:
     def navigation(self) -> Path:
         if self.navigation_source_config.is_file():
             configured = json.loads(self.navigation_source_config.read_text(encoding="utf-8"))
-            return Path(configured["path"]).expanduser()
+            path = Path(configured["path"]).expanduser()
+            return path if path.is_absolute() else self.root / path
         return self.root / NAVIGATION_NAME
 
     @property
