@@ -6,8 +6,10 @@ __pycache__/
 data/raw/
 data/cache/
 data/partial-cache/
+data/navigation-cache/
 data/results/runtime/
 artifacts/reference/*.ipynb
 artifacts/reference/*.json
 !artifacts/reference/README.md
 !artifacts/reference/navigation-source.json
+artifacts/reference/GOES_Navigation_2kmFD-GOES-East.nc

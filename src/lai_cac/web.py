@@ -73,9 +73,9 @@ NAVIGATION_DISCREPANCY = {
     "key": "navigation_equivalence",
     "name": "Notebook navigation-grid equivalence",
     "detail": (
-        "The notebook reads pixel centers and LocalZenithAngle from "
-        "GOES_Navigation_2kmFD-GOES-East.nc. A checksum-verified readable raster is required "
-        "to validate navigation-raster Latitude, Longitude, LocalZenithAngle, and LandMask."
+        "LeafView reads the exact notebook navigation values from a checksum-pinned "
+        "remote GOES_Navigation_2kmFD-GOES-East.nc object. Its HTTP metadata and "
+        "immutable asset identity must validate before inference."
     ),
 }
 
@@ -292,8 +292,10 @@ def dependency_status(assets: dict) -> dict:
     verified = []
     missing = []
     approximations = []
-    if assets["notebook"]["present"]:
+    if assets["notebook"]["valid"]:
         verified.append("Authoritative notebook")
+    elif assets["notebook"]["present"]:
+        missing.append({"key": "notebook", "name": "Authoritative notebook with expected checksum", "filename": "LAI_Machine_Learning_Project.ipynb"})
     else:
         missing.append({"key": "notebook", "name": "Authoritative notebook", "filename": "LAI_Machine_Learning_Project.ipynb"})
     if assets["model"]["valid"]:
@@ -314,7 +316,7 @@ def dependency_status(assets: dict) -> dict:
         verified.append("Checksum-verified notebook solar-geometry helper")
     discrepancies = []
     if assets["navigation"]["valid"]:
-        verified.append("Checksum-verified original GOES-East navigation raster")
+        verified.append("Checksum-pinned GOES-East navigation via exact HTTP ranges")
     else:
         discrepancies.append(NAVIGATION_DISCREPANCY)
     operational_ready = bool(
@@ -324,7 +326,7 @@ def dependency_status(assets: dict) -> dict:
     )
     preprocessing_verified = bool(
         operational_ready
-        and assets["notebook"]["present"]
+        and assets["notebook"]["valid"]
         and assets["navigation"]["valid"]
         and not discrepancies
     )
@@ -335,7 +337,7 @@ def dependency_status(assets: dict) -> dict:
         )
     elif operational_ready:
         headline = "Estimate execution is ready; supplied preprocessing validation remains provisional."
-    elif assets["notebook"]["present"] and assets["model"]["valid"]:
+    elif assets["notebook"]["valid"] and assets["model"]["valid"]:
         count = len(missing)
         noun = "input" if count == 1 else "inputs"
         headline = f"Notebook and model verified; estimate execution is blocked pending {count} runtime {noun}."
@@ -1201,6 +1203,7 @@ def create_app(
     clock: Callable[[], datetime] | None = None,
     place_lookup: Callable[[float, float], dict[str, str] | None] | None = None,
     place_search: Callable[[str], list[dict[str, object]]] | None = None,
+    validate_remote_navigation: bool = False,
 ) -> Flask:
     app = Flask(__name__, template_folder=str(root / "templates"), static_folder=str(root / "static"))
     app.json = StrictJSONProvider(app)
@@ -1214,6 +1217,15 @@ def create_app(
     observation_memo = ObservationMemo()
     jobs = EstimateJobs(root, observation_memo)
     history_jobs = HistoryJobs(root, observation_memo, jobs)
+    reference_assets = ReferenceAssets(root / "artifacts/reference")
+
+    def asset_audit() -> dict[str, object]:
+        return reference_assets.audit(
+            validate_remote_navigation=validate_remote_navigation
+        )
+
+    if validate_remote_navigation:
+        asset_audit()
 
     @app.get("/")
     def index():
@@ -1229,8 +1241,9 @@ def create_app(
     def status():
         now = clock().astimezone(timezone.utc)
         latest_start, latest_end = latest_completed_rolling_period(now)
-        assets = ReferenceAssets(root / "artifacts/reference").audit()
+        assets = asset_audit()
         dependencies = dependency_status(assets)
+        navigation = assets["navigation"]
         return jsonify({
             **dependencies,
             "result_label": "Research estimate",
@@ -1248,6 +1261,15 @@ def create_app(
                 "maximum_end": latest_end.isoformat(),
             },
             "history_scope": _history_scope(latest_start),
+            "navigation_source": {
+                "mode": navigation["mode"],
+                "remote_object": navigation["remote_object"],
+                "metadata": navigation["metadata"],
+                "metadata_error": navigation["metadata_error"],
+                "metadata_validation": navigation["metadata_validation"],
+                "cache_policy": "Only checksummed exact scalar ranges are retained.",
+                "full_file_fallbacks": navigation["full_file_fallbacks"],
+            },
             "rolling_window_accuracy": {
                 "status": "separately_unevaluated",
                 "detail": (
@@ -1369,7 +1391,7 @@ def create_app(
             latitude, longitude, period_start, display_location = _parse_estimate_payload(
                 payload, clock()
             )
-            if not dependency_status(ReferenceAssets(root / "artifacts/reference").audit())[
+            if not dependency_status(asset_audit())[
                 "ready_for_verified_inference"
             ]:
                 return jsonify({"error": "Verified preprocessing is not ready"}), 503
@@ -1391,7 +1413,7 @@ def create_app(
         try:
             latitude, longitude, display_location = _parse_location(payload)
             latest_start, _ = latest_completed_rolling_period(clock())
-            if not dependency_status(ReferenceAssets(root / "artifacts/reference").audit())[
+            if not dependency_status(asset_audit())[
                 "ready_for_verified_inference"
             ]:
                 return jsonify({"error": "Verified preprocessing is not ready"}), 503
@@ -1436,4 +1458,6 @@ def create_app(
 
 
 def run() -> None:
-    create_app().run(host="127.0.0.1", port=8781, debug=False, threaded=True)
+    create_app(validate_remote_navigation=True).run(
+        host="127.0.0.1", port=8781, debug=False, threaded=True
+    )

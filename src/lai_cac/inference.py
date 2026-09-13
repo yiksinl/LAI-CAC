@@ -16,7 +16,7 @@ import numpy as np
 
 from .assets import ReferenceAssets
 from .composites import TARGET_HOURS_UTC, rolling_period
-from .geometry import angle_difference, solar_angles, view_geometry
+from .geometry import angle_difference, solar_angles
 from .goes import (
     ObservationRetrievalError,
     Scan,
@@ -29,7 +29,7 @@ from .goes import (
     sample_remote_pixel,
 )
 from .model import LaiModel
-from .navigation import read_navigation_pixel
+from .navigation import read_remote_navigation_pixel
 from .remote_hdf5 import RemoteRangeError
 from .result_cache import cache_identity
 from .serialization import strict_json_dumps
@@ -187,7 +187,7 @@ def _full_file_retrieval(
         "remote_object": remote_object_metadata(scan),
         "partial_cache": None,
         "whole_file": {
-            "local_path": str(path),
+            "local_path": str(Path(path.parent.name) / path.name),
             "size_bytes": path.stat().st_size,
             "sha256": None,
             "checksum_status": "whole-file SHA-256 not computed by the existing full-file route",
@@ -284,7 +284,7 @@ def prepare_composite(
     assets = ReferenceAssets(root / "artifacts/reference")
     _report(progress, 2, "validating", "Verifying the supplied preprocessing assets")
     solar_geometry_path = assets.require_solar_geometry()
-    navigation_path = assets.require_navigation() if assets.navigation.is_file() else None
+    assets.require_remote_navigation()
     igbp_source = "explicit_argument"
     _report(progress, 5, "land_cover", "Checking the requested location against the IGBP grid")
     if igbp_class is None:
@@ -494,45 +494,19 @@ def prepare_composite(
         elif route == "observation_memory_cache":
             memory_observation_reuses += 1
         if sampled_center is None:
-            if navigation_path:
-                navigation = read_navigation_pixel(
-                    navigation_path, sample, latitude, longitude
-                )
-                feature_geometry = navigation["feature_geometry"]
-                sampled_center = {
-                    "latitude": feature_geometry["latitude"],
-                    "longitude": feature_geometry["longitude"],
-                }
-                view_zenith = feature_geometry["view_zenith"]
-                view_azimuth = feature_geometry["view_azimuth"]
-            else:
-                sampled_center = sample["sampled_pixel_center"]
-                view_zenith, view_azimuth = view_geometry(
-                    sampled_center["latitude"], sampled_center["longitude"],
-                    **sample["view_geometry_parameters"],
-                )
-                navigation = {
-                    "verified_for_exact_pixel": False,
-                    "source": None,
-                    "source_path": str(assets.navigation),
-                    "source_sha256": None,
-                    "goes_row": sample["row"],
-                    "goes_column": sample["column"],
-                    "array_orientation": "unverified",
-                    "raster_pixel": None,
-                    "projection_derived_pixel": sample["sampled_pixel_center"],
-                    "comparison": {
-                        "notebook_reported_median_absolute_view_zenith_difference_degrees": 0.1359,
-                    },
-                    "feature_geometry": {
-                        "latitude": sampled_center["latitude"],
-                        "longitude": sampled_center["longitude"],
-                        "view_zenith": view_zenith,
-                        "view_azimuth": view_azimuth,
-                        "view_zenith_source": "BRFF CF projection fallback",
-                        "view_azimuth_source": "notebook calculateViewGeometry scalar translation",
-                    },
-                }
+            navigation = read_remote_navigation_pixel(
+                sample,
+                latitude,
+                longitude,
+                root / "data/navigation-cache",
+            )
+            feature_geometry = navigation["feature_geometry"]
+            sampled_center = {
+                "latitude": feature_geometry["latitude"],
+                "longitude": feature_geometry["longitude"],
+            }
+            view_zenith = feature_geometry["view_zenith"]
+            view_azimuth = feature_geometry["view_azimuth"]
         elif (sample["row"], sample["column"]) != (
             navigation["goes_row"], navigation["goes_column"]
         ):
@@ -627,6 +601,23 @@ def prepare_composite(
         for attempt in attempts
         if attempt.get("retrieval", {}).get("route") == "full_file_fallback"
     )
+    satellite_observation_traffic = {
+        **transfer,
+        "range_request_count": partial_range_requests,
+        "range_downloaded_bytes": partial_downloaded_bytes,
+        "range_cache_hit_bytes": partial_cache_hit_bytes,
+        "full_file_fallbacks": full_file_fallbacks,
+        "total_http_request_count": (
+            transfer["listing_request_count"]
+            + transfer["full_download_request_count"]
+            + partial_range_requests
+        ),
+        "total_http_downloaded_bytes": (
+            transfer["listing_bytes"]
+            + transfer["full_download_bytes"]
+            + partial_downloaded_bytes
+        ),
+    }
     provenance = {"requested_location": {"latitude": latitude, "longitude": longitude},
                   "sampled_pixel_center": sampled_center,
                   "composite": {"start": start.isoformat(), "end": end.isoformat()},
@@ -672,21 +663,7 @@ def prepare_composite(
                       ),
                       "scan_listing_reuses": scan_listing_reuses,
                       "deduplicated_observations": memory_observation_reuses,
-                      **transfer,
-                      "range_request_count": partial_range_requests,
-                      "range_downloaded_bytes": partial_downloaded_bytes,
-                      "range_cache_hit_bytes": partial_cache_hit_bytes,
-                      "full_file_fallbacks": full_file_fallbacks,
-                      "total_http_request_count": (
-                          transfer["listing_request_count"]
-                          + transfer["full_download_request_count"]
-                          + partial_range_requests
-                      ),
-                      "total_http_downloaded_bytes": (
-                          transfer["listing_bytes"]
-                          + transfer["full_download_bytes"]
-                          + partial_downloaded_bytes
-                      ),
+                      **satellite_observation_traffic,
                       "failure_semantics": (
                           "Network or remote-HDF5 failures raise an observation retrieval error; "
                           "only successfully decoded observations can be classified as insufficient data."
@@ -695,6 +672,10 @@ def prepare_composite(
                           "Remote S3 keys and ETags identify objects. Partial-data SHA-256 values cover only "
                           "the listed byte ranges and are never represented as whole-file SHA-256 values."
                       ),
+                  },
+                  "network_traffic": {
+                      "navigation": navigation["retrieval"]["startup_through_result"],
+                      "satellite_observations": satellite_observation_traffic,
                   }}
     return row, provenance
 
@@ -737,8 +718,8 @@ def run_estimate(latitude: float, longitude: float, start: date, igbp_class: int
         limitations.append("IGBP class was explicitly supplied instead of read from the exact eight-year grid.")
     if not provenance["navigation"]["verified_for_exact_pixel"]:
         limitations.append(
-            "GOES pixel centers and view zenith are derived from each BRFF file because the notebook's "
-            "separate navigation grid is unavailable; numerical equivalence remains unverified."
+            "The checksum-pinned remote navigation sample did not verify for the exact "
+            "GOES pixel; numerical equivalence remains unverified."
         )
     preprocessing_verified = not limitations
     if not usable:

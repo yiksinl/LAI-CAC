@@ -1,8 +1,22 @@
 # LeafView MVP validation
 
-Validated through 2026-09-10 against the supplied 600-tree model, exact IGBP grid,
-checksum-matched solar helper, and the navigation raster read directly from
-`/Users/jianzhulee/Downloads/GOES_Navigation_2kmFD-GOES-East.nc`.
+The browser workflow was validated through 2026-09-10 against the supplied 600-tree
+model, exact IGBP grid, checksum-matched solar helper, and checksum-matched navigation
+raster. On 2026-09-13, the same scientific results were revalidated after replacing
+the runtime's complete-file navigation read with checksum-pinned exact HTTP ranges.
+The Downloads copy remains only as optional local comparison evidence.
+
+## Remote navigation validation
+
+- Live metadata matched the pinned 735,508,871-byte object and SHA-256/ETag at the
+  immutable source commit.
+- A cold Montgomery navigation sample transferred 50 payload bytes across eight
+  exact HTTP 206 responses and reproduced the local reader's pixel and geometry.
+- The three saved Montgomery composites retained identical feature dictionaries,
+  selected-observation science, usable counts, and LAI values after regeneration.
+- Unit regressions cover ignored ranges, wrong ETags, short bodies, network failure,
+  corrupt cache entries, shared concurrent reads, warm cache behavior, and the
+  local/remote scientific golden. Full-file fallback is absent.
 
 ## Latest result and monthly snapshots
 

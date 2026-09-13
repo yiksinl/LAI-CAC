@@ -1,6 +1,6 @@
 # Implementation status
 
-Last updated: 2026-09-10
+Last updated: 2026-09-13
 
 ## Plan
 
@@ -12,6 +12,8 @@ Last updated: 2026-09-10
 6. **Completed:** build and browser-test the query-bound LeafView MVP and three-period trend.
 7. **Completed:** add automatic latest-window selection and progressive query-bound history.
 8. **Completed:** make preselected month-end eight-day snapshots the default history.
+9. **Completed:** replace the required 735 MB Git LFS checkout with strict,
+   checksum-pinned, exact-range navigation access and an atomic partial cache.
 
 ## LeafView MVP
 
@@ -23,10 +25,11 @@ Last updated: 2026-09-10
   map point and UTC window. Work runs outside the request thread, and
   the browser polls concrete asset, land-cover, observation, feature, model, and save
   stages while remaining responsive.
-- Derived results are keyed by normalized coordinates, exact rolling-window dates, pipeline
-  version, filter definition, and the model, IGBP, solar-helper, and navigation
-  checksums. Raw observations are still accepted from cache only when their byte size
-  matches the selected immutable NOAA object.
+- Derived results are keyed by normalized coordinates, exact rolling-window dates,
+  pipeline version, filter definition, model/IGBP/solar-helper checksums, and the
+  complete immutable navigation object and layout descriptor. Raw observations are
+  still accepted from cache only when their byte size matches the selected immutable
+  NOAA object.
 - Changing coordinates or the optional historical window immediately clears the
   displayed LAI, footprint, calculation timestamp, and history; a late estimate or
   history response is not rendered unless its query still matches. The result panel
@@ -103,8 +106,10 @@ Last updated: 2026-09-10
 - The original `GOES_Navigation_2kmFD-GOES-East.nc` is readable NetCDF4, 735,508,871
   bytes, with SHA-256
   `c08fa491793996ab204c936f4bb25f299f4cf18383b0bd3673db87f8bd780e96`.
-  LAI-CAC reads the completed Downloads copy directly and leaves the mounted Drive
-  original untouched.
+  Its array layout was verified against the completed Downloads copy while leaving
+  the mounted Drive original untouched. Runtime inference now reads only the exact
+  scalar ranges from the immutable object at repository commit `0d808c6`; the local
+  complete file is optional and never opened by the runtime path.
 - All four notebook variables are present as 5424×5424 arrays. The exact-pixel
   orientation check strongly selects `[row, column]`: combined coordinate error
   0.007481° versus 74.078534° for `[column, row]`.
@@ -120,6 +125,13 @@ Last updated: 2026-09-10
   azimuth aggregates changed only at float32-scale because the raster and projection
   coordinates are extremely close.
 - Retained counts remain 4, 5, and 6 and LAI remains exactly `1.2043058872 m²/m²`.
+- A cold remote navigation sample makes eight independent HTTP 206 requests and
+  transfers 50 payload bytes. Metadata, ETag, size, `Content-Range`, response length,
+  and decoded ranges fail closed, with no complete-file fallback. Warm samples reuse
+  per-range SHA-256 caches.
+- The three checked-in Montgomery results were regenerated under the v2 remote-source
+  identity. All 56 features, exact-pixel geometry, observations, usable counts, and
+  LAI values remained identical to their v1 local-raster results.
 - The cached result is now `verified`. Operational readiness and supplied
   preprocessing validation are ready/verified; historical numerical reproduction
   remains explicitly unverified and is not a runtime dependency.
@@ -177,6 +189,6 @@ helper. Exact examples and rationale are in [SCIENTIFIC_NOTES.md](SCIENTIFIC_NOT
 | GOES-19 ABI-L2-BRFF | Bands 2, 3, 5, DQF, fixed-grid metadata, actual scan time | Public source verified |
 | `S-NPP_VIIRS_GST_IGBP_8-Year_30arcsec.nc` | Exact IGBP class predictor | Present, checksum recorded, class 4 verified |
 | `geometry_goes19.py` | Notebook solar zenith/azimuth helper | Present, expected checksum verified, imported without demo |
-| `GOES_Navigation_2kmFD-GOES-East.nc` | Notebook pixel coordinates, view zenith, and land mask | Downloads copy read directly; checksum and exact pixel verified |
+| `GOES_Navigation_2kmFD-GOES-East.nc` | Notebook pixel coordinates, view zenith, and land mask | Immutable remote object range-read by default; exact identity/layout and pixel verified; complete local copy optional |
 | `goes19_training_sites_geometry.csv` or Parquet | Training-site geometry | Not needed for arbitrary-location inference; derived training-site data |
 | New MODIS/VIIRS LAI labels | None (labels, not predictors) | Correctly excluded |

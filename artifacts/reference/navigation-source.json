@@ -1,7 +1,20 @@
 {
   "filename": "GOES_Navigation_2kmFD-GOES-East.nc",
-  "path": "GOES_Navigation_2kmFD-GOES-East.nc",
+  "mode": "remote_http_byte_ranges",
+  "url": "https://media.githubusercontent.com/media/yiksinl/LAI-CAC/0d808c653be4cd45d0cd655b33e0874e9b326509/artifacts/reference/GOES_Navigation_2kmFD-GOES-East.nc",
+  "git_commit": "0d808c653be4cd45d0cd655b33e0874e9b326509",
   "size_bytes": 735508871,
   "sha256": "c08fa491793996ab204c936f4bb25f299f4cf18383b0bd3673db87f8bd780e96",
-  "preservation": "The checksum-verified raster is stored in Git LFS and resolved relative to this file."
+  "etag": "\"c08fa491793996ab204c936f4bb25f299f4cf18383b0bd3673db87f8bd780e96\"",
+  "shape": [5424, 5424],
+  "array_order": "C",
+  "variables": {
+    "LandMask": {"offset": 10116, "dtype": "<i1", "itemsize": 1},
+    "Latitude": {"offset": 29429892, "dtype": "<f8", "itemsize": 8},
+    "LocalZenithAngle": {"offset": 264788688, "dtype": "<f8", "itemsize": 8},
+    "Longitude": {"offset": 500147480, "dtype": "<f8", "itemsize": 8}
+  },
+  "full_file_fallback": false,
+  "local_comparison_path": "GOES_Navigation_2kmFD-GOES-East.nc",
+  "preservation": "Runtime uses only exact checksummed ranges. A complete local copy is optional and ignored by Git."
 }

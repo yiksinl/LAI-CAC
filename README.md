@@ -6,15 +6,15 @@ CISESS/ESSIC XGBoost model. It does not modify or depend on GreenOrbit.
 
 The project runs a complete real GOES-19 composite through the checksum-verified
 model using the original IGBP grid, checksum-matched notebook solar helper, and the
-original GOES-East navigation raster. The cached result now matches the supplied
-research preprocessing for its exact pixel; see
+original GOES-East navigation raster through checksum-pinned exact HTTP ranges. The
+cached result matches the supplied research preprocessing for its exact pixel; see
 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 ## Setup
 
-Python 3.11 or newer and Git LFS are required. Clone the repository with Git rather
-than relying on a source ZIP so the checksum-verified navigation raster is downloaded
-from Git LFS.
+Python 3.11 or newer is required. The 735 MB navigation raster is not downloaded by
+normal clones or installers; LeafView reads and caches only the exact scalar byte
+ranges needed for the selected location.
 
 ### macOS
 
@@ -22,11 +22,9 @@ The environment has been verified with Homebrew Python 3.14. XGBoost 3.3.0 requi
 the macOS OpenMP runtime.
 
 ```bash
-brew install python@3.14 libomp git-lfs
-git lfs install
+brew install python@3.14 libomp
 git clone https://github.com/yiksinl/LAI-CAC.git
 cd LAI-CAC
-git lfs pull
 python3.14 -m venv .venv
 .venv/bin/pip install -e '.[test]'
 .venv/bin/lai-cac audit
@@ -35,14 +33,12 @@ python3.14 -m venv .venv
 
 ### Windows
 
-Install 64-bit Python 3.11 or newer, Git for Windows, and Git LFS. Then run these
-commands in PowerShell. Replace `3.11` with your installed Python version if needed.
+Install 64-bit Python 3.11 or newer and Git for Windows. Then run these commands in
+PowerShell. Replace `3.11` with your installed Python version if needed.
 
 ```powershell
-git lfs install
 git clone https://github.com/yiksinl/LAI-CAC.git
 Set-Location LAI-CAC
-git lfs pull
 py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[test]"
 .\.venv\Scripts\lai-cac.exe audit
@@ -51,7 +47,8 @@ py -3.11 -m venv .venv
 
 On either platform, open <http://127.0.0.1:8781> after starting the server. Keep the
 terminal or PowerShell window open while using LeafView, and press `Ctrl+C` there to
-stop it. The first estimate requires internet access to retrieve GOES-19 observations.
+stop it. Startup validation and first-time estimates require internet access for the
+pinned navigation source and GOES-19 observations.
 
 The main flow is location-first: choose a point, see its latest completed eight-day
 estimate, then explore monthly snapshots for that same point. Each completed month
@@ -67,8 +64,8 @@ The app then:
   view-zenith checks to the selected query;
 - displays the query-bound LAI, usable dates and per-hour counts, sampled pixel
   center/index, and all four footprint corners; and
-- reuses a derived result only when its coordinates, period, pipeline version, and
-  model/IGBP/solar/navigation checksums match.
+- reuses a derived result only when its coordinates, period, pipeline version,
+  model/IGBP/solar checksums, and full immutable navigation descriptor match.
 - selects the monthly snapshot windows before starting work, reuses the completed
   latest result as the chart's newest point, then loads the newest missing monthly
   snapshot first and the rest with at most two windows in flight. Matching result
@@ -81,6 +78,13 @@ Existing full NetCDF files remain preferred and untouched, and a failed partial 
 falls back to the complete-file download route. See
 [OBSERVATION_RETRIEVAL.md](OBSERVATION_RETRIEVAL.md) for numerical comparisons,
 checksum scope, concurrency behavior, and the cold-cache benchmark.
+
+Navigation is stricter: LeafView accepts only the immutable 735,508,871-byte object
+at commit `0d808c6`, with its known SHA-256/ETag and storage layout. One new location
+uses eight independent scalar ranges (50 payload bytes total); each range is cached
+atomically with its own SHA-256. HTTP 200, wrong identity or range headers, short
+bodies, and network failures abort navigation. There is no complete-file fallback.
+See [NAVIGATION_RETRIEVAL.md](NAVIGATION_RETRIEVAL.md).
 
 Changing the map point or selected window clears the displayed result and history.
 Late estimate and history responses are discarded unless their coordinates and UTC
@@ -118,7 +122,7 @@ Reproduce the verified complete composite:
 ```
 
 This run reads IGBP class 4 from the supplied eight-year grid and calls the supplied
-solar helper at each actual GOES scan timestamp. It reads navigation-raster
+solar helper at each actual GOES scan timestamp. It range-reads navigation-raster
 Latitude, Longitude, LocalZenithAngle, and LandMask at row 797/column 2619; calculates
 view azimuth separately with the notebook's `calculateViewGeometry` translation; retains
 4, 5, and 6 observations at 15, 18, and 21 UTC; and returns LAI `1.2043058872`.
@@ -131,16 +135,16 @@ view azimuth separately with the notebook's `calculateViewGeometry` translation;
 - Historical numerical reproduction: unverified and tracked separately. Historical
   feature rows are validation evidence, not runtime inputs.
 - Verified assets: authoritative notebook, 600-tree model, original eight-year IGBP
-  grid, supplied `geometry_goes19.py`, and original GOES-East navigation raster, all
-  with recorded checksums.
+  grid, supplied `geometry_goes19.py`, and the immutable original GOES-East navigation
+  object and layout, all with recorded checksums or identity fields.
 - Compatibility concern: the supplied helper's documented azimuth convention does
   not match its implemented quadrant formula. The formula is deliberately preserved;
   see [SCIENTIFIC_NOTES.md](SCIENTIFIC_NOTES.md).
 
-The checksum-verified navigation raster is tracked with Git LFS at
-`artifacts/reference/GOES_Navigation_2kmFD-GOES-East.nc`. Install Git LFS before
-cloning (or run `git lfs pull` in an existing clone) so verified inference has the
-full raster rather than only its small pointer file.
+The full navigation raster is intentionally excluded from normal clones and release
+artifacts. Developers who already possess the checksum-matched file may place it at
+`artifacts/reference/GOES_Navigation_2kmFD-GOES-East.nc` for explicit local/remote
+comparison; runtime inference never opens that optional file.
 
 `/api/status` generates this state and the latest UTC window from the live clock and
 dependency audit. `/api/estimate` starts or reuses a query-bound latest or historical

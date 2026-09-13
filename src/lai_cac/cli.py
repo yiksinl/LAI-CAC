@@ -34,7 +34,12 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "audit":
-        print(strict_json_dumps(ReferenceAssets(ROOT / "artifacts/reference").audit(), indent=2))
+        print(strict_json_dumps(
+            ReferenceAssets(ROOT / "artifacts/reference").audit(
+                validate_remote_navigation=True
+            ),
+            indent=2,
+        ))
     elif args.command == "scans":
         start, end = aligned_period(args.start)
         result = []

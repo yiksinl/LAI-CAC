@@ -162,7 +162,10 @@ def test_missing_reference_assets_are_reported(tmp_path: Path):
     assert audit["notebook"]["present"] is False
     assert audit["igbp"]["present"] is False
     assert audit["solar_geometry"]["present"] is False
-    assert audit["navigation"]["present"] is False
+    assert audit["navigation"]["present"] is True
+    assert audit["navigation"]["valid"] is True
+    assert audit["navigation"]["metadata_validation"] == "not_requested"
+    assert audit["navigation"]["local_comparison"]["present"] is False
 
 
 def test_navigation_source_resolves_a_relative_path_from_the_reference_root(tmp_path: Path):
@@ -187,7 +190,7 @@ def test_web_status_names_only_actual_missing_dependencies():
         "Checksum-verified 600-tree model",
         "Checksum-verified eight-year VIIRS IGBP grid",
         "Checksum-verified notebook solar-geometry helper",
-        "Checksum-verified original GOES-East navigation raster",
+        "Checksum-pinned GOES-East navigation via exact HTTP ranges",
     ]
     assert response.json["missing"] == []
     assert response.json["preprocessing_discrepancies"] == []
@@ -217,6 +220,12 @@ def test_web_status_names_only_actual_missing_dependencies():
         "Each point summarizes eight days of satellite observations."
     )
     assert response.json["rolling_window_accuracy"]["status"] == "separately_unevaluated"
+    assert response.json["navigation_source"]["metadata_validation"] in {
+        "not_requested", "verified"
+    }
+    assert response.json["navigation_source"]["full_file_fallbacks"] == 0
+    assert "cache_root" not in response.json["navigation_source"]
+    assert "local_comparison" not in response.json["navigation_source"]
     assert response.headers["Cache-Control"] == "no-store, max-age=0"
 
 
@@ -486,7 +495,7 @@ def test_dependency_status_distinguishes_missing_invalid_and_verified(tmp_path: 
     assert not status["ready_for_estimate_execution"]
     assert not status["ready_for_verified_inference"]
     assert {item["key"] for item in status["missing"]} == {"notebook", "model", "igbp", "solar_geometry"}
-    assert {item["key"] for item in status["preprocessing_discrepancies"]} == {"navigation_equivalence"}
+    assert status["preprocessing_discrepancies"] == []
 
 
 def test_cached_example_separates_verified_preprocessing_from_historical_validation():
@@ -522,11 +531,17 @@ def test_cached_example_separates_verified_preprocessing_from_historical_validat
 
 
 def test_original_navigation_raster_matches_exact_cached_pixel():
+    from lai_cac.navigation_asset import NAVIGATION_SIZE_BYTES
     from lai_cac.goes import sample_pixel
     from lai_cac.navigation import read_navigation_pixel
 
     root = Path(__file__).parents[1]
     assets = ReferenceAssets(root / "artifacts/reference")
+    if (
+        not assets.navigation.is_file()
+        or assets.navigation.stat().st_size != NAVIGATION_SIZE_BYTES
+    ):
+        pytest.skip("Optional local navigation comparison raster is not installed")
     scan = sorted((root / "data/cache").glob("*.nc"))[0]
     navigation = read_navigation_pixel(
         assets.require_navigation(), sample_pixel(scan, 39.1547, -77.2405), 39.1547, -77.2405
@@ -879,7 +894,9 @@ def test_live_estimate_reuses_matching_cached_result():
         "kind": "saved_result",
         "summary": "Showing a saved estimate for this location and period.",
     }
-    assert response.json["result"]["calculated_at_utc"] is None
+    calculated_at = response.json["result"]["calculated_at_utc"]
+    assert calculated_at.endswith("Z")
+    assert datetime.fromisoformat(calculated_at.replace("Z", "+00:00")).tzinfo == timezone.utc
     assert response.json["result"]["query"]["period"]["start"] == "2026-04-07"
     assert response.json["result"]["lai"] == pytest.approx(1.20430588722229)
 
@@ -889,10 +906,24 @@ def test_result_cache_rejects_an_explicit_land_cover_override():
 
     root = Path(__file__).parents[1]
     identity = cache_identity(39.1547, -77.2405, date(2026, 4, 7), root)
+    assert identity["assets"]["navigation"]["sha256"] == (
+        "c08fa491793996ab204c936f4bb25f299f4cf18383b0bd3673db87f8bd780e96"
+    )
+    assert identity["assets"]["navigation"]["git_commit"] == (
+        "0d808c653be4cd45d0cd655b33e0874e9b326509"
+    )
     path = root / "data/results/montgomery-md-2026-04-07.json"
     result = json.loads(path.read_text())
     result["provenance"]["igbp"]["source"] = "explicit_argument"
     assert result_matches_identity(result, identity) is False
+
+
+def test_checked_in_results_do_not_embed_machine_specific_paths():
+    root = Path(__file__).parents[1]
+    for path in (root / "data/results").glob("*.json"):
+        source = path.read_text(encoding="utf-8")
+        assert "/Users/" not in source
+        assert "\\\\Users\\" not in source
 
 
 def test_cached_results_are_query_bound_across_period_changes():

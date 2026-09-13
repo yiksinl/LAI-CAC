@@ -8,7 +8,7 @@ from pathlib import Path
 from .assets import ReferenceAssets
 from .composites import COMPOSITE_DAYS, TARGET_HOURS_UTC, rolling_period
 
-PIPELINE_VERSION = "leafview-notebook-compatible-v1"
+PIPELINE_VERSION = "leafview-notebook-compatible-v2-remote-navigation"
 WEB_COORDINATE_PRECISION = 6
 
 
@@ -31,10 +31,11 @@ def cache_identity(
 ) -> dict[str, object]:
     query = normalized_query(latitude, longitude, start)
     audit = ReferenceAssets(root / "artifacts/reference").audit()
-    assets = {
+    assets: dict[str, object] = {
         name: audit[name].get("sha256")
-        for name in ("model", "igbp", "solar_geometry", "navigation")
+        for name in ("model", "igbp", "solar_geometry")
     }
+    assets["navigation"] = audit["navigation"]["remote_object"]
     inputs = {
         "pipeline_version": PIPELINE_VERSION,
         "query": query,
