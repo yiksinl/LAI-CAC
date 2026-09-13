@@ -12,21 +12,46 @@ research preprocessing for its exact pixel; see
 
 ## Setup
 
-Python 3.11 or newer is required. The environment has been verified with Homebrew
-Python 3.14. XGBoost 3.3.0 requires the macOS OpenMP runtime, which is installed on
-the current machine.
+Python 3.11 or newer and Git LFS are required. Clone the repository with Git rather
+than relying on a source ZIP so the checksum-verified navigation raster is downloaded
+from Git LFS.
+
+### macOS
+
+The environment has been verified with Homebrew Python 3.14. XGBoost 3.3.0 requires
+the macOS OpenMP runtime.
 
 ```bash
+brew install python@3.14 libomp git-lfs
+git lfs install
+git clone https://github.com/yiksinl/LAI-CAC.git
+cd LAI-CAC
+git lfs pull
 python3.14 -m venv .venv
 .venv/bin/pip install -e '.[test]'
 .venv/bin/lai-cac audit
-```
-
-Run the local browser shell at <http://127.0.0.1:8781>:
-
-```bash
 .venv/bin/lai-cac-web
 ```
+
+### Windows
+
+Install 64-bit Python 3.11 or newer, Git for Windows, and Git LFS. Then run these
+commands in PowerShell. Replace `3.11` with your installed Python version if needed.
+
+```powershell
+git lfs install
+git clone https://github.com/yiksinl/LAI-CAC.git
+Set-Location LAI-CAC
+git lfs pull
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[test]"
+.\.venv\Scripts\lai-cac.exe audit
+.\.venv\Scripts\lai-cac-web.exe
+```
+
+On either platform, open <http://127.0.0.1:8781> after starting the server. Keep the
+terminal or PowerShell window open while using LeafView, and press `Ctrl+C` there to
+stop it. The first estimate requires internet access to retrieve GOES-19 observations.
 
 The main flow is location-first: choose a point, see its latest completed eight-day
 estimate, then explore monthly snapshots for that same point. Each completed month
