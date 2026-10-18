@@ -14,7 +14,10 @@ cached result matches the supplied research preprocessing for its exact pixel; s
 
 Python 3.11 or newer is required. The 735 MB navigation raster is not downloaded by
 normal clones or installers; LeafView reads and caches only the exact scalar byte
-ranges needed for the selected location.
+ranges needed for the selected location. A normal clone includes every required
+local runtime asset: the checksum-verified XGBoost model, IGBP grid, solar helper,
+authoritative verification notebook, and navigation-source descriptor. No manual
+asset copy or Git LFS setup is required.
 
 ### macOS
 

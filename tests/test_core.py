@@ -583,7 +583,10 @@ def test_goes_coverage_check_rejects_a_point_outside_the_visible_disk():
     from lai_cac.goes import fixed_grid_xy
 
     root = Path(__file__).parents[1]
-    scan = sorted((root / "data/cache").glob("*.nc"))[0]
+    scans = sorted((root / "data/cache").glob("*.nc"))
+    if not scans:
+        pytest.skip("requires an optional cached GOES observation")
+    scan = scans[0]
     with h5py.File(scan, "r") as source:
         with pytest.raises(ValueError, match="outside the GOES-19 visible disk"):
             fixed_grid_xy(0.0, 120.0, source["goes_imager_projection"])

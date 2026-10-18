@@ -1,3 +1,4 @@
+.DS_Store
 .venv/
 __pycache__/
 .pytest_cache/
@@ -10,6 +11,8 @@ data/navigation-cache/
 data/results/runtime/
 artifacts/reference/*.ipynb
 artifacts/reference/*.json
+!artifacts/reference/LAI_Machine_Learning_Project.ipynb
+!artifacts/reference/lai_xgboost_model.json
 !artifacts/reference/README.md
 !artifacts/reference/navigation-source.json
 artifacts/reference/GOES_Navigation_2kmFD-GOES-East.nc

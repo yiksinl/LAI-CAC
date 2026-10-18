@@ -9,6 +9,10 @@ The supplied scientific reference assets are stored here without renaming:
 - `navigation-source.json` (immutable remote-object and storage-layout record)
 - `GOES_Navigation_2kmFD-GOES-East.nc` (optional untracked local comparison copy)
 
+A normal Git clone includes the required model, IGBP grid, solar helper,
+authoritative verification notebook, and navigation-source descriptor. Only the
+complete navigation raster is excluded because runtime inference does not use it.
+
 Recorded SHA-256 values:
 
 - Model: `815ed3b7cb92b95d598e24385527874864c5e6e282cf05d7dabbcca26391d4c6`
