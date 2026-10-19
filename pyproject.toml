@@ -17,16 +17,9 @@ dependencies = [
   "xgboost==3.3.0",
 ]
 
-[project.optional-dependencies]
-test = ["pytest==8.4.1"]
-
 [project.scripts]
 lai-cac = "lai_cac.cli:main"
 lai-cac-web = "lai_cac.web:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.pytest.ini_options]
-pythonpath = ["src"]
-testpaths = ["tests"]
