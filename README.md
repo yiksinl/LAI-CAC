@@ -91,9 +91,3 @@ Run an estimate directly:
 .venv/bin/pip install -e '.[test]'
 .venv/bin/pytest -q
 ```
-
-## Attribution
-
-Yixuan Li performed the underlying CISESS/ESSIC research and selected and trained
-the model. OpenAI coding assistance was used to implement and verify the application.
-Satellite inputs and model predictions remain deterministic.
