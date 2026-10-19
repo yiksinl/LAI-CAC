@@ -2468,6 +2468,6 @@
     }
   },
   "scientific_concerns": [
-    "The supplied helper labels its solar azimuth as clockwise from north, but its quadrant formula produces a different convention. The formula is intentionally preserved for model compatibility; see SCIENTIFIC_NOTES.md."
+    "The supplied helper labels its solar azimuth as clockwise from north, but its quadrant formula produces a different convention. The formula is intentionally preserved for model compatibility."
   ]
 }

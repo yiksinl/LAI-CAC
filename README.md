@@ -7,8 +7,7 @@ CISESS/ESSIC XGBoost model. It does not modify or depend on GreenOrbit.
 The project runs a complete real GOES-19 composite through the checksum-verified
 model using the original IGBP grid, checksum-matched notebook solar helper, and the
 original GOES-East navigation raster through checksum-pinned exact HTTP ranges. The
-cached result matches the supplied research preprocessing for its exact pixel; see
-[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
+cached result matches the supplied research preprocessing for its exact pixel.
 
 ## Setup
 
@@ -78,16 +77,14 @@ The app then:
 For a first-time observation, LeafView opens the NOAA GOES-19 HDF5 object through
 checksummed HTTP byte ranges and caches only the blocks needed for the sampled pixel.
 Existing full NetCDF files remain preferred and untouched, and a failed partial read
-falls back to the complete-file download route. See
-[OBSERVATION_RETRIEVAL.md](OBSERVATION_RETRIEVAL.md) for numerical comparisons,
-checksum scope, concurrency behavior, and the cold-cache benchmark.
+falls back to the complete-file download route. Partial reads are checksum-verified,
+cached atomically, and shared safely across concurrent requests.
 
 Navigation is stricter: LeafView accepts only the immutable 735,508,871-byte object
 at commit `0d808c6`, with its known SHA-256/ETag and storage layout. One new location
 uses eight independent scalar ranges (50 payload bytes total); each range is cached
 atomically with its own SHA-256. HTTP 200, wrong identity or range headers, short
 bodies, and network failures abort navigation. There is no complete-file fallback.
-See [NAVIGATION_RETRIEVAL.md](NAVIGATION_RETRIEVAL.md).
 
 Changing the map point or selected window clears the displayed result and history.
 Late estimate and history responses are discarded unless their coordinates and UTC
@@ -95,9 +92,7 @@ dates still match the selection. Every output is labelled **Research estimate**;
 window with no usable observations is displayed as an explicit gap rather than a
 model prediction. Newly calculated results record their UTC calculation time, and
 cache hits retain that original timestamp. Older results without a recorded time are
-explicitly labelled as unavailable rather than dated from the request or file. See
-[MVP_VALIDATION.md](MVP_VALIDATION.md) for direct numerical
-checks, browser evidence, and separate latest/history timings.
+explicitly labelled as unavailable rather than dated from the request or file.
 
 Inspect the real scan selection for the first post-cutoff composite:
 
@@ -141,8 +136,8 @@ view azimuth separately with the notebook's `calculateViewGeometry` translation;
   grid, supplied `geometry_goes19.py`, and the immutable original GOES-East navigation
   object and layout, all with recorded checksums or identity fields.
 - Compatibility concern: the supplied helper's documented azimuth convention does
-  not match its implemented quadrant formula. The formula is deliberately preserved;
-  see [SCIENTIFIC_NOTES.md](SCIENTIFIC_NOTES.md).
+  not match its implemented quadrant formula. The formula is deliberately preserved
+  for model compatibility.
 
 The full navigation raster is intentionally excluded from normal clones and release
 artifacts. Developers who already possess the checksum-matched file may place it at

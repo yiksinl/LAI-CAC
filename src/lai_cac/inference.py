@@ -760,7 +760,7 @@ def run_estimate(latitude: float, longitude: float, start: date, igbp_class: int
               "scientific_concerns": [
                   "The supplied helper labels its solar azimuth as clockwise from north, but its quadrant "
                   "formula produces a different convention. The formula is intentionally preserved for "
-                  "model compatibility; see SCIENTIFIC_NOTES.md."
+                  "model compatibility."
               ]}
     if not usable:
         result["data_message"] = (
