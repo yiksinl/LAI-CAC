@@ -99,10 +99,6 @@ Estimates after that period test temporal transfer. Rolling-window construction 
 numerical consistency have been checked, but prediction accuracy for those windows
 has not been evaluated.
 
-The supplied solar helper's documented azimuth convention differs from its
-implemented quadrant formula. LeafView preserves the implemented formula for model
-compatibility.
-
 ## Attribution
 
 Yixuan Li performed the underlying CISESS/ESSIC research and selected and trained
