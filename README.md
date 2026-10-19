@@ -68,26 +68,3 @@ to downloading the complete navigation raster.
 
 Downloaded observations, navigation ranges, and calculated results are stored in
 ignored local cache directories.
-
-## Command line
-
-Check the bundled assets and remote navigation source:
-
-```bash
-.venv/bin/lai-cac audit
-```
-
-Run an estimate directly:
-
-```bash
-.venv/bin/lai-cac estimate --start 2026-04-07 \
-  --lat 39.1547 --lon -77.2405 \
-  --location-name "Montgomery County, Maryland"
-```
-
-## Tests
-
-```bash
-.venv/bin/pip install -e '.[test]'
-.venv/bin/pytest -q
-```
