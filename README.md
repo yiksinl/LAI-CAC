@@ -92,13 +92,6 @@ Run an estimate directly:
 .venv/bin/pytest -q
 ```
 
-## Scientific limits
-
-The model's source observation period was April 7, 2025 through April 6, 2026.
-Estimates after that period test temporal transfer. Rolling-window construction and
-numerical consistency have been checked, but prediction accuracy for those windows
-has not been evaluated.
-
 ## Attribution
 
 Yixuan Li performed the underlying CISESS/ESSIC research and selected and trained
